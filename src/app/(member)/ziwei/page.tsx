@@ -315,9 +315,10 @@ export default function ZiweiPage() {
                 <h2 className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>十二宫命盘</h2>
                 <p className="text-xs text-red-200 mt-0.5">点击宫位查看详情 · 红色高亮为三方四正</p>
               </div>
-              <div className="grid grid-cols-4 gap-0">
-                  {/* 中宫信息区 */}
-                <div className="bg-gradient-to-br from-red-800 to-red-900 text-white flex items-center justify-center p-3 min-h-[150px] border border-red-700 col-span-2 row-span-2">
+              <div className="grid grid-cols-4 gap-0" style={{ gridTemplateRows: 'repeat(4, minmax(0, 1fr))' }}>
+                {/* 中宫信息区 — 显式定位在中间2x2区域 */}
+                <div className="bg-gradient-to-br from-red-800 to-red-900 text-white flex items-center justify-center p-3 min-h-[150px] border border-red-700"
+                  style={{ gridRow: '2 / 4', gridColumn: '2 / 4' }}>
                   <div className="text-center">
                     <div className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>紫微斗数</div>
                     <div className="text-xs mt-1 opacity-80 font-mono">{result.basic.chineseDate}</div>
@@ -345,10 +346,15 @@ export default function ZiweiPage() {
                   const decadalRange = palace.decadal?.range;
                   const isLife = palace.name === '命宫';
 
+                  // CSS Grid 显式定位（1-based）
+                  const gridRow = pos.row + 1;
+                  const gridCol = pos.col + 1;
+
                   return (
                     <div
                       key={branchIdx}
                       onClick={() => setSelectedPalaceIdx(isSelected ? null : branchIdx)}
+                      style={{ gridRow, gridColumn: gridCol }}
                       className={`p-1.5 min-h-[140px] border cursor-pointer transition-all duration-200 flex flex-col ${
                         isSelected
                           ? 'bg-red-100 border-red-500 ring-2 ring-red-400 z-10'
@@ -551,6 +557,20 @@ export default function ZiweiPage() {
                   </div>
                 </div>
 
+                {/* 格局分析 */}
+                {interpretation.patterns && interpretation.patterns.length > 0 && (
+                  <div className="card border-l-4 border-l-purple-500">
+                    <h2 className="card-title">命盘格局</h2>
+                    <div className="space-y-2">
+                      {interpretation.patterns.map((p: string, i: number) => (
+                        <div key={i} className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-sm text-purple-800">
+                          {p}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 命宫主星详解 */}
                 {interpretation.mingGongStars.length > 0 && (
                   <div className="card">
@@ -564,7 +584,19 @@ export default function ZiweiPage() {
                             {star.brightness && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">{star.brightness}</span>}
                             {star.mutagen && <span className="seal-tag">{star.mutagen}</span>}
                           </div>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">{star.personality}</p>
+                          <p className="text-sm text-gray-700 mb-2 leading-relaxed">{star.personality}</p>
+                          {/* 古籍引用 */}
+                          {star.classicQuote && (
+                            <div className="p-2 bg-red-50 rounded border border-red-200 mb-3 text-xs text-red-700 italic">
+                              {star.classicQuote}
+                            </div>
+                          )}
+                          {/* 星曜在命宫的具体含义 */}
+                          {star.inPalaceMeaning && (
+                            <div className="p-2 bg-yellow-50 rounded border border-yellow-200 mb-3 text-xs text-yellow-800">
+                              {star.inPalaceMeaning}
+                            </div>
+                          )}
                           <div className="grid grid-cols-2 gap-3">
                             {[
                               { icon: '💼', title: '事业', content: star.career, color: 'bg-blue-50 border-blue-200' },
@@ -587,6 +619,25 @@ export default function ZiweiPage() {
                   </div>
                 )}
 
+                {/* 四化飞星 */}
+                {interpretation.fourTransformations && interpretation.fourTransformations.length > 0 && (
+                  <div className="card">
+                    <h2 className="card-title">四化飞星</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {interpretation.fourTransformations.map((m: any, i: number) => (
+                        <div key={i} className={`p-3 rounded-lg border text-sm ${
+                          m.mutagen === '化禄' ? 'bg-green-50 border-green-200 text-green-800' :
+                          m.mutagen === '化权' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                          m.mutagen === '化科' ? 'bg-purple-50 border-purple-200 text-purple-800' :
+                          'bg-red-50 border-red-200 text-red-800'
+                        }`}>
+                          <span className="font-bold">{m.palace}宫</span> · {m.star}{m.mutagen}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 重要宫位分析 */}
                 <div className="card">
                   <h2 className="card-title">重要宫位分析</h2>
@@ -595,7 +646,7 @@ export default function ZiweiPage() {
                       { key: '财帛', icon: '💰', color: 'border-yellow-300 bg-yellow-50' },
                       { key: '官禄', icon: '💼', color: 'border-blue-300 bg-blue-50' },
                       { key: '夫妻', icon: '❤️', color: 'border-pink-300 bg-pink-50' },
-                      { key: '福德', icon: '🙏', color: 'border-purple-300 bg-purple-50' },
+                      { key: '迁移', icon: '🚀', color: 'border-green-300 bg-green-50' },
                     ].map((item) => {
                       const palace = result.palaces.find(p => p.name.includes(item.key));
                       if (!palace) return null;
@@ -611,7 +662,11 @@ export default function ZiweiPage() {
                                 <div key={si} className={`text-xs font-medium ${getStarColorClass(s.name)}`}>
                                   {s.name}
                                   {s.brightness && <span className="text-gray-400">({s.brightness})</span>}
-                                  {s.mutagen && <span className="text-red-500 text-[10px] ml-1">[{s.mutagen.replace('化', '')}]</span>}
+                                  {s.mutagen && <span className={`text-[10px] ml-1 ${
+                                    s.mutagen === '化禄' ? 'text-green-600' :
+                                    s.mutagen === '化权' ? 'text-blue-600' :
+                                    s.mutagen === '化科' ? 'text-purple-600' : 'text-red-600'
+                                  }`}>[{s.mutagen.replace('化', '')}]</span>}
                                 </div>
                               ))
                             ) : (
