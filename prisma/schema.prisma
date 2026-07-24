@@ -1,0 +1,317 @@
+// Prisma Schema - 命理网站数据库模型
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ 用户相关 ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  phone         String?   @unique
+  name          String?
+  passwordHash  String?
+  avatar        String?
+  role          String    @default("user") // user, admin, agent
+  memberLevel   String    @default("free") // free, monthly, yearly, lifetime
+  memberExpiry  DateTime?
+  dailyUsage    Int       @default(0)
+  lastUsageDate String?   // YYYY-MM-DD 格式
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  baziRecords   BaziRecord[]
+  ziweiRecords  ZiweiRecord[]
+  qimenRecords  QimenRecord[]
+  meihuaRecords MeihuaRecord[]
+  orders        Order[]
+  offerings     OfferingRecord[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============ 会员套餐 ============
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  name        String   // 月卡、年卡、终身
+  level       String   @unique // monthly, yearly, lifetime
+  price       Float
+  duration    Int?     // 天数，终身为null
+  description String?
+  features    String?  // JSON 格式功能列表
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+// ============ 订单与支付 ============
+
+model Order {
+  id            String    @id @default(cuid())
+  orderNo       String    @unique
+  userId        String
+  type          String    // membership, offering
+  targetId      String?   // 套餐ID或供奉ID
+  amount        Float
+  status        String    @default("pending") // pending, paid, failed, refunded
+  paymentMethod String?   // wechat, alipay
+  transactionId String?   // 第三方支付流水号
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 四柱八字 ============
+
+model BaziRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String?  // 命主姓名
+  gender      String   // male, female
+  birthDate   String   // 公历日期 YYYY-MM-DD
+  birthTime   String   // 出生时辰 HH:mm
+  isLunar     Boolean  @default(false) // 是否农历输入
+  // 四柱数据
+  yearGan     String   // 年干
+  yearZhi     String   // 年支
+  monthGan    String   // 月干
+  monthZhi    String   // 月支
+  dayGan      String   // 日干
+  dayZhi      String   // 日支
+  hourGan     String   // 时干
+  hourZhi     String   // 时支
+  // 分析数据
+  wuxing      String?  // JSON 五行统计
+  dayun       String?  // JSON 大运数据
+  liunian     String?  // JSON 流年数据
+  interpretation String? // JSON 解读数据
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 紫微斗数 ============
+
+model ZiweiRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String?
+  gender      String
+  birthDate   String
+  birthTime   String
+  isLunar     Boolean  @default(false)
+  // 命盘数据
+  mingGong    String?  // 命宫位置
+  palaceData  String?  // JSON 十二宫数据
+  starData    String?  // JSON 星曜数据
+  sihuaData   String?  // JSON 四化数据
+  interpretation String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 奇门遁甲 ============
+
+model QimenRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  queryTime   String   // 起局时间
+  dunType     String   // 阴遁/阳遁
+  juNumber    Int      // 局数
+  // 盘面数据
+  tianPan     String?  // JSON 天盘
+  diPan       String?  // JSON 地盘
+  renPan      String?  // JSON 人盘(八门)
+  shenPan     String?  // JSON 神盘
+  interpretation String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 梅花易数 ============
+
+model MeihuaRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  method      String   // number, time, text 起卦方式
+  input       String   // 输入数据
+  // 卦象数据
+  upperGua    String   // 上卦
+  lowerGua    String   // 下卦
+  dongYao     Int      // 动爻
+  benGua      String?  // 本卦名
+  huGua       String?  // 互卦名
+  bianGua     String?  // 变卦名
+  tiYong      String?  // 体用关系
+  interpretation String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 供奉系统 ============
+
+model OfferingCategory {
+  id        String   @id @default(cuid())
+  name      String   // 佛像、菩萨、财神、祖先、神灵
+  icon      String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  items     OfferingItem[]
+}
+
+model OfferingItem {
+  id          String   @id @default(cuid())
+  categoryId  String
+  name        String   // 供奉对象名称
+  image       String?
+  description String?
+  priceSingle Float?   // 单次供奉价格
+  priceMonth  Float?   // 包月价格
+  priceYear   Float?   // 包年价格
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  records     OfferingRecord[]
+
+  category OfferingCategory @relation(fields: [categoryId], references: [id])
+}
+
+model OfferingRecord {
+  id          String    @id @default(cuid())
+  userId      String
+  itemId      String
+  supplyIds   String?   // JSON 供品ID列表
+  amount      Float
+  type        String    // single, monthly, yearly
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  status      String    @default("active") // active, expired, cancelled
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  item OfferingItem @relation(fields: [itemId], references: [id])
+}
+
+// ============ 供品 ============
+
+model OfferingSupply {
+  id          String   @id @default(cuid())
+  name        String   // 供品名称：香、花、果、灯等
+  icon        String?  // 图标 emoji
+  image       String?  // 图片URL
+  price       Float    // 单价
+  description String?
+  category    String   @default("general") // general, special
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// ============ 支付记录 ============
+
+model Payment {
+  id            String    @id @default(cuid())
+  orderId       String    @unique
+  userId        String
+  method        String    // wechat, alipay
+  amount        Float
+  status        String    @default("pending") // pending, success, failed, refunded
+  transactionId String?   // 第三方交易号
+  paidAt        DateTime?
+  refundAt      DateTime?
+  refundAmount  Float?
+  remark        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ============ 代理商 ============
+
+model Agent {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  companyName String?
+  contactName String?
+  contactPhone String?
+  domain      String?   @unique
+  brandName   String?
+  logo        String?
+  siteConfig  String?   // JSON 站点配置
+  licenseKey  String?   @unique
+  licenseExpiry DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ============ 代理授权 ============
+
+model AgentLicense {
+  id          String    @id @default(cuid())
+  agentId     String
+  licenseKey  String    @unique
+  domain      String?   @unique
+  issuedAt    DateTime  @default(now())
+  expiryAt    DateTime?
+  maxUsers    Int?      // 最大用户数限制
+  features    String?   // JSON 功能列表
+  status      String    @default("active") // active, expired, revoked
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ============ 站点配置 ============
+
+model SiteConfig {
+  id        String @id @default(cuid())
+  key       String @unique
+  value     String
+  category  String @default("general") // general, price, feature
+  updatedAt DateTime @updatedAt
+}

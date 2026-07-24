@@ -1,0 +1,270 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== 基础样式 ========== */
+body {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8a45c' fill-opacity='0.025'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-attachment: fixed;
+}
+
+/* ========== 中国风配色 ========== */
+.chinese-red { color: #b91c1c; }
+.chinese-gold { color: #c8a45c; }
+.chinese-bg { background-color: #f5f0e8; }
+
+/* ========== 中式标题装饰 ========== */
+.section-title {
+  @apply text-2xl md:text-3xl font-bold text-gray-900 text-center;
+  font-family: var(--font-serif), serif;
+  position: relative;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #c8a45c, transparent);
+}
+
+.section-title span {
+  display: inline-block;
+  position: relative;
+}
+
+/* ========== 命盘表格样式 ========== */
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.pillar-cell {
+  @apply bg-white rounded-lg shadow-md p-4 text-center border border-gold-200;
+}
+
+.pillar-gan {
+  @apply text-3xl font-bold mb-2;
+  color: #b91c1c;
+}
+
+.pillar-zhi {
+  @apply text-3xl font-bold mb-2;
+  color: #c8a45c;
+}
+
+/* ========== 五行颜色 ========== */
+.wuxing-jin { color: #c8a45c; }
+.wuxing-mu { color: #2d8c3c; }
+.wuxing-shui { color: #1a5276; }
+.wuxing-huo { color: #b91c1c; }
+.wuxing-tu { color: #8b6914; }
+
+/* ========== 动画 ========== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cloudFloat {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  33% { transform: translateX(20px) translateY(-10px); }
+  66% { transform: translateX(-10px) translateY(5px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* ========== 按钮样式 ========== */
+.btn-primary {
+  @apply bg-red-700 hover:bg-red-800 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200;
+  font-family: var(--font-serif), serif;
+}
+
+.btn-primary:hover {
+  @apply shadow-lg;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  @apply text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200;
+  background: linear-gradient(135deg, #c8a45c, #b8943c);
+  font-family: var(--font-serif), serif;
+}
+
+.btn-secondary:hover {
+  @apply shadow-lg;
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #d4b06c, #c8a45c);
+}
+
+.btn-outline {
+  @apply border-2 border-red-700 text-red-700 hover:bg-red-700 hover:text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200;
+  font-family: var(--font-serif), serif;
+}
+
+/* ========== 卡片样式 ========== */
+.card {
+  @apply bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-parchment-200;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  @apply shadow-xl;
+}
+
+.card-title {
+  @apply text-xl font-bold text-gray-900 mb-4;
+  font-family: var(--font-serif), serif;
+}
+
+/* ========== 中国风装饰边框 ========== */
+.chinese-border {
+  position: relative;
+  border: 2px solid #c8a45c;
+  border-radius: 0.5rem;
+}
+
+.chinese-border::before {
+  content: '◆';
+  position: absolute;
+  top: -0.6rem;
+  left: 1rem;
+  color: #c8a45c;
+  font-size: 0.8rem;
+  background: #f5f0e8;
+  padding: 0 0.5rem;
+}
+
+.chinese-border::after {
+  content: '◆';
+  position: absolute;
+  top: -0.6rem;
+  right: 1rem;
+  color: #c8a45c;
+  font-size: 0.8rem;
+  background: #f5f0e8;
+  padding: 0 0.5rem;
+}
+
+/* ========== 印章风格标签 ========== */
+.seal-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #b91c1c;
+  border: 1.5px solid #b91c1c;
+  border-radius: 2px;
+  transform: rotate(-1deg);
+  letter-spacing: 1px;
+}
+
+.seal-tag-gold {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8b6914;
+  border: 1.5px solid #c8a45c;
+  border-radius: 2px;
+  transform: rotate(1deg);
+  letter-spacing: 1px;
+}
+
+/* ========== 祥云装饰 ========== */
+.cloud-decoration {
+  position: absolute;
+  width: 120px;
+  height: 60px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.cloud-decoration::before,
+.cloud-decoration::after {
+  content: '';
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+}
+
+.cloud-decoration::before {
+  width: 40px;
+  height: 40px;
+  top: 10px;
+  left: 20px;
+}
+
+.cloud-decoration::after {
+  width: 60px;
+  height: 30px;
+  top: 20px;
+  left: 30px;
+  border-radius: 30px 30px 0 0;
+}
+
+/* ========== 会员标签 ========== */
+.member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 3px;
+}
+
+.member-badge-free {
+  background: #f0f0f0;
+  color: #888;
+}
+
+.member-badge-pro {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.member-badge-vip {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  border: 1px solid #b91c1c;
+}
+
+/* ========== 分隔装饰 ========== */
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c8a45c, transparent);
+  margin: 1.5rem 0;
+}
+
+.divider-double {
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    #c8a45c 0px,
+    #c8a45c 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  margin: 1.5rem 0;
+}
