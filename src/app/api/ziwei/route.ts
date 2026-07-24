@@ -31,10 +31,12 @@ export async function POST(req: NextRequest) {
       astrolabe = astro.bySolar(dateStr, timeIndex, genderStr, true, 'zh-CN');
     }
 
-    // 提取宫位数据
+    // 提取宫位数据（完整版）
     const palaces = astrolabe.palaces.map((palace: any) => ({
       name: palace.name,
       index: palace.index,
+      heavenlyStem: palace.heavenlyStem || '',
+      earthlyBranch: palace.earthlyBranch || '',
       majorStars: (palace.majorStars || []).map((s: any) => ({
         name: s.name,
         type: s.type,
@@ -47,7 +49,11 @@ export async function POST(req: NextRequest) {
         mutagen: s.mutagen || '',
         brightness: s.brightness || '',
       })),
-      isBody: palace.isBody || false,
+      adjectiveStars: (palace.adjectiveStars || []).map((s: any) => s.name || ''),
+      changsheng12: palace.changsheng12 || '',
+      boshi12: palace.boshi12 || '',
+      decadal: palace.decadal || null,
+      isBody: palace.isBodyPalace || false,
     }));
 
     // 基本信息

@@ -16,8 +16,14 @@ interface Star {
 interface Palace {
   name: string;
   index: number;
+  heavenlyStem: string;
+  earthlyBranch: string;
   majorStars: Star[];
   minorStars: Star[];
+  adjectiveStars: string[];
+  changsheng12: string;
+  boshi12: string;
+  decadal: { range: [number, number] } | null;
   isBody: boolean;
 }
 
@@ -38,8 +44,13 @@ interface ZiweiResult {
   palaces: Palace[];
 }
 
-// 地支顺序索引
-const BRANCH_ORDER = ['寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑'];
+// 四化颜色映射常量（已定义在后面，这里只是占位）
+const COLOR_LEGEND = {
+  '禄': 'text-green-700 bg-green-100',
+  '权': 'text-blue-700 bg-blue-100',
+  '科': 'text-purple-700 bg-purple-100',
+  '忌': 'text-red-700 bg-red-100',
+};
 
 // 宫位在4x4网格中的位置 (row, col)
 const GRID_POSITIONS: Record<number, { row: number; col: number }> = {
@@ -76,28 +87,35 @@ const SANFANG: Record<number, number[]> = {
   11: [7, 3, 5],   // 丑：酉宫(7)、巳宫(3)、未宫(5)
 };
 
-// 计算大限 (简化版：阳男阴女顺行，阴男阳女逆行)
-function calculateAgeLimits(fiveElementsClass: string, gender: string, soulBranch: string): [number, number][] {
-  const juMap: Record<string, number> = { '水二局': 2, '木三局': 3, '金四局': 4, '土五局': 5, '火六局': 6 };
-  const baseAge = juMap[fiveElementsClass] || 4;
-  
-  const soulIdx = BRANCH_ORDER.indexOf(soulBranch);
-  const isMale = gender === '男' || gender === 'male';
-  const yearGan = soulBranch; // simplified
-  const isForward = isMale; // simplified
+// 四化颜色映射
+const MUTAGEN_STYLE: Record<string, string> = {
+  '化禄': 'bg-green-100 text-green-800 border-green-300',
+  '化权': 'bg-blue-100 text-blue-800 border-blue-300',
+  '化科': 'bg-purple-100 text-purple-800 border-purple-300',
+  '化忌': 'bg-red-100 text-red-800 border-red-300',
+};
 
-  const limits: [number, number][] = [];
-  for (let i = 0; i < 12; i++) {
-    const startAge = baseAge + i * 10;
-    limits.push([startAge, startAge + 9]);
-  }
-  // 根据命宫地支调整起始位置
-  if (soulIdx >= 0) {
-    const rotated = [...limits.slice(soulIdx), ...limits.slice(0, soulIdx)];
-    return isForward ? rotated : [...limits.slice(soulIdx), ...limits.slice(0, soulIdx)];
-  }
-  return limits;
-}
+// 亮度颜色映射
+const BRIGHTNESS_STYLE: Record<string, string> = {
+  '庙': 'text-red-600 font-bold',
+  '旺': 'text-gold-600 font-bold',
+  '得': 'text-blue-600',
+  '利': 'text-blue-500',
+  '平': 'text-gray-500',
+  '不': 'text-gray-400',
+  '陷': 'text-gray-400',
+};
+
+// 亮度背景映射
+const BRIGHTNESS_BG: Record<string, string> = {
+  '庙': 'bg-red-50',
+  '旺': 'bg-gold-50',
+  '得': 'bg-blue-50',
+  '利': 'bg-blue-50',
+  '平': 'bg-gray-50',
+  '不': 'bg-gray-100',
+  '陷': 'bg-gray-100',
+};
 
 // 星曜分组
 function isMajorStar(name: string): boolean {
@@ -200,14 +218,10 @@ export default function ZiweiPage() {
     }
   };
 
-  // 计算大限
+  // 使用API返回的decadal数据
   const ageLimits = useMemo(() => {
     if (!result) return [];
-    return calculateAgeLimits(
-      result.basic.fiveElementsClass,
-      result.basic.gender,
-      result.basic.earthlyBranchOfSoulPalace
-    );
+    return result.palaces.map(p => p.decadal?.range || null);
   }, [result]);
 
   // 三方四正
@@ -302,14 +316,19 @@ export default function ZiweiPage() {
                 <p className="text-xs text-red-200 mt-0.5">点击宫位查看详情 · 红色高亮为三方四正</p>
               </div>
               <div className="grid grid-cols-4 gap-0">
-                {/* 中宫信息区 */}
-                <div className="bg-red-800 text-white flex items-center justify-center p-2 min-h-[140px] border border-red-700 col-span-2 row-span-2">
+                  {/* 中宫信息区 */}
+                <div className="bg-gradient-to-br from-red-800 to-red-900 text-white flex items-center justify-center p-3 min-h-[150px] border border-red-700 col-span-2 row-span-2">
                   <div className="text-center">
                     <div className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>紫微斗数</div>
-                    <div className="text-xs mt-1 opacity-80">{result.basic.chineseDate}</div>
-                    <div className="text-xs opacity-80">{result.basic.fiveElementsClass}</div>
-                    <div className="text-xs mt-1 opacity-60">{result.basic.gender === '男' ? '乾造' : '坤造'}</div>
-                    <div className="w-8 h-8 mx-auto mt-2 border border-white/30 rounded-full flex items-center justify-center text-sm opacity-60">☯</div>
+                    <div className="text-xs mt-1 opacity-80 font-mono">{result.basic.chineseDate}</div>
+                    <div className="divider-gold !my-2 !bg-white/20 !h-px" />
+                    <div className="text-xs opacity-90">{result.basic.fiveElementsClass}</div>
+                    <div className="text-xs mt-1 flex items-center justify-center gap-3">
+                      <span>命主 <strong className="text-gold-300">{result.basic.soul || '--'}</strong></span>
+                      <span>身主 <strong className="text-blue-300">{result.basic.body || '--'}</strong></span>
+                    </div>
+                    <div className="text-xs mt-1 opacity-60">{result.basic.gender === '男' ? '乾造' : '坤造'} · {result.basic.zodiac}年</div>
+                    <div className="w-7 h-7 mx-auto mt-2 border border-white/30 rounded-full flex items-center justify-center text-[10px] opacity-50">☯</div>
                   </div>
                 </div>
 
@@ -323,61 +342,97 @@ export default function ZiweiPage() {
 
                   const isSelected = selectedPalaceIdx === branchIdx;
                   const isSanfang = sanfangPalaces.includes(branchIdx);
-                  const isHighlighted = isSelected || isSanfang;
+                  const decadalRange = palace.decadal?.range;
+                  const isLife = palace.name === '命宫';
 
                   return (
                     <div
                       key={branchIdx}
                       onClick={() => setSelectedPalaceIdx(isSelected ? null : branchIdx)}
-                      className={`p-1.5 min-h-[140px] border cursor-pointer transition-all duration-200 ${
+                      className={`p-1.5 min-h-[140px] border cursor-pointer transition-all duration-200 flex flex-col ${
                         isSelected
                           ? 'bg-red-100 border-red-500 ring-2 ring-red-400 z-10'
                           : isSanfang
                           ? 'bg-yellow-50 border-yellow-400'
+                          : isLife
+                          ? 'bg-gold-50/50 border-gold-300'
                           : palace.isBody
                           ? 'bg-blue-50/60 border-parchment-200'
                           : 'bg-white border-parchment-200 hover:bg-parchment-50'
                       }`}
                     >
-                      {/* 宫位头 */}
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`font-bold text-xs ${isSelected ? 'text-red-700' : 'text-red-700'}`}>
-                          {palace.name}
-                        </span>
+                      {/* 宫位头: 宫干支 + 宫名 + 大限 */}
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-400 font-mono">
+                            {palace.heavenlyStem}{palace.earthlyBranch}
+                          </span>
+                          <span className={`font-bold text-xs ${isLife ? 'text-gold-700' : 'text-red-700'}`}>
+                            {palace.name}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-0.5">
-                          {palace.isBody && <span className="text-[10px] text-blue-600 bg-blue-100 px-1 rounded">身</span>}
-                          {ageLimits[branchIdx] && (
-                            <span className="text-[9px] text-gray-400 bg-gray-100 px-1 rounded">
-                              {ageLimits[branchIdx][0]}-{ageLimits[branchIdx][1]}岁
+                          {palace.isBody && <span className="text-[9px] text-blue-600 bg-blue-100 px-1 rounded font-medium">身</span>}
+                          {decadalRange && (
+                            <span className="text-[8px] text-gray-400 bg-gray-100 px-1 rounded font-mono">
+                              {decadalRange[0]}-{decadalRange[1]}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* 主星 */}
-                      <div className="space-y-0.5">
+                      {/* 主星 - 带亮度 + 四化 */}
+                      <div className="flex flex-wrap gap-0.5 mb-0.5">
                         {palace.majorStars.map((star, si) => (
-                          <div key={si} className={`text-[11px] font-medium leading-tight ${getStarColorClass(star.name)}`}>
+                          <span
+                            key={si}
+                            className={`inline-flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded ${
+                              star.mutagen
+                                ? MUTAGEN_STYLE[star.mutagen] || 'bg-gray-100 text-gray-700'
+                                : star.brightness && ['庙', '旺', '得'].includes(star.brightness)
+                                ? 'bg-red-50 text-red-700'
+                                : 'bg-gray-50 text-gray-600'
+                            }`}
+                          >
                             {star.name}
-                            {star.mutagen && (
-                              <span className={`text-[9px] ml-0.5 font-bold ${
-                                star.mutagen === '化禄' ? 'text-green-600' :
-                                star.mutagen === '化权' ? 'text-blue-600' :
-                                star.mutagen === '化科' ? 'text-purple-600' : 'text-red-600'
-                              }`}>[{star.mutagen.replace('化', '')}]</span>
+                            {star.brightness && (
+                              <span className={`text-[8px] ${BRIGHTNESS_STYLE[star.brightness] || 'text-gray-400'}`}>
+                                {star.brightness}
+                              </span>
                             )}
-                            {star.brightness && !star.mutagen && (
-                              <span className="text-[9px] text-gray-400 ml-0.5">{star.brightness}</span>
-                            )}
-                          </div>
-                        ))}
-                        {/* 辅星 */}
-                        {palace.minorStars.map((star, si) => (
-                          <div key={`m${si}`} className="text-[10px] text-gray-500 leading-tight">
-                            {star.name}
-                          </div>
+                          </span>
                         ))}
                       </div>
+
+                      {/* 辅星 */}
+                      {palace.minorStars.length > 0 && (
+                        <div className="flex flex-wrap gap-0.5 mb-0.5">
+                          {palace.minorStars.map((star, si) => (
+                            <span key={si} className="text-[9px] text-gray-500 px-1 py-0.5 rounded bg-gray-50/50">
+                              {star.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 杂曜 */}
+                      {palace.adjectiveStars && palace.adjectiveStars.length > 0 && (
+                        <div className="flex flex-wrap gap-0.5 flex-1">
+                          {palace.adjectiveStars.slice(0, 4).map((name, si) => (
+                            <span key={si} className="text-[8px] text-gray-400 px-1 rounded bg-white/50">
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 底部: 长生十二神 + 博士十二神 */}
+                      {(palace.changsheng12 || palace.boshi12) && (
+                        <div className="flex justify-between text-[7px] text-gray-400 mt-auto pt-0.5 border-t border-parchment-100">
+                          {palace.changsheng12 ? <span>{palace.changsheng12}</span> : <span />}
+                          {palace.boshi12 ? <span>{palace.boshi12}</span> : <span />}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -471,14 +526,17 @@ export default function ZiweiPage() {
                 </div>
 
                 {/* 年龄大限 */}
-                {ageLimits[selectedPalace.index] && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-xs font-bold text-blue-800 mb-1">年龄大限</h4>
-                    <span className="text-sm font-bold text-blue-700">
-                      {ageLimits[selectedPalace.index][0]} — {ageLimits[selectedPalace.index][1]} 岁
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const limit = ageLimits[selectedPalace.index];
+                  return limit ? (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="text-xs font-bold text-blue-800 mb-1">年龄大限</h4>
+                      <span className="text-sm font-bold text-blue-700">
+                        {limit[0]} — {limit[1]} 岁
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
 
