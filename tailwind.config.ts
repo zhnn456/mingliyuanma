@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['var(--font-serif)', 'serif'],
-        xiaowei: ['var(--font-xiaowei)', 'cursive'],
+        serif: ['"Noto Serif SC"', 'STSong', 'SimSun', 'serif'],
+        xiaowei: ['"ZCOOL XiaoWei"', 'cursive'],
       },
       colors: {
         primary: {

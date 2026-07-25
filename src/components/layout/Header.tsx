@@ -14,7 +14,7 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo - 使用书法字体 */}
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-bold chinese-red" style={{ fontFamily: 'var(--font-xiaowei), cursive' }}>
+            <span className="text-2xl font-bold chinese-red" style={{ fontFamily: 'cursive' }}>
               命理网
             </span>
             <span className="seal-tag-gold hidden sm:inline-block">传承</span>

@@ -210,7 +210,7 @@ export default function QimenPage() {
             {/* 九宫格盘面 */}
             <div className="card !p-0 overflow-hidden">
               <div className="bg-gradient-to-r from-red-800 to-red-900 text-white px-4 py-3">
-                <h2 className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>奇门盘面</h2>
+                <h2 className="font-bold text-lg" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>奇门盘面</h2>
                 <p className="text-xs text-red-200 mt-0.5">点击宫位查看详解 · 天盘干/地盘干 · 八门·九星·八神</p>
               </div>
               <div className="grid grid-cols-3 gap-0">

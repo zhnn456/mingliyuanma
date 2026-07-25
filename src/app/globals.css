@@ -16,7 +16,7 @@ body {
 /* ========== 中式标题装饰 ========== */
 .section-title {
   @apply text-2xl md:text-3xl font-bold text-gray-900 text-center;
-  font-family: var(--font-serif), serif;
+  font-family: 'Noto Serif SC', STSong, SimSun, serif;
   position: relative;
   padding-bottom: 1rem;
   margin-bottom: 2rem;

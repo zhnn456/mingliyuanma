@@ -1,26 +1,9 @@
 import type { Metadata } from 'next';
-import { Noto_Serif_SC, ZCOOL_XiaoWei } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Providers } from '@/components/Providers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-// 中文字体：标题使用思源宋体
-const notoSerif = Noto_Serif_SC({
-  subsets: ['latin'],
-  weight: ['400', '600', '700', '900'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-// 装饰性书法字体
-const zcoolXiaowei = ZCOOL_XiaoWei({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-xiaowei',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: {
@@ -44,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" className={`${notoSerif.variable} ${zcoolXiaowei.variable}`}>
-      <body className="min-h-screen flex flex-col bg-[#f5f0e8] font-sans">
+    <html lang="zh-CN">
+      <body className="min-h-screen flex flex-col bg-[#f5f0e8]">
         <Providers>
           <Header />
           <main className="flex-1">

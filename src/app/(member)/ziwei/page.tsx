@@ -312,7 +312,7 @@ export default function ZiweiPage() {
             {/* 十二宫命盘 - 4x4 网格 */}
             <div className="card !p-0 overflow-hidden">
               <div className="bg-gradient-to-r from-red-800 to-red-900 text-white px-4 py-3">
-                <h2 className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>十二宫命盘</h2>
+                <h2 className="font-bold text-lg" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>十二宫命盘</h2>
                 <p className="text-xs text-red-200 mt-0.5">点击宫位查看详情 · 红色高亮为三方四正</p>
               </div>
               <div className="grid grid-cols-4 gap-0" style={{ gridTemplateRows: 'repeat(4, minmax(0, 1fr))' }}>
@@ -320,7 +320,7 @@ export default function ZiweiPage() {
                 <div className="bg-gradient-to-br from-red-800 to-red-900 text-white flex items-center justify-center p-3 min-h-[150px] border border-red-700"
                   style={{ gridRow: '2 / 4', gridColumn: '2 / 4' }}>
                   <div className="text-center">
-                    <div className="font-bold text-lg" style={{ fontFamily: 'var(--font-serif), serif' }}>紫微斗数</div>
+                    <div className="font-bold text-lg" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>紫微斗数</div>
                     <div className="text-xs mt-1 opacity-80 font-mono">{result.basic.chineseDate}</div>
                     <div className="divider-gold !my-2 !bg-white/20 !h-px" />
                     <div className="text-xs opacity-90">{result.basic.fiveElementsClass}</div>
