@@ -1,7 +1,8 @@
+import './crypto-polyfill'; // 必须在 next-auth 之前 import，patch crypto.hkdf
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/db/prisma';
-import bcrypt from 'bcryptjs';
+import { verifyPassword } from '@/lib/password';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -24,7 +25,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('用户不存在');
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const isValid = await verifyPassword(credentials.password, user.passwordHash);
         if (!isValid) {
           throw new Error('密码错误');
         }

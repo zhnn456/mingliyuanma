@@ -4,7 +4,9 @@
  * - 管理后台路由保护
  * - 安全响应头注入
  */
+import '@/lib/crypto-polyfill'; // 必须在 next-auth/jwt 之前 import，patch crypto.hkdf
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 // IP 限流配置
 const RATE_LIMIT_MAX = 100; // 每100请求
@@ -30,12 +32,32 @@ function cleanupRateLimit() {
   });
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // 跳过静态资源
   if (EXEMPT_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
+  }
+
+  // 管理后台路由保护 — 用 JWT 验证角色
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    try {
+      const token = await getToken({
+        req,
+        secret: process.env.NEXTAUTH_SECRET,
+      });
+      // token.role 由 auth.ts 中的 JWT callback 注入
+      if (!token || (token as any).role !== 'admin') {
+        const loginUrl = new URL('/login', req.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    } catch {
+      // 如果 token 验证失败，重定向到登录页
+      const loginUrl = new URL('/login', req.url);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   // 获取客户端 IP
@@ -77,13 +99,6 @@ export function middleware(req: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-  // 管理后台路由保护 — 重定向到登录页
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    // 客户端路由保护由页面层处理（检查 session role）
-    // 中间件层无法直接访问 NextAuth session
-    // 这里仅注入安全头
-  }
 
   return response;
 }

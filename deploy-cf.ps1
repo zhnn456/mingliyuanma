@@ -394,8 +394,9 @@ if (-not $secretSet) {
     Write-Ok "NEXTAUTH_SECRET 已设置"
 }
 
-# 部署（wrangler.toml 已配置 main + assets，直接用 wrangler deploy）
+# 部署（设置 OPEN_NEXT_DEPLOY=true 防止 wrangler 委托给 OpenNext 触发 Miniflare 崩溃）
 Write-Warn2 "部署到 Cloudflare Workers..."
+$env:OPEN_NEXT_DEPLOY = "true"
 wrangler deploy 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Err "部署失败"
