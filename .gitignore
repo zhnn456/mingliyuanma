@@ -1,6 +1,5 @@
 node_modules/
 .next/
-.next-dev/
 .env
 .env.local
 *.db
@@ -19,4 +18,3 @@ nul
 .wrangler/
 .open-next/
 .dev.vars
-prisma/migrations.sql

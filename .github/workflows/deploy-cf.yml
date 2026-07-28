@@ -75,6 +75,18 @@ jobs:
           echo "$NEXTAUTH_SECRET" | \
             npx wrangler secret put NEXTAUTH_SECRET --name "$WORKER_NAME"
 
+      - name: Run D1 database migration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -f prisma/migrations.sql ]; then
+            npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql
+            echo "::notice::D1 migration applied"
+          else
+            echo "::warning::prisma/migrations.sql not found, skipping DB migration"
+          fi
+
       - name: Deploy to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

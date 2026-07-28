@@ -319,22 +319,15 @@ if (-not (Test-Path (Join-Path $root "node_modules"))) {
     }
 }
 
-# 确保 @cloudflare/next-on-pages 和 @prisma/adapter-d1 已安装
-$needCfDeps = $false
-if (-not (Test-Path (Join-Path $root "node_modules\@cloudflare\next-on-pages\package.json"))) {
-    $needCfDeps = $true
-}
-if (-not (Test-Path (Join-Path $root "node_modules\@prisma\adapter-d1\package.json"))) {
-    $needCfDeps = $true
-}
-if ($needCfDeps) {
-    Write-Warn2 "安装 Cloudflare 适配依赖（用 --legacy-peer-deps 解决 next 版本冲突）..."
-    npm install --save-dev @cloudflare/next-on-pages @prisma/adapter-d1 --legacy-peer-deps 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "依赖安装失败"
-        exit 1
-    }
-}
+	# 确保 @prisma/adapter-d1 已安装
+	if (-not (Test-Path (Join-Path $root "node_modules\@prisma\adapter-d1\package.json"))) {
+	    Write-Warn2 "安装 @prisma/adapter-d1（用 --legacy-peer-deps 解决版本冲突）..."
+	    npm install --save-dev @prisma/adapter-d1 --legacy-peer-deps 2>&1 | Out-Host
+	    if ($LASTEXITCODE -ne 0) {
+	        Write-Err "依赖安装失败"
+	        exit 1
+	    }
+	}
 
 # 生成 Prisma Client
 npx prisma generate 2>&1 | Out-Null
@@ -344,68 +337,48 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Ok "Prisma Client 已生成"
 
-# 构建
-if (-not $SkipBuild) {
-    Write-Warn2 "构建 CF Pages 版本（可能需要 2-3 分钟）..."
-    npm run build:pages 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "构建失败"
-        Write-Host ""
-        Write-Host "    常见原因：" -ForegroundColor Yellow
-        Write-Host "    1. 某些 Node.js 模块不兼容 Edge Runtime"
-        Write-Host "    2. 代码中用了 Node.js 专有 API（fs、crypto、Buffer 等）"
-        Write-Host "    3. 检查 src/middleware.ts 和 API routes 是否标记了 export const runtime = 'edge'"
-        exit 1
-    }
-    Write-Ok "构建完成"
-} else {
-    Write-Ok "跳过构建（-SkipBuild）"
-    if (-not (Test-Path (Join-Path $root ".vercel\output\static"))) {
-        Write-Err ".vercel/output/static 不存在，无法跳过构建"
-        exit 1
-    }
-}
+	# 构建
+	if (-not $SkipBuild) {
+	    Write-Warn2 "构建 OpenNext Worker 版本（可能需要 2-3 分钟）..."
+	    npm run build:worker 2>&1 | Out-Host
+	    if ($LASTEXITCODE -ne 0) {
+	        Write-Err "构建失败"
+	        Write-Host ""
+	        Write-Host "    常见原因：" -ForegroundColor Yellow
+	        Write-Host "    1. 某些 Node.js 模块不兼容 Cloudflare Workers"
+	        Write-Host "    2. 代码中用了 Node.js 专有 API（fs、crypto 等）"
+	        Write-Host "    3. Prisma 适配器未正确配置 D1"
+	        exit 1
+	    }
+	    Write-Ok "构建完成"
+	} else {
+	    Write-Ok "跳过构建（-SkipBuild）"
+	    if (-not (Test-Path (Join-Path $root ".open-next\worker.js"))) {
+	        Write-Err ".open-next/worker.js 不存在，无法跳过构建"
+	        exit 1
+	    }
+	}
 
 if ($SkipDeploy) {
     Write-Warn2 "已指定 -SkipDeploy，跳过部署"
     Write-Host ""
-    Write-Host "    构建产物位置: .vercel\output\static" -ForegroundColor Cyan
-    Write-Host "    本地预览: npm run preview:pages" -ForegroundColor Cyan
+    Write-Host "    构建产物位置: .open-next/" -ForegroundColor Cyan
+    Write-Host "    本地预览: npm run preview:worker" -ForegroundColor Cyan
     exit 0
 }
 
-# 创建 Pages 项目（首次）
-$projectExists = $false
-$projectsList = wrangler pages project list 2>&1 | Out-String
-if ($projectsList -match [regex]::Escape($ProjectName)) {
-    $projectExists = $true
-}
-if (-not $projectExists) {
-    Write-Warn2 "Pages 项目 '$ProjectName' 不存在，正在创建..."
-    wrangler pages project create $ProjectName --production-branch=main 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "Pages 项目创建失败"
-        exit 1
-    }
-    Write-Ok "Pages 项目已创建"
-} else {
-    Write-Ok "Pages 项目已存在"
-}
-
-# 设置 NEXTAUTH_SECRET（wrangler pages secret put 通过 stdin 读取纯 value，不是 KEY=VALUE）
+# 设置 NEXTAUTH_SECRET（wrangler secret put 通过 stdin 读取纯 value）
 Write-Warn2 "设置 NEXTAUTH_SECRET（如果已存在会覆盖）..."
 $secret = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])
-# 用 cmd /c 包一层，确保 stdin 管道行为和 bash 一致
 $secretSet = $false
 try {
-    $cmdLine = "echo $secret | wrangler pages secret put NEXTAUTH_SECRET --project-name $ProjectName"
+    $cmdLine = "echo $secret | wrangler secret put NEXTAUTH_SECRET --name $ProjectName"
     cmd /c $cmdLine 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) { $secretSet = $true }
 } catch {}
 if (-not $secretSet) {
-    # 回退方案：用 PowerShell 直接管道（部分版本可能不工作）
     try {
-        "$secret`n" | wrangler pages secret put NEXTAUTH_SECRET --project-name $ProjectName 2>&1 | Out-Null
+        "$secret`n" | wrangler secret put NEXTAUTH_SECRET --name $ProjectName 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) { $secretSet = $true }
     } catch {}
 }
@@ -413,7 +386,7 @@ if (-not $secretSet) {
     Write-Warn2 "自动设置 NEXTAUTH_SECRET 失败，请手动设置："
     Write-Host "    已为你生成密钥: $secret" -ForegroundColor Gray
     Write-Host "    请在另一个 PowerShell 窗口执行：" -ForegroundColor Yellow
-    Write-Host "        wrangler pages secret put NEXTAUTH_SECRET --project-name $ProjectName" -ForegroundColor White
+    Write-Host "        wrangler secret put NEXTAUTH_SECRET --name $ProjectName" -ForegroundColor White
     Write-Host "    然后粘贴上面的密钥并回车" -ForegroundColor Gray
     Write-Host ""
     Write-Host "    设置完后回到此窗口继续（本次部署可继续，但运行时需要这个 secret）" -ForegroundColor Yellow
@@ -421,9 +394,9 @@ if (-not $secretSet) {
     Write-Ok "NEXTAUTH_SECRET 已设置"
 }
 
-# 部署
-Write-Warn2 "部署到 Cloudflare Pages..."
-wrangler pages deploy .vercel/output/static --project-name $ProjectName --branch=main 2>&1 | Out-Host
+# 部署（wrangler.toml 已配置 main + assets，直接用 wrangler deploy）
+Write-Warn2 "部署到 Cloudflare Workers..."
+wrangler deploy 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Err "部署失败"
     exit 1
@@ -442,8 +415,8 @@ Write-Host "=============================================" -ForegroundColor Gree
 Write-Host "  部署成功！" -ForegroundColor Green
 Write-Host "=============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Pages 域名:    https://$ProjectName.pages.dev" -ForegroundColor Cyan
-if ($finalUrl -and $finalUrl -ne "https://$ProjectName.pages.dev") {
+Write-Host "  Worker 域名:   https://$ProjectName.workers.dev" -ForegroundColor Cyan
+if ($finalUrl -and $finalUrl -ne "https://$ProjectName.workers.dev") {
     Write-Host "  自定义域名:    $finalUrl" -ForegroundColor Cyan
 }
 Write-Host ""

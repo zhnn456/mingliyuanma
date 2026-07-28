@@ -2,7 +2,7 @@
 # 部署命令: npx wrangler deploy
 name = "mingli-yuanma"
 main = ".open-next/worker.js"
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
 
 # 静态资源（OpenNext 构建产物）

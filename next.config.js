@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // CF 构建时用默认 .next，本地开发用 .next-dev（避免沙箱缓存问题）
-  ...(process.env.CF_PAGES !== '1' ? { distDir: '.next-dev' } : {}),
   images: {
     domains: ['localhost'],
   },

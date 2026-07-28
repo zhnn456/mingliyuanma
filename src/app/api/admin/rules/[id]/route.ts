@@ -24,15 +24,16 @@ async function checkAdmin() {
 /** 查看规则详情 */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const session = await checkAdmin();
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
 
   const rule = await prisma.divinationRule.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!rule) {
@@ -48,8 +49,9 @@ export async function GET(
 /** 更新规则 */
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const session = await checkAdmin();
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
@@ -69,7 +71,7 @@ export async function PUT(
 
   try {
     const rule = await prisma.divinationRule.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
     clearRuleCache();
@@ -82,15 +84,16 @@ export async function PUT(
 /** 删除规则 */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const session = await checkAdmin();
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
 
   try {
-    await prisma.divinationRule.delete({ where: { id: params.id } });
+    await prisma.divinationRule.delete({ where: { id } });
     clearRuleCache();
     return NextResponse.json({ success: true });
   } catch (error: any) {

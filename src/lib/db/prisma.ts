@@ -6,18 +6,18 @@ const globalForPrisma = globalThis as unknown as {
 
 /**
  * 创建 PrismaClient 实例
- * - Cloudflare Pages 环境：通过 D1 adapter 连接 D1 数据库
+ * - Cloudflare Workers 环境（OpenNext）：通过 D1 adapter 连接 D1 数据库
  * - 本地开发环境：通过 DATABASE_URL 连接本地 SQLite
  */
 function createPrismaClient(): PrismaClient {
-  // Cloudflare Pages 环境
+  // Cloudflare Workers 环境（通过 @opennextjs/cloudflare 部署）
   if (process.env.CF_PAGES === '1') {
     try {
-      // @ts-ignore - @cloudflare/next-on-pages 仅在 CF 环境安装
-      const { getRequestContext } = require('@cloudflare/next-on-pages');
+      // @ts-ignore - @opennextjs/cloudflare 仅在 CF 环境安装
+      const { getCloudflareContext } = require('@opennextjs/cloudflare');
       // @ts-ignore - @prisma/adapter-d1 仅在 CF 环境安装
       const { PrismaD1 } = require('@prisma/adapter-d1');
-      const env = getRequestContext().env;
+      const env = getCloudflareContext().env;
       const adapter = new PrismaD1(env.DB);
       return new PrismaClient({ adapter });
     } catch (e) {
