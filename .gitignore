@@ -17,5 +17,6 @@ nul
 # Cloudflare Pages 构建产物
 .vercel/
 .wrangler/
+.open-next/
 .dev.vars
 prisma/migrations.sql

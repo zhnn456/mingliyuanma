@@ -10,9 +10,9 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "build:pages": "npx @cloudflare/next-on-pages",
-    "preview:pages": "npx wrangler pages dev .vercel/output/static --compatibility-flag=nodejs_compat",
-    "deploy:pages": "npx wrangler pages deploy .vercel/output/static",
+    "build:worker": "npx opennextjs-cloudflare build",
+    "preview:worker": "npx wrangler dev",
+    "deploy:worker": "npm run build:worker && wrangler deploy",
     "db:migrate:d1": "npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql",
     "db:migrate:d1:local": "npx wrangler d1 execute yuanmamingli --local --file=prisma/migrations.sql"
   },
@@ -30,7 +30,7 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
+    "@opennextjs/cloudflare": "latest",
     "@prisma/adapter-d1": "^7.9.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.0",
