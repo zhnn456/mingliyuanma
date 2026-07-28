@@ -12,14 +12,37 @@ interface HistoryRecord {
   result: any;
 }
 
+interface OrderRecord {
+  id: string;
+  orderNo: string;
+  amount: number;
+  status: string;
+  type: string;
+  createdAt: string;
+}
+
+interface OfferingRecordItem {
+  id: string;
+  amount: number;
+  type: string;
+  status: string;
+  createdAt: string;
+  item?: { name: string; image?: string | null };
+}
+
 export default function ProfilePage() {
   const { data: session } = useSession();
   const [records, setRecords] = useState<HistoryRecord[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [offerings, setOfferings] = useState<OfferingRecordItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<'history' | 'orders' | 'offerings'>('history');
 
   useEffect(() => {
     if (session) {
       fetchHistory();
+      fetchOrders();
+      fetchOfferings();
     }
   }, [session]);
 
@@ -35,6 +58,26 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/user/orders');
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.orders || []);
+      }
+    } catch {}
+  };
+
+  const fetchOfferings = async () => {
+    try {
+      const res = await fetch('/api/offering?type=records');
+      if (res.ok) {
+        const data = await res.json();
+        setOfferings(data.records || []);
+      }
+    } catch {}
   };
 
   const getTypeName = (type: string) => {
@@ -138,9 +181,26 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* 历史记录 */}
+        {/* 标签切换：历史 / 订单 / 供奉 */}
+        <div className="flex gap-2 mb-6">
+          {[
+            { key: 'history' as const, label: '排盘记录', icon: '📋' },
+            { key: 'orders' as const, label: '我的订单', icon: '🧾' },
+            { key: 'offerings' as const, label: '供奉记录', icon: '🙏' },
+          ].map(t => (
+            <button key={t.key} onClick={() => setActiveSection(t.key)}
+              className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${
+                activeSection === t.key ? 'bg-red-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'
+              }`}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 排盘记录 */}
+        {activeSection === 'history' && (
         <div className="card p-6">
-          <h2 className="card-title">历史记录</h2>
+          <h2 className="card-title">排盘记录</h2>
           {loading ? (
             <div className="text-center py-8 text-gray-500 flex items-center justify-center gap-2">
               <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -181,6 +241,81 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+        )}
+
+        {/* 订单记录 */}
+        {activeSection === 'orders' && (
+        <div className="card p-6">
+          <h2 className="card-title">我的订单</h2>
+          {orders.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <div className="text-5xl mb-3">🧾</div>
+              <p className="text-gray-500">暂无订单</p>
+              <Link href="/membership" className="inline-block mt-4 btn-outline px-6 py-2 text-sm">
+                开通会员
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {orders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3.5 bg-parchment-50/60 rounded-xl border border-parchment-100">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-gray-400">{order.orderNo}</span>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                      order.status === 'paid' ? 'bg-green-100 text-green-800' :
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {order.status === 'paid' ? '已支付' : order.status === 'pending' ? '待支付' : order.status}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold chinese-red">¥{order.amount.toFixed(2)}</div>
+                    <div className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('zh-CN')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* 供奉记录 */}
+        {activeSection === 'offerings' && (
+        <div className="card p-6">
+          <h2 className="card-title">供奉记录</h2>
+          {offerings.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <div className="text-5xl mb-3">🙏</div>
+              <p className="text-gray-500">暂无供奉记录</p>
+              <Link href="/offering" className="inline-block mt-4 btn-outline px-6 py-2 text-sm">
+                去供奉
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {offerings.map((off) => (
+                <div key={off.id} className="flex items-center justify-between p-3.5 bg-parchment-50/60 rounded-xl border border-parchment-100">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-gray-900">{off.item?.name || '供奉'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      off.status === 'active' ? 'bg-green-100 text-green-800' :
+                      off.status === 'expired' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {off.status === 'active' ? '供奉中' : off.status === 'expired' ? '已到期' : '已完成'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold chinese-red">¥{off.amount.toFixed(2)}</div>
+                    <div className="text-xs text-gray-400">{new Date(off.createdAt).toLocaleDateString('zh-CN')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
+
       </div>
     </div>
   );

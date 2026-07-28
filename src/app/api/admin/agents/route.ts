@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { requireAdmin, sanitizeString } from '@/lib/security';
+import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 
 export async function GET() {
@@ -16,31 +17,29 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // 统计每个代理商的客户数和收入
-    const agentsWithStats = await Promise.all(
-      agents.map(async (agent) => {
-        // 查询代理商关联的用户信息
-        const user = await prisma.user.findUnique({
-          where: { id: agent.userId },
-          select: { id: true, email: true, name: true, memberLevel: true, createdAt: true },
-        });
+    const userIds = agents.map(a => a.userId);
+    const agentIds = agents.map(a => a.id);
 
-        // 统计该代理商名下的用户数
-        // 暂时通过 siteConfig 记录的 agent-customer 关系来统计
-        const customerCount = await prisma.siteConfig.count({
-          where: {
-            category: 'agent_customer',
-            value: agent.id,
-          },
-        });
+    // 批量查询用户信息（优化 N+1）
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, email: true, name: true, memberLevel: true, createdAt: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
 
-        return {
-          ...agent,
-          user,
-          _count: { customers: customerCount },
-        };
-      })
-    );
+    // 批量统计客户数
+    const customerCounts = await prisma.siteConfig.groupBy({
+      by: ['value'],
+      where: { category: 'agent_customer', value: { in: agentIds } },
+      _count: true,
+    });
+    const customerCountMap = new Map(customerCounts.map(c => [c.value, c._count]));
+
+    const agentsWithStats = agents.map((agent) => {
+      const user = userMap.get(agent.userId);
+      const customerCount = customerCountMap.get(agent.id) || 0;
+      return { ...agent, user, _count: { customers: customerCount } };
+    });
 
     return NextResponse.json({ agents: agentsWithStats });
   } catch (error) {
@@ -78,7 +77,13 @@ export async function POST(req: NextRequest) {
 
       // 创建代理商关联的用户账号
       const email = sanitizeString(body.email || '').toLowerCase();
-      const password = body.password || 'agent123456';
+      const password = body.password || (() => {
+        // 生成随机 12 位密码
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        const buf = new Uint8Array(12);
+        globalThis.crypto.getRandomValues(buf);
+        return Array.from(buf).map(b => chars[b % chars.length]).join('');
+      })();
 
       if (!email) {
         return NextResponse.json({ error: '请提供代理商登录邮箱' }, { status: 400 });
@@ -90,8 +95,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '该邮箱已注册' }, { status: 400 });
       }
 
-      const bcrypt = await import('bcryptjs');
-      const passwordHash = await bcrypt.default.hash(password, 12);
+      const passwordHash = await hashPassword(password);
 
       // 创建用户账号（角色为 agent）
       const user = await prisma.user.create({
@@ -106,7 +110,8 @@ export async function POST(req: NextRequest) {
       });
 
       // 生成授权密钥
-      const licenseKey = `AGT-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const randomPart = Array.from(new Uint8Array(4), x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const licenseKey = `AGT-${Date.now()}-${randomPart}`;
 
       // 创建代理商记录
       const agent = await prisma.agent.create({
@@ -178,7 +183,14 @@ export async function POST(req: NextRequest) {
 
     if (action === 'regenerate_license') {
       const { agentId } = body;
-      const newLicenseKey = `AGT-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const randomPart = Array.from(new Uint8Array(4), x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const newLicenseKey = `AGT-${Date.now()}-${randomPart}`;
+
+      // 吊销旧授权
+      await prisma.agentLicense.updateMany({
+        where: { agentId, status: 'active' },
+        data: { status: 'revoked' },
+      });
 
       const agent = await prisma.agent.update({
         where: { id: agentId },
@@ -237,7 +249,7 @@ export async function PUT(req: NextRequest) {
 
     await auditLog({
       userId: (session as any)?.user?.id,
-      action: 'admin_toggle_agent',
+      action: 'admin_update_user',
       details: { agentId, updated: Object.keys(updateData) },
       status: 'success',
     });

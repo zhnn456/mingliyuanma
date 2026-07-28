@@ -19,7 +19,6 @@
   "dependencies": {
     "@prisma/client": "^5.20.0",
     "3meta": "^2.6.0",
-    "bcryptjs": "^2.4.3",
     "clsx": "^2.1.0",
     "iztro": "^2.5.8",
     "lunar-javascript": "^1.6.12",
@@ -32,7 +31,6 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.2",
     "@prisma/adapter-d1": "^7.9.1",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",

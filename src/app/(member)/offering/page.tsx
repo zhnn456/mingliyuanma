@@ -123,21 +123,30 @@ export default function OfferingPage() {
     setLoading(true);
     setSuccess(false);
     try {
-      const res = await fetch('/api/offering', {
+      // 走支付流程：创建支付订单
+      const res = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: selectedItem, quantity, dedication }),
+        body: JSON.stringify({
+          type: 'offering',
+          targetId: selectedItem,
+          method: 'mock',
+          quantity,
+          dedication,
+          offerType: 'single',
+        }),
       });
       if (res.ok) {
-        setSuccess(true);
-        setMeritCount(prev => prev + 1);
-        fetchRecords();
-        setTimeout(() => { setSuccess(false); setSelectedItem(null); setDedication(''); setQuantity(1); }, 3000);
+        const data = await res.json();
+        if (data.order?.orderNo) {
+          // 跳转到支付页
+          window.location.href = `/pay/${data.order.orderNo}`;
+        }
       } else {
         const data = await res.json();
-        alert(data.error || '供奉失败');
+        alert(data.error || '创建订单失败');
       }
-    } catch { alert('供奉失败，请重试'); } finally { setLoading(false); }
+    } catch { alert('创建订单失败，请重试'); } finally { setLoading(false); }
   };
 
   const statusText: Record<string, string> = { active: '供奉中', expired: '已到期', cancelled: '已取消', completed: '已完成' };

@@ -743,7 +743,7 @@ input:focus, select:focus, textarea:focus,
 }
 
 .palace-cell.center {
-  background: linear-gradient(135deg, #7f1d1d 0%, #7f1d1d 100%);
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
   color: #fff;
   border-color: #7f1d1d;
 }

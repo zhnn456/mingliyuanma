@@ -31,7 +31,6 @@ export interface AuditLogData {
  */
 export async function auditLog(data: AuditLogData): Promise<void> {
   try {
-    // 使用 SiteConfig 表存储审计日志，key 格式: audit:YYYY-MM-DD:timestamp
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timestamp = now.getTime();
@@ -56,7 +55,10 @@ export async function auditLog(data: AuditLogData): Promise<void> {
 }
 
 /**
- * 查询审计日志
+ * 在内存中按条件过滤审计日志条目
+ * 注意：由于审计日志存储在 SiteConfig 表中且 value 是 JSON 字符串，
+ * 无法在数据库层直接按 value 内字段过滤，所以采用全量查+内存过滤。
+ * 数据量预估不会太大（单日最多几千条），性能可接受。
  */
 export async function queryAuditLogs(options: {
   date?: string;
@@ -78,27 +80,34 @@ export async function queryAuditLogs(options: {
     whereClause.key = { startsWith: `audit:${today}:` };
   }
 
-  const configs = await prisma.siteConfig.findMany({
+  // 先查全部匹配日期的日志
+  const allConfigs = await prisma.siteConfig.findMany({
     where: whereClause,
     orderBy: { key: 'desc' },
-    take: limit,
-    skip: offset,
   });
 
-  let logs = configs.map((c: any) => {
-    try {
-      return JSON.parse(c.value);
-    } catch {
-      return null;
-    }
-  }).filter(Boolean);
+  // 解析 JSON 并在内存中过滤
+  let logs = allConfigs
+    .map((c: any) => {
+      try {
+        const parsed = JSON.parse(c.value);
+        return { id: c.key, ...parsed };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
-  // 内存过滤
   if (action) logs = logs.filter((l: any) => l.action === action);
   if (userId) logs = logs.filter((l: any) => l.userId === userId);
   if (status) logs = logs.filter((l: any) => l.status === status);
 
-  return { logs, total: logs.length };
+  const total = logs.length;
+
+  // 分页在内存过滤之后进行
+  const pagedLogs = logs.slice(offset, offset + limit);
+
+  return { logs: pagedLogs, total };
 }
 
 /**

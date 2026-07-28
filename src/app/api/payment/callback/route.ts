@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { createPaymentService } from '@/lib/payment';
+import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 
 /**
@@ -35,9 +35,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ code: 'FAIL', message: '订单不存在' }, { status: 404 });
     }
 
-    // 验证金额
-    if (Math.abs(order.amount - result.amount) > 0.01) {
-      console.error('回调金额不匹配:', order.amount, result.amount);
+    // 验证金额（过滤 NaN）
+    const paidAmount = result.amount;
+    if (isNaN(paidAmount) || Math.abs(order.amount - paidAmount) > 0.01) {
+      console.error('回调金额不匹配:', order.amount, paidAmount);
       return NextResponse.json({ code: 'FAIL', message: '金额不匹配' }, { status: 400 });
     }
 
@@ -46,63 +47,73 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ code: 'SUCCESS', message: '成功' });
     }
 
-    // 更新订单状态
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: 'paid',
-        transactionId: result.transactionId,
-        paidAt: new Date(),
-      },
-    });
-
-    // 创建支付记录
-    await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        userId: order.userId,
-        method: result.method,
-        amount: order.amount,
-        status: 'success',
-        transactionId: result.transactionId,
-        paidAt: new Date(),
-      },
-    });
-
-    // 根据订单类型处理业务逻辑
-    if (order.type === 'membership') {
-      // 更新会员等级
-      const planDays: Record<string, number | null> = {
-        monthly: 30,
-        yearly: 365,
-        lifetime: null,
-      };
-      const days = planDays[order.targetId || ''] ?? 30;
-      const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
-
-      await prisma.user.update({
-        where: { id: order.userId },
+    // 用事务包裹所有写操作，防止崩溃导致数据不一致
+    await prisma.$transaction(async (tx) => {
+      // 更新订单状态
+      await tx.order.update({
+        where: { id: order.id },
         data: {
-          memberLevel: order.targetId || 'monthly',
-          memberExpiry: expiry,
+          status: 'paid',
+          transactionId: result.transactionId,
+          paidAt: new Date(),
         },
       });
 
-      await auditLog({
-        userId: order.userId,
-        action: 'member_upgrade',
-        details: { level: order.targetId, orderNo: order.orderNo },
-        status: 'success',
+      // 创建支付记录
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          userId: order.userId,
+          method: result.method,
+          amount: order.amount,
+          status: 'success',
+          transactionId: result.transactionId,
+          paidAt: new Date(),
+        },
       });
-    } else if (order.type === 'offering') {
-      // 更新供奉记录
-      await auditLog({
-        userId: order.userId,
-        action: 'offering_create',
-        details: { orderNo: order.orderNo, targetId: order.targetId },
-        status: 'success',
-      });
-    }
+
+      // 根据订单类型处理业务逻辑
+      if (order.type === 'membership') {
+        // 从套餐配置读取天数（避免硬编码）
+        const plan = MEMBERSHIP_PLANS.find((p) => p.level === order.targetId);
+        const days = plan?.durationDays ?? 30;
+        const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+
+        await tx.user.update({
+          where: { id: order.userId },
+          data: {
+            memberLevel: order.targetId || 'monthly',
+            memberExpiry: expiry,
+          },
+        });
+
+        await auditLog({
+          userId: order.userId,
+          action: 'member_upgrade',
+          details: { level: order.targetId, orderNo: order.orderNo },
+          status: 'success',
+        });
+      } else if (order.type === 'offering') {
+        // 创建供奉记录（targetId 编码为 itemId:::offerType）
+        const [itemId, offerType] = (order.targetId || '').split(':::');
+        await tx.offeringRecord.create({
+          data: {
+            userId: order.userId,
+            itemId: itemId || order.targetId || '',
+            amount: order.amount,
+            type: offerType || 'single',
+            status: 'active',
+          },
+        });
+
+        await auditLog({
+          userId: order.userId,
+          action: 'offering_create',
+          details: { orderNo: order.orderNo, targetId: order.targetId },
+          status: 'success',
+        });
+      }
+    });
 
     await auditLog({
       userId: order.userId,

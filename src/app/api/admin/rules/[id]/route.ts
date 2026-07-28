@@ -8,10 +8,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db/prisma';
 import { clearRuleCache } from '@/lib/rules/engine';
-
-const prisma = new PrismaClient();
 
 async function checkAdmin() {
   const session = await getServerSession(authOptions);
@@ -70,14 +68,18 @@ export async function PUT(
   if (isActive !== undefined) updateData.isActive = isActive;
 
   try {
+    const existing = await prisma.divinationRule.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: '规则不存在' }, { status: 404 });
+    }
     const rule = await prisma.divinationRule.update({
       where: { id },
       data: updateData,
     });
     clearRuleCache();
     return NextResponse.json({ success: true, rule });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: '更新失败' }, { status: 500 });
   }
 }
 
@@ -93,10 +95,14 @@ export async function DELETE(
   }
 
   try {
+    const existing = await prisma.divinationRule.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: '规则不存在' }, { status: 404 });
+    }
     await prisma.divinationRule.delete({ where: { id } });
     clearRuleCache();
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
   }
 }

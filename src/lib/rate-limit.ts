@@ -65,6 +65,19 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
       return { canUse: true, session };
     }
 
+    // 检查会员是否过期 — 过期自动降级为 free
+    let effectiveLevel = user.memberLevel as MemberLevelKey;
+    if (effectiveLevel !== 'free' && effectiveLevel !== 'lifetime') {
+      if (user.memberExpiry && new Date(user.memberExpiry) < new Date()) {
+        // 会员已过期，自动降级并更新数据库
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { memberLevel: 'free', memberExpiry: null },
+        });
+        effectiveLevel = 'free';
+      }
+    }
+
     const today = new Date().toISOString().split('T')[0];
     let dailyUsage = user.dailyUsage;
 
@@ -73,8 +86,7 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
       dailyUsage = 0;
     }
 
-    const level = user.memberLevel as MemberLevelKey;
-    const limit = limits[level] ?? limits.free;
+    const limit = limits[effectiveLevel] ?? limits.free;
 
     if (dailyUsage >= limit) {
       return {

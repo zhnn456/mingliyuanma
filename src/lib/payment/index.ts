@@ -61,7 +61,10 @@ export function generateOrderNo(): string {
   const dateStr = now.getFullYear().toString() +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
-  const random = Math.random().toString(36).slice(2, 10).toUpperCase();
+  // 使用 Web Crypto API 生成随机部分（Cloudflare Workers 兼容）
+  const buf = new Uint8Array(4);
+  globalThis.crypto.getRandomValues(buf);
+  const random = Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
   const time = String(now.getTime()).slice(-6);
   return `ML${dateStr}${time}${random}`;
 }
@@ -210,12 +213,13 @@ export class PaymentService {
   }
 
   private async handleAlipayCallback(rawBody: string, _headers: Record<string, string>): Promise<CallbackResult> {
-    // TODO: 实际支付宝回调验证
+    // TODO: 实际支付宝回调验证（需 RSA 签名验签）
     try {
       const params = new URLSearchParams(rawBody);
       const orderNo = params.get('out_trade_no') || '';
       const transactionId = params.get('trade_no') || '';
-      const amount = parseFloat(params.get('total_amount') || '0');
+      const rawAmount = parseFloat(params.get('total_amount') || '0');
+      const amount = isNaN(rawAmount) ? 0 : rawAmount;
 
       return {
         success: params.get('trade_status') === 'TRADE_SUCCESS',
@@ -235,18 +239,24 @@ export class PaymentService {
     return {
       orderNo: params.orderNo,
       qrCode: `mock://pay/${params.orderNo}?amount=${params.amount}`,
-      paymentUrl: `/payment/mock?orderNo=${params.orderNo}`,
+      paymentUrl: `/pay/${params.orderNo}`,
       status: 'pending',
     };
   }
 
   private async handleMockCallback(rawBody: string): Promise<CallbackResult> {
-    const data = JSON.parse(rawBody);
+    let data: any;
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      throw new Error('Mock 回调解析失败');
+    }
+    const amount = typeof data.amount === 'number' ? data.amount : parseFloat(data.amount);
     return {
       success: true,
-      orderNo: data.orderNo,
+      orderNo: data.orderNo || '',
       transactionId: `mock_tx_${Date.now()}`,
-      amount: data.amount,
+      amount: isNaN(amount) ? 0 : amount,
       method: 'mock',
     };
   }

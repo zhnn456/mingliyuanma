@@ -54,10 +54,30 @@ export async function PUT(req: NextRequest) {
 
     if (!userId) return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
 
+    // 校验字段合法值
+    const VALID_MEMBER_LEVELS = ['free', 'monthly', 'yearly', 'lifetime'];
+    const VALID_ROLES = ['user', 'admin', 'agent'];
+
     const updateData: any = {};
-    if (memberLevel) updateData.memberLevel = memberLevel;
-    if (role) updateData.role = role;
-    if (memberExpiry) updateData.memberExpiry = new Date(memberExpiry);
+    if (memberLevel !== undefined) {
+      if (!VALID_MEMBER_LEVELS.includes(memberLevel)) {
+        return NextResponse.json({ error: '无效的会员等级' }, { status: 400 });
+      }
+      updateData.memberLevel = memberLevel;
+    }
+    if (role !== undefined) {
+      if (!VALID_ROLES.includes(role)) {
+        return NextResponse.json({ error: '无效的角色' }, { status: 400 });
+      }
+      updateData.role = role;
+    }
+    if (memberExpiry !== undefined) {
+      updateData.memberExpiry = memberExpiry ? new Date(memberExpiry) : null;
+    }
+
+    // 先检查用户是否存在
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
 
     const user = await prisma.user.update({
       where: { id: userId },

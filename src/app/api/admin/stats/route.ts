@@ -32,12 +32,12 @@ export async function GET() {
       prisma.qimenRecord.count(),
       prisma.meihuaRecord.count(),
       prisma.offeringRecord.count(),
-      prisma.order.findMany({ where: { status: 'paid' } }),
+      prisma.order.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
       prisma.order.count({ where: { createdAt: { gte: today } } }),
       prisma.user.count({ where: { createdAt: { gte: today } } }),
     ]);
 
-    const totalRevenue = paidOrders.reduce((sum, o) => sum + o.amount, 0);
+    const totalRevenue = paidOrders._sum.amount || 0;
 
     // 会员等级分布
     const memberStats = await prisma.user.groupBy({

@@ -1,7 +1,9 @@
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 const plans = [
   {
@@ -48,6 +50,37 @@ const plans = [
 
 export default function MembershipPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const [buying, setBuying] = useState<string | null>(null);
+  const [buyError, setBuyError] = useState('');
+
+  const handleBuy = async (level: string) => {
+    setBuying(level);
+    setBuyError('');
+
+    try {
+      const res = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'membership',
+          targetId: level,
+          method: 'mock',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.order?.orderNo) {
+        router.push(`/pay/${data.order.orderNo}`);
+      } else {
+        setBuyError(data.error || '下单失败');
+        setBuying(null);
+      }
+    } catch {
+      setBuyError('网络错误，请重试');
+      setBuying(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
@@ -61,6 +94,13 @@ export default function MembershipPage() {
           </h1>
           <p className="page-header-subtitle">选择合适的套餐，解锁全部命理功能</p>
         </div>
+
+        {/* 错误提示 */}
+        {buyError && (
+          <div className="max-w-md mx-auto mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center">
+            {buyError}
+          </div>
+        )}
 
         {/* 套餐列表 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -110,18 +150,18 @@ export default function MembershipPage() {
 
               {plan.price > 0 ? (
                 session ? (
-                  <button className={`w-full btn-primary text-sm ${
-                    plan.highlight
-                      ? ''
-                      : '!bg-transparent !text-red-700 !border-red-700 hover:!bg-red-700 hover:!text-white'
-                  }`}>
-                    立即开通
+                  <button
+                    onClick={() => handleBuy(plan.level)}
+                    disabled={buying === plan.level}
+                    className={`w-full btn-primary text-sm disabled:opacity-50 ${
+                      plan.highlight ? '' : '!bg-transparent !text-red-700 !border-red-700 hover:!bg-red-700 hover:!text-white'
+                    }`}
+                  >
+                    {buying === plan.level ? '订单创建中...' : '立即开通'}
                   </button>
                 ) : (
                   <Link href="/login" className={`w-full text-sm text-center block ${
-                    plan.highlight
-                      ? 'btn-primary'
-                      : 'btn-outline'
+                    plan.highlight ? 'btn-primary' : 'btn-outline'
                   }`}>
                     登录后开通
                   </Link>

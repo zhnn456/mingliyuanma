@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '@/lib/password';
 import { sanitizeString, validateEmail, validatePassword, getClientIP, checkIPRateLimit } from '@/lib/security';
 import { auditLog } from '@/lib/audit';
 
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 加密密码（使用12轮salt增强安全性）
-    const passwordHash = await bcrypt.hash(password, 12);
+    // 加密密码（使用 Web Crypto API PBKDF2，兼容 Cloudflare Workers）
+    const passwordHash = await hashPassword(password);
 
     // 创建用户
     const user = await prisma.user.create({

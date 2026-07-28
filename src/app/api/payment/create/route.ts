@@ -21,16 +21,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { type, targetId, method } = body;
+    const { type, method } = body;
+    let targetId = body.targetId;
 
     // 验证支付方式
-    const paymentMethod = (['wechat', 'alipay', 'mock'].includes(method) ? method : 'mock') as PaymentMethod;
+    const VALID_METHODS = ['wechat', 'alipay', 'mock'];
+    if (!method || !VALID_METHODS.includes(method)) {
+      return NextResponse.json({ error: '无效的支付方式' }, { status: 400 });
+    }
+    const paymentMethod = method as PaymentMethod;
 
     let amount = 0;
     let title = '';
-    let targetType = '';
-    let days: number | null = null;
-    let level = '';
+    let targetType: 'membership' | 'offering' | 'pdf_report' = 'membership';
 
     if (type === 'membership') {
       // 会员套餐支付
@@ -41,13 +44,17 @@ export async function POST(req: NextRequest) {
       amount = plan.price;
       title = `命理网${plan.name}`;
       targetType = 'membership';
-      days = plan.durationDays;
-      level = plan.level;
     } else if (type === 'offering') {
-      // 供奉支付
-      const item = await prisma.offeringItem.findUnique({
+      // 供奉支付 — 先按 ID 查找，找不到则按名称查找
+      let item = await prisma.offeringItem.findUnique({
         where: { id: targetId },
       });
+      if (!item) {
+        // 用名称查找（前端传递的是物品名时）
+        item = await prisma.offeringItem.findFirst({
+          where: { name: targetId, isActive: true },
+        });
+      }
       if (!item) {
         return NextResponse.json({ error: '无效的供奉项目' }, { status: 400 });
       }
@@ -57,6 +64,8 @@ export async function POST(req: NextRequest) {
                (item.priceSingle || 0);
       title = `供奉 - ${item.name}`;
       targetType = 'offering';
+      // targetId 编码为 itemId:::offerType，供回调解析
+      targetId = `${item.id}:::${offerType}`;
     } else if (type === 'pdf_report') {
       // PDF报告购买
       amount = 9.9; // 单次报告价格
@@ -96,7 +105,7 @@ export async function POST(req: NextRequest) {
       description: title,
       method: paymentMethod,
       userId,
-      targetType: targetType as any,
+      targetType,
       targetId,
       returnUrl: body.returnUrl,
     });

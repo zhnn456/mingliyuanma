@@ -9,6 +9,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { searchRules, upsertRule, getRuleStats, getRuleTypes, type RuleCategory } from '@/lib/rules/engine';
 
+/** 安全解析 JSON，失败返回 null */
+function safeParseJSON(str: string | null | undefined): any {
+  if (!str) return null;
+  try { return JSON.parse(str); } catch { return null; }
+}
+
 async function checkAdmin() {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as any)?.role !== 'admin') {
@@ -49,7 +55,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     rules: rules.map((r: any) => ({
       ...r,
-      content: r.content ? JSON.parse(r.content) : null,
+      content: safeParseJSON(r.content),
     })),
     total,
     page,
@@ -89,7 +95,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, rule });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: '创建规则失败' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { requireAgent, sanitizeString } from '@/lib/security';
+import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 
 /**
@@ -140,8 +141,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 创建用户
-    const bcrypt = await import('bcryptjs');
-    const passwordHash = await bcrypt.default.hash(password, 12);
+      const passwordHash = await hashPassword(password);
 
     const user = await prisma.user.create({
       data: {

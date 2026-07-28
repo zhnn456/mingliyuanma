@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { requireAuth } from '@/lib/security';
+import { MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 
 /**
@@ -41,60 +42,77 @@ export async function POST(req: NextRequest) {
     }
 
     if (order.status === 'paid') {
-      return NextResponse.json({ message: '订单已支付', order });
+      return NextResponse.json({ message: '订单已支付' });
     }
 
     // 模拟支付回调
     const transactionId = `mock_tx_${Date.now()}`;
 
-    // 更新订单
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: 'paid',
-        transactionId,
-        paidAt: new Date(),
-      },
-    });
-
-    // 创建支付记录
-    await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        userId: order.userId,
-        method: 'mock',
-        amount: order.amount,
-        status: 'success',
-        transactionId,
-        paidAt: new Date(),
-      },
-    });
-
-    // 处理会员升级
-    if (order.type === 'membership') {
-      const planDays: Record<string, number | null> = {
-        monthly: 30,
-        yearly: 365,
-        lifetime: null,
-      };
-      const days = planDays[order.targetId || ''] ?? 30;
-      const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
-
-      await prisma.user.update({
-        where: { id: order.userId },
+    // 用事务包裹所有写操作
+    await prisma.$transaction(async (tx) => {
+      // 更新订单
+      await tx.order.update({
+        where: { id: order.id },
         data: {
-          memberLevel: order.targetId || 'monthly',
-          memberExpiry: expiry,
+          status: 'paid',
+          transactionId,
+          paidAt: new Date(),
         },
       });
 
-      await auditLog({
-        userId: order.userId,
-        action: 'member_upgrade',
-        details: { level: order.targetId, orderNo: order.orderNo },
-        status: 'success',
+      // 创建支付记录
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          userId: order.userId,
+          method: 'mock',
+          amount: order.amount,
+          status: 'success',
+          transactionId,
+          paidAt: new Date(),
+        },
       });
-    }
+
+      // 处理业务逻辑
+      if (order.type === 'membership') {
+        const plan = MEMBERSHIP_PLANS.find((p) => p.level === order.targetId);
+        const days = plan?.durationDays ?? 30;
+        const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+
+        await tx.user.update({
+          where: { id: order.userId },
+          data: {
+            memberLevel: order.targetId || 'monthly',
+            memberExpiry: expiry,
+          },
+        });
+
+        await auditLog({
+          userId: order.userId,
+          action: 'member_upgrade',
+          details: { level: order.targetId, orderNo: order.orderNo },
+          status: 'success',
+        });
+      } else if (order.type === 'offering') {
+        const [itemId, offerType] = (order.targetId || '').split(':::');
+        await tx.offeringRecord.create({
+          data: {
+            userId: order.userId,
+            itemId: itemId || order.targetId || '',
+            amount: order.amount,
+            type: offerType || 'single',
+            status: 'active',
+          },
+        });
+
+        await auditLog({
+          userId: order.userId,
+          action: 'offering_create',
+          details: { orderNo: order.orderNo, targetId: order.targetId },
+          status: 'success',
+        });
+      }
+    });
 
     await auditLog({
       userId: order.userId,

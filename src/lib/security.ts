@@ -12,13 +12,16 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export function sanitizeString(input: unknown): string {
   if (typeof input !== 'string') return '';
+  // 用更可靠的方式转义 HTML 特殊字符
   return input
-    .replace(/[<>]/g, '') // 移除尖括号
-    .replace(/javascript:/gi, '') // 移除 javascript: 协议
-    .replace(/on\w+=/gi, '') // 移除事件处理属性
-    .replace(/script/gi, '') // 移除 script 标签
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
     .trim()
-    .slice(0, 1000); // 限制最大长度
+    .slice(0, 1000);
 }
 
 /**

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       const userIds = topUsers.map(u => u.userId);
       const users = await prisma.user.findMany({
         where: { id: { in: userIds } },
-        select: { id: true, name: true, email: true, avatar: true },
+        select: { id: true, name: true, avatar: true },
       });
       const userMap = new Map(users.map(u => [u.id, u]));
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         return {
           rank: index + 1,
           userId: u.userId,
-          name: userInfo?.name || userInfo?.email?.split('@')[0] || '善信',
+          name: userInfo?.name || '善信',
           avatar: userInfo?.avatar,
           totalAmount: u._sum.amount || 0,
           count: u._count,
@@ -122,9 +122,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '供奉物品不存在' }, { status: 404 });
     }
 
-    const sType = supplyType || 'single';
-    const price = item.priceSingle || 10;
-    const amount = price * (quantity || 1);
+    // 校验供奉类型
+    const VALID_TYPES = ['single', 'monthly', 'yearly'];
+    const sType = VALID_TYPES.includes(supplyType) ? supplyType : 'single';
+
+    // 根据供奉类型选择对应价格
+    const price = sType === 'monthly' ? (item.priceMonth ?? item.priceSingle ?? 10)
+                : sType === 'yearly' ? (item.priceYear ?? item.priceSingle ?? 10)
+                : (item.priceSingle ?? 10);
+    const qty = typeof quantity === 'number' ? quantity : parseInt(quantity) || 1;
+    const amount = price * Math.max(1, qty);
 
     let endDate: Date | null = null;
     const now = new Date();

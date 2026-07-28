@@ -1,7 +1,16 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     domains: ['localhost'],
+  },
+  // Cloudflare Workers 兼容：把 @panva/hkdf 替换为接受字符串的实现
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.alias['@panva/hkdf'] = path.resolve(__dirname, 'src/lib/hkdf-polyfill.ts');
+    }
+    return config;
   },
   // 安全响应头
   async headers() {
