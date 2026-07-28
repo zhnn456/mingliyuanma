@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { BAMEN_INTERPRETATION, JIUXING_INTERPRETATION, BASHEN_INTERPRETATION } from '@/lib/interpretation/qimen';
+import { QUESTION_TYPES, generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
 import { useToast } from '@/components/Toast';
 
 interface QimenPalace {
@@ -74,6 +75,7 @@ export default function QimenPage() {
   const [time, setTime] = useState('');
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
+  const [questionType, setQuestionType] = useState('general');
 
   useEffect(() => {
     if (session && !initialLoaded) {
@@ -144,47 +146,75 @@ export default function QimenPage() {
     return { auspicious, inauspicious };
   }, [result]);
 
+  // 深度解读（随问题类型变化）
+  const detailedAnalysis = useMemo(() => {
+    if (!result) return null;
+    return generateQimenDetailedAnalysis(result, questionType);
+  }, [result, questionType]);
+
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="section-title">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* 页面标题 */}
+        <div className="page-header">
+          <div className="section-label justify-center">QI MEN DUN JIA</div>
+          <h1 className="page-header-title">
             <span>奇门遁甲</span>
           </h1>
-          <p className="text-gray-600">时家奇门排盘 · 观天时地利 · 断吉凶休咎</p>
+          <p className="page-header-subtitle">时家奇门排盘 · 观天时地利 · 断吉凶休咎</p>
         </div>
 
         {/* 输入表单 */}
-        <div className="card mb-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center justify-center space-x-6">
-              <label className="flex items-center cursor-pointer">
-                <input type="radio" checked={useCurrentTime} onChange={() => setUseCurrentTime(true)}
-                  className="w-4 h-4 text-red-600 focus:ring-red-500" />
-                <span className="ml-2 text-gray-700">当前时间起局</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input type="radio" checked={!useCurrentTime} onChange={() => setUseCurrentTime(false)}
-                  className="w-4 h-4 text-red-600 focus:ring-red-500" />
-                <span className="ml-2 text-gray-700">指定时间起局</span>
-              </label>
+        <div className="form-card mb-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex items-center justify-center">
+              <div className="toggle-group">
+                <button type="button" onClick={() => setUseCurrentTime(true)}
+                  className={`toggle-btn ${useCurrentTime ? 'active' : ''}`}>
+                  当前时间起局
+                </button>
+                <button type="button" onClick={() => setUseCurrentTime(false)}
+                  className={`toggle-btn ${!useCurrentTime ? 'active' : ''}`}>
+                  指定时间起局
+                </button>
+              </div>
             </div>
             {!useCurrentTime && (
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-2 border border-parchment-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-white" required />
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-parchment-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-white" />
+                <div>
+                  <label className="form-label">日期</label>
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="form-label">时间</label>
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                </div>
               </div>
             )}
             <button type="submit" disabled={loading}
-              className="w-full max-w-md mx-auto block btn-primary py-3 text-lg disabled:opacity-50">
-              {loading ? '排盘中...' : '开始排盘'}
+              className="w-full max-w-md mx-auto block btn-primary text-lg disabled:opacity-50">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  排盘中...
+                </span>
+              ) : '开始排盘'}
             </button>
           </form>
         </div>
 
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
+        )}
 
         {result && (
           <div className="space-y-6 animate-fade-in">
@@ -205,6 +235,28 @@ export default function QimenPage() {
                   <div className={`font-bold text-sm ${item.highlight ? 'chinese-red' : 'text-gray-900'}`}>{item.value}</div>
                 </div>
               ))}
+            </div>
+
+            {/* 问题类型选择 */}
+            <div className="card !p-4">
+              <label className="block text-sm font-bold text-gray-700 mb-3">选择问事类型（用神分析）</label>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                {QUESTION_TYPES.map((qt) => (
+                  <button
+                    key={qt.key}
+                    type="button"
+                    onClick={() => setQuestionType(qt.key)}
+                    className={`flex flex-col items-center py-2 px-1 rounded-lg border-2 transition-all ${
+                      questionType === qt.key
+                        ? 'border-red-700 bg-red-50 text-red-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg font-bold mb-0.5" style={{ fontFamily: 'Noto Serif SC, serif' }}>{qt.icon}</span>
+                    <span className="text-[10px]">{qt.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* 九宫格盘面 */}
@@ -459,6 +511,75 @@ export default function QimenPage() {
                 )}
               </div>
             </div>
+
+            {/* ===== 深度解读 ===== */}
+            {detailedAnalysis && (
+              <>
+                {/* 用神分析 */}
+                {detailedAnalysis.yongshenAnalysis.analysis && (
+                  <div className="card border-l-4 border-l-gold-500">
+                    <h2 className="card-title">用神分析 · {detailedAnalysis.yongshenAnalysis.yongshenName}</h2>
+                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mb-3">
+                      {detailedAnalysis.yongshenAnalysis.analysis}
+                    </div>
+                    {detailedAnalysis.yongshenAnalysis.timing && (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 mb-2">
+                        <span className="text-xs font-bold text-blue-700">应期判断</span>
+                        <p className="text-xs text-blue-600 mt-1">{detailedAnalysis.yongshenAnalysis.timing}</p>
+                      </div>
+                    )}
+                    {detailedAnalysis.yongshenAnalysis.advice && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <span className="text-xs font-bold text-green-700">建议</span>
+                        <p className="text-xs text-green-600 mt-1">{detailedAnalysis.yongshenAnalysis.advice}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 格局深度分析 */}
+                {detailedAnalysis.patternDetails.length > 0 && (
+                  <div className="card">
+                    <h2 className="card-title">格局深度分析</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {detailedAnalysis.patternDetails.map((p, i) => (
+                        <div key={i} className={`p-3 rounded-lg border ${
+                          p.level.includes('吉') ? 'bg-green-50 border-green-200' :
+                          p.level.includes('凶') ? 'bg-red-50 border-red-200' :
+                          'bg-gray-50 border-gray-200'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`font-bold text-sm ${
+                              p.level.includes('大吉') ? 'text-green-700' :
+                              p.level.includes('吉') ? 'text-green-600' :
+                              p.level.includes('大凶') ? 'text-red-700' :
+                              p.level.includes('凶') ? 'text-red-600' : 'text-gray-600'
+                            }`}>{p.name}</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-white/60 text-gray-600">{p.level}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-1">{p.condition}</p>
+                          <p className="text-xs text-gray-700 leading-relaxed">{p.influence}</p>
+                          {p.classicSource && (
+                            <p className="text-xs text-purple-600 italic mt-1">{p.classicSource}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">建议：{p.advice}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 综合断局 */}
+                {detailedAnalysis.overallAnalysis && (
+                  <div className="card bg-gradient-to-br from-red-50 via-white to-yellow-50 border border-red-200">
+                    <h2 className="card-title chinese-red">深度综合断局</h2>
+                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                      {detailedAnalysis.overallAnalysis}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

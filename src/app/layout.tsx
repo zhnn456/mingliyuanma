@@ -28,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="min-h-screen flex flex-col bg-[#f5f0e8]">
+      <body className="min-h-screen flex flex-col bg-parchment-100">
         <Providers>
           <Header />
           <main className="flex-1">

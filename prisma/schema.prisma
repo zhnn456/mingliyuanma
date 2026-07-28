@@ -1,7 +1,8 @@
 // Prisma Schema - 命理网站数据库模型
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -314,4 +315,25 @@ model SiteConfig {
   value     String
   category  String @default("general") // general, price, feature
   updatedAt DateTime @updatedAt
+}
+
+// ============ 命理规则库 ============
+
+model DivinationRule {
+  id            String   @id @default(cuid())
+  category      String   // bazi, ziwei, qimen, meihua
+  ruleType      String   // day_gan_personality, pattern, star_in_palace, bamen, tiyong, etc.
+  ruleKey       String   // 甲, 紫微, 开门, etc.
+  subKey        String?  // 子键，如宫位名(命宫/财帛宫...)、问题类型等
+  content       String   // JSON 格式规则内容
+  classicSource String?  // 古籍出处（如《渊海子平》《紫微斗数全书》）
+  classicQuote  String?  // 古籍原文引用
+  priority      Int      @default(0) // 优先级，数字越大越优先（代理商覆盖平台规则用）
+  agentId       String?  // 代理商ID（null=平台默认规则）
+  isActive      Boolean   @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([category, ruleType, ruleKey, subKey, agentId])
+  @@index([category, ruleType, agentId])
 }

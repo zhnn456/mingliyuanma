@@ -1,6 +1,7 @@
 /**
  * 四柱八字排盘核心算法
  * 基于万年历数据计算年柱、月柱、日柱、时柱
+ * 扩展：胎元命宫身宫、精确大运、流年流月、五行力量量化、格局分析、宫位分析、十神组合
  */
 import { Solar, Lunar } from 'lunar-javascript';
 import {
@@ -16,6 +17,15 @@ import {
   SHI_CHEN,
   BaziResult,
 } from '@/types';
+import {
+  calculateTaiYuanMingGong,
+  calculateWuXingStrength,
+  determineGeju,
+  analyzeGongWei,
+  analyzeShiShenCombinations,
+  calculateDayunDetails,
+  calculateLiuNian,
+} from './extended';
 
 /**
  * 获取年柱
@@ -225,14 +235,24 @@ function calculateDayun(
 
 /**
  * 主函数：四柱八字排盘
+ * @param year 出生年
+ * @param month 出生月
+ * @param day 出生日
+ * @param hour 出生小时（null=未知时辰，三柱论命）
+ * @param gender 性别
+ * @param isLunar 是否农历
+ * @param isLeapMonth 是否闰月（农历）
+ * @param hourType 早晚子时类型
  */
 export function calculateBazi(
   year: number,
   month: number,
   day: number,
-  hour: number,
+  hour: number | null,
   gender: string,
-  isLunar: boolean = false
+  isLunar: boolean = false,
+  isLeapMonth: boolean = false,
+  hourType?: 'early-zi' | 'late-zi'
 ): BaziResult {
   let solarYear = year;
   let solarMonth = month;
@@ -240,7 +260,9 @@ export function calculateBazi(
   
   // 如果输入的是农历，先转换为公历
   if (isLunar) {
-    const lunar = Lunar.fromYmd(year, month, day);
+    // lunar-javascript 用负数月表示闰月
+    const lunarMonth = isLeapMonth ? -month : month;
+    const lunar = Lunar.fromYmd(year, lunarMonth, day);
     const solar = lunar.getSolar();
     solarYear = solar.getYear();
     solarMonth = solar.getMonth();
@@ -251,8 +273,31 @@ export function calculateBazi(
   const yearPillar = getYearGanZhi(solarYear, solarMonth, solarDay);
   const monthPillar = getMonthGanZhi(solarYear, solarMonth, solarDay);
   const dayPillar = getDayGanZhi(solarYear, solarMonth, solarDay);
-  const hourPillar = getHourGanZhi(dayPillar.gan, hour);
-  
+
+  // 时柱计算（处理未知时辰和早晚子时）
+  const unknownHour = hour === null;
+  let hourPillar: { gan: string; zhi: string };
+  let dayGanForHour = dayPillar.gan; // 用于推算时干的天干
+
+  if (unknownHour) {
+    // 未知时辰：时柱为空
+    hourPillar = { gan: '', zhi: '' };
+  } else {
+    // 晚子时：日柱用当天，但时干用次日干推算
+    if (hourType === 'late-zi' && hour === 23) {
+      // 获取次日的日干
+      try {
+        const nextSolar = Solar.fromYmd(solarYear, solarMonth, solarDay + 1);
+        const nextLunar = nextSolar.getLunar();
+        const nextDayGanZhi = nextLunar.getDayInGanZhi();
+        dayGanForHour = nextDayGanZhi.charAt(0);
+      } catch {
+        // 跨月跨年处理失败时用当天
+      }
+    }
+    hourPillar = getHourGanZhi(dayGanForHour, hour);
+  }
+
   const fourPillars: BaziResult['fourPillars'] = {
     year: yearPillar,
     month: monthPillar,
@@ -260,16 +305,48 @@ export function calculateBazi(
     hour: hourPillar,
   };
   
-  // 计算五行
+  // 计算五行（简单计数）
   const wuxing = calculateWuXing(fourPillars);
+
+  // 五行力量量化（加权）
+  const wuxingStrength = calculateWuXingStrength(fourPillars);
   
   // 计算十神
   const shishen = calculateShiShen(dayPillar.gan, fourPillars);
   
-  // 计算大运
+  // 计算大运（基础版，保持兼容）
   const dayun = calculateDayun(
     yearPillar.gan, monthPillar.gan, monthPillar.zhi,
-    gender, solarYear, solarMonth, solarDay, hour
+    gender, solarYear, solarMonth, solarDay, hour || 0
+  );
+
+  // 大运详细信息（含十神、神煞、流年）
+  const dayunDetails = calculateDayunDetails(
+    yearPillar.gan, monthPillar.gan, monthPillar.zhi,
+    gender, solarYear, solarMonth, solarDay, dayPillar.gan, 8
+  );
+
+  // 胎元命宫身宫
+  const taiYuanMingGong = calculateTaiYuanMingGong(
+    yearPillar.gan, monthPillar.gan, monthPillar.zhi,
+    unknownHour ? null : hourPillar.zhi
+  );
+
+  // 格局判定
+  const geju = determineGeju(
+    dayPillar.gan, monthPillar.gan, monthPillar.zhi,
+    fourPillars, wuxingStrength
+  );
+
+  // 宫位分析
+  const gongWei = analyzeGongWei(dayPillar.gan, fourPillars);
+
+  // 十神组合分析
+  const shishenCombinations = analyzeShiShenCombinations(dayPillar.gan, fourPillars, shishen);
+
+  // 流年（当前年份前后20年）
+  const liunian = calculateLiuNian(
+    solarYear, dayun[0]?.startAge || 3, 20, dayPillar.gan
   );
   
   // 纳音
@@ -278,15 +355,19 @@ export function calculateBazi(
   const pillarLabels = ['年柱', '月柱', '日柱', '时柱'];
   for (let i = 0; i < 4; i++) {
     const p = fourPillars[pillarNames[i] as keyof typeof fourPillars];
-    const key = `${p.gan}${p.zhi}`;
-    nayin[pillarLabels[i]] = NA_YIN[key] || '';
+    if (p.gan && p.zhi) {
+      const key = `${p.gan}${p.zhi}`;
+      nayin[pillarLabels[i]] = NA_YIN[key] || '';
+    }
   }
   
   // 藏干
   const canggan: Record<string, string[]> = {};
   for (let i = 0; i < 4; i++) {
     const p = fourPillars[pillarNames[i] as keyof typeof fourPillars];
-    canggan[pillarLabels[i]] = DI_ZHI_CANG_GAN[p.zhi] || [];
+    if (p.zhi) {
+      canggan[pillarLabels[i]] = DI_ZHI_CANG_GAN[p.zhi] || [];
+    }
   }
   
   // 生肖
@@ -301,6 +382,15 @@ export function calculateBazi(
     canggan,
     shengxiao,
     gender,
+    // 扩展字段
+    taiYuanMingGong,
+    wuxingStrength,
+    geju,
+    gongWei,
+    shishenCombinations,
+    dayunDetails,
+    liunian,
+    unknownHour,
   };
 }
 

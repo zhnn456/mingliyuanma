@@ -1,8 +1,21 @@
 node_modules/
 .next/
+.next-dev/
 .env
+.env.local
 *.db
 *.db-journal
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+
+# 工具临时目录
+.workbuddy/
+.zcode/
+nul
+
+# Cloudflare Pages 构建产物
+.vercel/
+.wrangler/
+.dev.vars
+prisma/migrations.sql

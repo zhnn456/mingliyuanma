@@ -1,0 +1,93 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: '跳过构建，直接部署已有产物'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: "cf-pages-${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PROJECT_NAME: 'mingli-yuanma'
+
+jobs:
+  deploy:
+    name: Build & Deploy to CF Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install Cloudflare adapters (if missing)
+        run: |
+          if [ ! -d "node_modules/@cloudflare/next-on-pages" ] || [ ! -d "node_modules/@prisma/adapter-d1" ]; then
+            npm install --save-dev @cloudflare/next-on-pages @prisma/adapter-d1 --legacy-peer-deps
+          fi
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build for Cloudflare Pages
+        if: ${{ !inputs.skip_build }}
+        env:
+          CF_PAGES: '1'
+          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        run: npm run build:pages
+
+      - name: Configure Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret 未设置"
+            exit 1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID secret 未设置"
+            exit 1
+          fi
+          npx wrangler pages project list | grep -q "$PROJECT_NAME" || \
+            npx wrangler pages project create "$PROJECT_NAME" --production-branch=main
+
+      - name: Set NEXTAUTH_SECRET
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        run: |
+          echo "$NEXTAUTH_SECRET" | \
+            npx wrangler pages secret put NEXTAUTH_SECRET --project-name "$PROJECT_NAME"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .vercel/output/static --project-name ${{ env.PROJECT_NAME }} --branch=main
+
+      - name: Output deployment URL
+        run: |
+          echo "::notice::部署完成: https://${{ env.PROJECT_NAME }}.pages.dev"

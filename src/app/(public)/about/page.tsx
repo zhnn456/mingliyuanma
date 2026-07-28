@@ -8,12 +8,16 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* 页面标题 */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">关于命理网</h1>
-          <p className="text-gray-600">传承千年智慧 · 融合现代科技</p>
+        <div className="page-header">
+          <div className="section-label justify-center">ABOUT US</div>
+          <h1 className="page-header-title">
+            <span>关于命理网</span>
+          </h1>
+          <p className="page-header-subtitle">传承千年智慧 · 融合现代科技</p>
         </div>
 
         {/* 品牌故事 */}
@@ -57,10 +61,10 @@ export default function AboutPage() {
                 description: '我们持续优化算法模型，扩展知识库内容，为用户提供越来越精准的命理解读。',
               },
             ].map((item) => (
-              <div key={item.title} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div key={item.title} className="p-5 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="text-3xl mb-3">{item.icon}</div>
                 <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
+                <p className="text-gray-600 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { calculateByNumbers, calculateByTime, calculateByText, calculateByCoin, calculateByRandom, calculateByDate } from '@/lib/algorithms/meihua';
+import { generateMeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { checkUsageLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { method, num1, num2, num3, year, month, day, hour, text, flips, date } = body;
+    const { method, num1, num2, num3, year, month, day, hour, text, flips, date, questionType } = body;
 
     // 检查使用次数限制
     const { canUse, session, error } = await checkUsageLimit('meihua');
@@ -79,7 +80,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ result });
+    // 生成深度解读
+    const detailedAnalysis = generateMeihuaDetailedAnalysis(
+      result,
+      questionType || 'general',
+      month || (new Date().getMonth() + 1)
+    );
+
+    return NextResponse.json({ result, detailedAnalysis });
   } catch (error) {
     console.error('梅花易数起卦错误:', error);
     return NextResponse.json(

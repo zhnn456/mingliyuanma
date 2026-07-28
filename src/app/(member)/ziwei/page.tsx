@@ -42,6 +42,45 @@ interface ZiweiResult {
     earthlyBranchOfSoulPalace: string;
   };
   palaces: Palace[];
+  detailedAnalysis?: {
+    palaceDetails: Array<{
+      palaceName: string;
+      area: string;
+      description: string;
+      mainStarAnalysis: string;
+      minorStarAnalysis: string;
+      shaStarAnalysis: string;
+      sihuaAnalysis: string;
+      sanfangAnalysis: string;
+      brightnessAnalysis: string;
+      overall: string;
+    }>;
+    patterns: Array<{
+      name: string;
+      condition: string;
+      successCondition: string;
+      failureCondition: string;
+      influence: string;
+      classicSource: string;
+      advice: string;
+    }>;
+    decadalAnalysis: Array<{
+      range: string;
+      palaceName: string;
+      stars: string;
+      fortune: string;
+      caution: string;
+    }>;
+    mingShenAnalysis: { analysis: string; advice: string };
+    sihuaOverview: Array<{
+      palace: string;
+      star: string;
+      mutagen: string;
+      meaning: string;
+      advice: string;
+    }>;
+    overallSummary: string;
+  };
 }
 
 // 四化颜色映射常量（已定义在后面，这里只是占位）
@@ -198,6 +237,9 @@ export default function ZiweiPage() {
     setLoading(true);
     setError(null);
     try {
+      if (data.hour === null) {
+        throw new Error('紫微斗数排盘需要出生时辰，暂不支持未知时辰。请在表单中选择具体时辰。');
+      }
       const response = await fetch('/api/ziwei', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -241,38 +283,45 @@ export default function ZiweiPage() {
   const selectedPalace = selectedPalaceIdx !== null ? result?.palaces.find(p => p.index === selectedPalaceIdx) : null;
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* 页面标题 */}
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="section-title">
+        <div className="page-header">
+          <div className="section-label justify-center">ZI WEI DOU SHU</div>
+          <h1 className="page-header-title">
             <span>紫微斗数排盘</span>
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">紫微斗数，位列&ldquo;五大神数&rdquo;之首。以十二宫星曜分布，推演人生命运轨迹。</p>
+          <p className="page-header-subtitle">位列&ldquo;五大神数&rdquo;之首，以十二宫星曜分布，推演人生命运轨迹</p>
         </div>
 
         {/* 输入表单 */}
-        <div className="card mb-8">
+        <div className="form-card mb-8">
           <PaipanForm onSubmit={handleSubmit} loading={loading} submitText="开始排盘" />
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
         )}
 
         {result && (
           <div className="space-y-6 animate-fade-in">
             {/* 功能切换 */}
-            <div className="flex justify-center gap-4">
+            <div className="tab-nav">
               <button
                 onClick={() => setShowInterpretation(true)}
-                className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${showInterpretation ? 'bg-red-700 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-parchment-100 border border-parchment-200'}`}
+                className={`tab-btn ${showInterpretation ? 'active' : ''}`}
               >
                 详细解析
               </button>
               <button
                 onClick={() => setShowInterpretation(false)}
-                className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${!showInterpretation ? 'bg-red-700 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-parchment-100 border border-parchment-200'}`}
+                className={`tab-btn ${!showInterpretation ? 'active' : ''}`}
               >
                 纯命盘
               </button>
@@ -678,6 +727,184 @@ export default function ZiweiPage() {
                     })}
                   </div>
                 </div>
+
+                {/* ===== 深度解读 ===== */}
+                {result.detailedAnalysis && (
+                  <>
+                    {/* 综合总评 */}
+                    {result.detailedAnalysis.overallSummary && (
+                      <div className="card bg-gradient-to-br from-red-50 via-white to-yellow-50 border border-red-200">
+                        <h2 className="card-title chinese-red">命盘深度总评</h2>
+                        <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                          {result.detailedAnalysis.overallSummary}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 格局深度分析 */}
+                    {result.detailedAnalysis.patterns.length > 0 && (
+                      <div className="card border-l-4 border-l-purple-500">
+                        <h2 className="card-title">格局深度分析</h2>
+                        <div className="space-y-4">
+                          {result.detailedAnalysis.patterns.map((p, i) => (
+                            <div key={i} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-lg font-bold text-purple-800">{p.name}</span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="text-xs font-bold text-gray-500">成立条件</span>
+                                  <p className="text-gray-700 mt-0.5">{p.condition}</p>
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-green-600">成格条件</span>
+                                  <p className="text-gray-700 mt-0.5">{p.successCondition}</p>
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-red-600">破格条件</span>
+                                  <p className="text-gray-700 mt-0.5">{p.failureCondition}</p>
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-blue-600">影响范围</span>
+                                  <p className="text-gray-700 mt-0.5">{p.influence}</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 p-2 bg-white/60 rounded border border-purple-100">
+                                <p className="text-xs text-purple-700 italic mb-1">{p.classicSource}</p>
+                                <p className="text-xs text-gray-600">建议：{p.advice}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 四化飞星总论 */}
+                    {result.detailedAnalysis.sihuaOverview.length > 0 && (
+                      <div className="card">
+                        <h2 className="card-title">四化飞星总论</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {result.detailedAnalysis.sihuaOverview.map((s, i) => (
+                            <div key={i} className={`p-3 rounded-lg border ${
+                              s.mutagen === '化禄' ? 'bg-green-50 border-green-200' :
+                              s.mutagen === '化权' ? 'bg-blue-50 border-blue-200' :
+                              s.mutagen === '化科' ? 'bg-purple-50 border-purple-200' :
+                              'bg-red-50 border-red-200'
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`font-bold text-sm ${
+                                  s.mutagen === '化禄' ? 'text-green-700' :
+                                  s.mutagen === '化权' ? 'text-blue-700' :
+                                  s.mutagen === '化科' ? 'text-purple-700' : 'text-red-700'
+                                }`}>{s.star}{s.mutagen}</span>
+                                <span className="text-xs text-gray-500">入{s.palace}</span>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed">{s.meaning}</p>
+                              {s.advice && <p className="text-xs text-gray-500 mt-1">建议：{s.advice}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 命身宫关系 */}
+                    {result.detailedAnalysis.mingShenAnalysis.analysis && (
+                      <div className="card border-l-4 border-l-gold-500">
+                        <h2 className="card-title">命身宫关系</h2>
+                        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                          {result.detailedAnalysis.mingShenAnalysis.analysis}
+                        </p>
+                        <p className="text-xs text-gray-500">建议：{result.detailedAnalysis.mingShenAnalysis.advice}</p>
+                      </div>
+                    )}
+
+                    {/* 大限运势分析 */}
+                    {result.detailedAnalysis.decadalAnalysis.length > 0 && (
+                      <div className="card">
+                        <h2 className="card-title">大限运势详析</h2>
+                        <p className="text-xs text-gray-500 mb-4">每步大限十年，以下为各步大限的运势分析</p>
+                        <div className="space-y-3">
+                          {result.detailedAnalysis.decadalAnalysis.map((d, i) => (
+                            <div key={i} className="p-3 bg-parchment-50 rounded-lg border border-parchment-200">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="text-sm font-bold text-red-700 bg-red-100 px-2 py-1 rounded">
+                                  {d.range}
+                                </span>
+                                <span className="text-sm text-gray-600">{d.palaceName} · {d.stars}</span>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed mb-1">{d.fortune}</p>
+                              {d.caution && (
+                                <p className="text-xs text-orange-600">注意事项：{d.caution}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 十二宫逐一详析 */}
+                    <div className="card">
+                      <h2 className="card-title">十二宫逐一详析</h2>
+                      <div className="space-y-4">
+                        {result.detailedAnalysis.palaceDetails.map((pd, i) => (
+                          <div key={i} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="font-bold text-gray-800">{pd.palaceName}</span>
+                              <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">{pd.area}</span>
+                              <span className="text-xs text-gray-500">{pd.description}</span>
+                            </div>
+
+                            {/* 总体评价 */}
+                            <div className="p-2 bg-white rounded border border-gray-100 mb-2">
+                              <span className="text-xs font-bold text-gray-600">总体评价：</span>
+                              <span className="text-xs text-gray-700">{pd.overall}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                              {/* 主星分析 */}
+                              {pd.mainStarAnalysis && (
+                                <div className="p-2 bg-red-50/50 rounded">
+                                  <span className="font-bold text-red-700">主星分析</span>
+                                  <p className="text-gray-700 mt-1 whitespace-pre-line">{pd.mainStarAnalysis}</p>
+                                </div>
+                              )}
+
+                              {/* 四化分析 */}
+                              {pd.sihuaAnalysis && (
+                                <div className="p-2 bg-purple-50/50 rounded">
+                                  <span className="font-bold text-purple-700">四化影响</span>
+                                  <p className="text-gray-700 mt-1 whitespace-pre-line">{pd.sihuaAnalysis}</p>
+                                </div>
+                              )}
+
+                              {/* 辅星分析 */}
+                              {pd.minorStarAnalysis && (
+                                <div className="p-2 bg-blue-50/50 rounded">
+                                  <span className="font-bold text-blue-700">辅星</span>
+                                  <p className="text-gray-700 mt-1 whitespace-pre-line">{pd.minorStarAnalysis}</p>
+                                </div>
+                              )}
+
+                              {/* 煞星分析 */}
+                              {pd.shaStarAnalysis && (
+                                <div className="p-2 bg-orange-50/50 rounded">
+                                  <span className="font-bold text-orange-700">煞星影响</span>
+                                  <p className="text-gray-700 mt-1 whitespace-pre-line">{pd.shaStarAnalysis}</p>
+                                </div>
+                              )}
+
+                              {/* 三方四正 */}
+                              <div className="p-2 bg-yellow-50/50 rounded md:col-span-2">
+                                <span className="font-bold text-yellow-700">三方四正</span>
+                                <p className="text-gray-700 mt-1 whitespace-pre-line">{pd.sanfangAnalysis}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -125,6 +125,216 @@ export const SHI_CHEN: Record<number, string> = {
   21: '亥', 22: '亥',
 };
 
+// 排盘类型
+export type PaipanType = 'bazi' | 'ziwei' | 'qimen' | 'meihua';
+
+// 排盘表单数据
+export interface PaipanFormData {
+  name: string;
+  gender: string;
+  year: number;
+  month: number;
+  day: number;
+  hour: number | null; // null = 未知时辰（三柱论命）
+  hourType?: 'early-zi' | 'late-zi'; // 早子时(00:00-01:00) / 晚子时(23:00-24:00)
+  isLunar: boolean;
+  isLeapMonth?: boolean; // 农历闰月
+  birthCity: string;
+  trueSolarTime: boolean;
+  paipanType: PaipanType;
+}
+
+// 胎元命宫身宫
+export interface TaiYuanMingGong {
+  taiYuan: { gan: string; zhi: string };  // 胎元
+  mingGong: { gan: string; zhi: string }; // 命宫
+  shenGong: { gan: string; zhi: string }; // 身宫
+}
+
+// 流年
+export interface LiuNian {
+  year: number;
+  age: number;
+  gan: string;
+  zhi: string;
+  shishen: string;
+  shensha: string[];
+  analysis?: string;
+}
+
+// 流月
+export interface LiuYue {
+  month: number;
+  gan: string;
+  zhi: string;
+  shishen: string;
+}
+
+// 五行力量量化
+export interface WuXingStrength {
+  counts: Record<string, number>; // 原始计数
+  strengths: Record<string, number>; // 加权力量
+  total: number;
+  details: { source: string; wuxing: string; strength: number; type: string }[];
+  dominant: string;   // 最旺五行
+  weakest: string;    // 最弱五行
+  missing: string[];  // 缺失五行
+}
+
+// 格局分析
+export interface GeJuAnalysis {
+  name: string;
+  description: string;
+  isEstablished: boolean;
+  level: '正格' | '变格' | '从格' | '化格';
+  details: string[];
+  classicalRef?: string; // 古籍引用
+}
+
+// 宫位分析
+export interface GongWeiAnalysis {
+  position: string;  // 年柱/月柱/日柱/时柱
+  palace: string;    // 祖辈宫/父母宫/配偶宫/子女宫
+  ganZhi: string;
+  shiShen: string;
+  analysis: string;
+}
+
+// 十神组合
+export interface ShiShenCombination {
+  combination: string;
+  description: string;
+  influence: string;
+  classicalRef?: string;
+}
+
+// 大运详细信息
+export interface DayunDetail {
+  gan: string;
+  zhi: string;
+  startAge: number;
+  endAge: number;
+  startYear: number;
+  endYear: number;
+  shishen: { gan: string; zhi: string[] };
+  shensha: string[];
+  analysis?: string;
+  liunian?: LiuNian[];
+}
+
+// ========== 专项分析类型 ==========
+
+// 事业分析
+export interface CareerAnalysis {
+  direction: string;         // 事业方向
+  suitableIndustries: string[]; // 适合行业
+  careerCharacter: string;   // 职业性格
+  developmentTiming: string; // 发展时机
+  peakPeriod: string;        // 事业高峰期
+  advice: string;            // 事业建议
+  classicalRef?: string;     // 古籍引用
+}
+
+// 财运分析
+export interface WealthAnalysis {
+  type: string;              // 财运类型（正财/偏财）
+  level: string;             // 财运等级
+  characteristics: string;   // 财运特征
+  peakPeriod: string;        // 财运高峰期
+  investmentAdvice: string;  // 理财建议
+  riskWarning: string;       // 风险提示
+  classicalRef?: string;
+}
+
+// 感情婚姻分析
+export interface MarriageAnalysis {
+  spouseCharacter: string;   // 配偶特征
+  marriageProspect: string;  // 婚姻前景
+  romanticLuck: string;      // 桃花运势
+  favorableAge: string;      // 有利婚恋年龄
+  advice: string;            // 感情建议
+  classicalRef?: string;
+}
+
+// 健康分析
+export interface HealthAnalysis {
+  constitution: string;      // 体质特征
+  weakOrgans: string[];      // 易患部位
+  healthRisks: string;       // 健康风险
+  maintenanceAdvice: string; // 养生建议
+  dietaryAdvice: string;     // 饮食建议
+  classicalRef?: string;
+}
+
+// 学业分析
+export interface EducationAnalysis {
+  learningStyle: string;     // 学习风格
+  academicPotential: string; // 学业潜力
+  favorableSubjects: string[]; // 有利学科
+  examLuck: string;          // 考试运势
+  advice: string;            // 学业建议
+  classicalRef?: string;
+}
+
+// 六亲关系分析
+export interface FamilyRelationAnalysis {
+  relations: {
+    relation: string;        // 关系（父母/兄弟/配偶/子女）
+    star: string;            // 对应十神
+    analysis: string;        // 关系分析
+    advice: string;          // 建议
+  }[];
+  summary: string;
+}
+
+// 开运建议
+export interface LuckEnhancement {
+  luckyColors: string[];
+  luckyDirections: string[];
+  luckyNumbers: string[];
+  luckyIndustries: string[];
+  luckyItems: string[];
+  fengShuiAdvice: string;
+  dailyAdvice: string;
+}
+
+// 性格深度分析
+export interface PersonalityAnalysis {
+  core: string;              // 核心性格
+  strengths: string[];       // 优势
+  weaknesses: string[];      // 弱势
+  socialStyle: string;       // 社交风格
+  emotionalStyle: string;    // 情感模式
+  thinkingStyle: string;     // 思维模式
+  growthAdvice: string;      // 成长建议
+}
+
+// 一生运势综述
+export interface LifeOverview {
+  summary: string;           // 总体概述
+  stages: {                  // 人生各阶段
+    period: string;
+    description: string;
+  }[];
+  keyAdvice: string;         // 关键建议
+  classicalRef?: string;
+}
+
+// 综合详细分析结果
+export interface BaziDetailedAnalysis {
+  career: CareerAnalysis;
+  wealth: WealthAnalysis;
+  marriage: MarriageAnalysis;
+  health: HealthAnalysis;
+  education: EducationAnalysis;
+  family: FamilyRelationAnalysis;
+  luck: LuckEnhancement;
+  personality: PersonalityAnalysis;
+  lifeOverview: LifeOverview;
+  dayunInterpretations: { dayunIndex: number; analysis: string }[];
+  liunianInterpretations: { year: number; analysis: string }[];
+}
+
 // 八字排盘结果类型
 export interface BaziResult {
   fourPillars: {
@@ -140,6 +350,16 @@ export interface BaziResult {
   canggan: Record<string, string[]>;
   shengxiao: string;
   gender: string;
+  // 扩展字段
+  taiYuanMingGong?: TaiYuanMingGong;
+  wuxingStrength?: WuXingStrength;
+  geju?: GeJuAnalysis;
+  gongWei?: GongWeiAnalysis[];
+  shishenCombinations?: ShiShenCombination[];
+  dayunDetails?: DayunDetail[];
+  liunian?: LiuNian[];
+  unknownHour?: boolean; // 是否未知时辰（三柱论命）
+  detailedAnalysis?: BaziDetailedAnalysis; // 专项分析结果
 }
 
 // 会员等级

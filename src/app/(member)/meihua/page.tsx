@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { generateMeihuaInterpretation } from '@/lib/interpretation/meihua';
+import { MEIHUA_QUESTION_TYPES, type MeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { HexagramLookup } from '@/components/HexagramLookup';
 import { useToast } from '@/components/Toast';
 
@@ -62,6 +63,8 @@ export default function MeihuaPage() {
   const [flips, setFlips] = useState<number[]>([0, 0, 0, 0, 0, 0]);
   const [showInterpretation, setShowInterpretation] = useState(true);
   const [activeTab, setActiveTab] = useState<'divination' | 'lookup'>('divination');
+  const [questionType, setQuestionType] = useState('general');
+  const [detailedAnalysis, setDetailedAnalysis] = useState<MeihuaDetailedAnalysis | null>(null);
   const { addToast } = useToast();
   const [initialLoaded, setInitialLoaded] = useState(false);
 
@@ -73,6 +76,10 @@ export default function MeihuaPage() {
         .then(data => {
           if (data?.record?.result) {
             setResult(data.record.result);
+            // 尝试从保存的数据中恢复深度解读
+            if (data.record.detailedAnalysis) {
+              setDetailedAnalysis(data.record.detailedAnalysis);
+            }
           }
         })
         .catch(() => {});
@@ -85,7 +92,7 @@ export default function MeihuaPage() {
     setError(null);
 
     try {
-      const body: any = { method };
+      const body: any = { method, questionType };
       if (method === 'number') { body.num1 = num1; body.num2 = num2; body.num3 = num3; }
       else if (method === 'text') { body.text = text; }
       else if (method === 'coin') { body.flips = flips; }
@@ -100,6 +107,7 @@ export default function MeihuaPage() {
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '起卦失败');
       setResult(json.result);
+      setDetailedAnalysis(json.detailedAnalysis || null);
       setShowInterpretation(true);
       addToast('success', '起卦完成！');
     } catch (err) {
@@ -131,32 +139,37 @@ export default function MeihuaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">梅花易数</h1>
-          <p className="text-gray-600">选择起卦方式，获取卦象与详细解析</p>
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* 页面标题 */}
+        <div className="page-header">
+          <div className="section-label justify-center">MEI HUA YI SHU</div>
+          <h1 className="page-header-title">
+            <span>梅花易数</span>
+          </h1>
+          <p className="page-header-subtitle">以数起卦，以象断事，简洁精准的占卜之术</p>
         </div>
 
         {/* 主Tab切换 */}
-        <div className="flex justify-center gap-4 mb-6">
+        <div className="tab-nav mb-6">
           <button
             onClick={() => setActiveTab('divination')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${activeTab === 'divination' ? 'bg-red-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}
+            className={`tab-btn ${activeTab === 'divination' ? 'active' : ''}`}
           >
             起卦占事
           </button>
           <button
             onClick={() => setActiveTab('lookup')}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${activeTab === 'lookup' ? 'bg-red-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}
+            className={`tab-btn ${activeTab === 'lookup' ? 'active' : ''}`}
           >
             64卦速查
           </button>
         </div>
 
         {activeTab === 'lookup' && (
-          <div className="card">
-            <h2 className="card-title text-center mb-4">六十四卦速查</h2>
+          <div className="card p-6">
+            <h2 className="card-title text-center">六十四卦速查</h2>
             <HexagramLookup />
           </div>
         )}
@@ -164,16 +177,32 @@ export default function MeihuaPage() {
         {activeTab === 'divination' && (
           <>
             {/* 输入表单 */}
-            <div className="card mb-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="form-card mb-8">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {/* 起卦方式选择 */}
-                <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-3">
                   {(['number', 'time', 'text', 'coin', 'random', 'date'] as const).map((m) => (
                     <button key={m} type="button" onClick={() => setMethod(m)}
-                      className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${method === m ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                      className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${method === m ? 'bg-gradient-to-br from-red-700 to-red-900 text-white shadow-md' : 'bg-parchment-100 text-gray-600 hover:bg-parchment-200'}`}>
                       {methodLabels[m]}起卦
                     </button>
                   ))}
+                </div>
+
+                {/* 问题类型选择 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 text-center">测什么事？</label>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {MEIHUA_QUESTION_TYPES.map((q) => (
+                      <button key={q.key} type="button" onClick={() => setQuestionType(q.key)}
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${questionType === q.key ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'}`}>
+                        {q.icon} {q.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    {MEIHUA_QUESTION_TYPES.find(q => q.key === questionType)?.description}
+                  </p>
                 </div>
 
                 {/* 数字起卦 */}
@@ -182,17 +211,17 @@ export default function MeihuaPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">上卦数</label>
                       <input type="number" value={num1} onChange={(e) => setNum1(e.target.value)} placeholder="第一个数" min="1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" required />
+                        className="form-input" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">下卦数</label>
                       <input type="number" value={num2} onChange={(e) => setNum2(e.target.value)} placeholder="第二个数" min="1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" required />
+                        className="form-input" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">动爻数</label>
                       <input type="number" value={num3} onChange={(e) => setNum3(e.target.value)} placeholder="第三个数" min="1"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" required />
+                        className="form-input" required />
                     </div>
                   </div>
                 )}
@@ -201,8 +230,8 @@ export default function MeihuaPage() {
                 {method === 'text' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">输入文字（至少2个字）</label>
-                    <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="如：天地" minLength={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" required />
+                      <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="如：天地" minLength={2}
+                      className="form-input" required />
                   </div>
                 )}
 
@@ -210,7 +239,7 @@ export default function MeihuaPage() {
                 {method === 'coin' && (
                   <div className="space-y-4">
                     <p className="text-sm text-gray-600 text-center">模拟掷6次硬币，每次3枚。正面数：0=全反(老阴)，1=二反一正(少阳)，2=一反二正(少阴)，3=全正(老阳)</p>
-                    <div className="grid grid-cols-6 gap-2">
+                    <div className="grid grid-cols-6 gap-3">
                       {flips.map((f, i) => (
                         <div key={i} className="text-center">
                           <label className="text-xs text-gray-500 block mb-1">第{i + 1}爻</label>
@@ -221,7 +250,7 @@ export default function MeihuaPage() {
                               newFlips[i] = parseInt(e.target.value);
                               setFlips(newFlips);
                             }}
-                            className="w-full px-1 py-2 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-red-500"
+                            className="form-input text-center px-1"
                           >
                             <option value={0}>0正</option>
                             <option value={1}>1正</option>
@@ -235,7 +264,7 @@ export default function MeihuaPage() {
                       ))}
                     </div>
                     <button type="button" onClick={handleRandomCoin}
-                      className="mx-auto block px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                      className="mx-auto block px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
                       🎲 随机投掷
                     </button>
                   </div>
@@ -251,14 +280,14 @@ export default function MeihuaPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">选择日期</label>
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" required />
+                      className="form-input" required />
                   </div>
                 )}
 
                 {/* 时间起卦 */}
                 {method === 'time' && <p className="text-gray-500 text-sm text-center">将使用当前时间起卦</p>}
 
-                <button type="submit" disabled={loading} className="w-full btn-primary py-3 text-lg disabled:opacity-50">
+                <button type="submit" disabled={loading} className="w-full btn-primary text-lg disabled:opacity-50">
                   {loading ? '起卦中...' : '开始起卦'}
                 </button>
               </form>
@@ -327,13 +356,13 @@ export default function MeihuaPage() {
                 </div>
 
                 {/* 功能切换 */}
-                <div className="flex justify-center gap-4">
+                <div className="tab-nav">
                   <button onClick={() => setShowInterpretation(true)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm ${showInterpretation ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                    className={`tab-btn ${showInterpretation ? 'active' : ''}`}>
                     详细解析
                   </button>
                   <button onClick={() => setShowInterpretation(false)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm ${!showInterpretation ? 'bg-red-700 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                    className={`tab-btn ${!showInterpretation ? 'active' : ''}`}>
                     纯卦象
                   </button>
                 </div>
@@ -438,6 +467,126 @@ export default function MeihuaPage() {
                         {interpretation.summary}
                       </div>
                     </div>
+
+                    {/* ===== 深度解读区块 ===== */}
+
+                    {/* 体用深度分析 */}
+                    {detailedAnalysis?.tiYongAnalysis && (
+                      <div className="card border-2 border-blue-200 bg-blue-50/30">
+                        <h2 className="card-title text-blue-800">体用深度分析</h2>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="p-3 bg-white rounded-lg border border-blue-200 text-center">
+                            <div className="text-xs text-gray-500 mb-1">体卦旺衰</div>
+                            <div className="text-lg font-bold text-blue-700">{detailedAnalysis.tiYongAnalysis.tiWangshuai}</div>
+                            <div className="text-xs text-gray-500 mt-1">{detailedAnalysis.tiYongAnalysis.tiElement}行</div>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-green-200 text-center">
+                            <div className="text-xs text-gray-500 mb-1">用卦旺衰</div>
+                            <div className="text-lg font-bold text-green-700">{detailedAnalysis.tiYongAnalysis.yongWangshuai}</div>
+                            <div className="text-xs text-gray-500 mt-1">{detailedAnalysis.tiYongAnalysis.yongElement}行</div>
+                          </div>
+                        </div>
+                        <div className={`p-3 rounded-lg border ${getLevelColor(detailedAnalysis.tiYongAnalysis.level)} mb-3 text-center`}>
+                          <span className="font-bold">综合等级：{detailedAnalysis.tiYongAnalysis.level}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mb-3">{detailedAnalysis.tiYongAnalysis.description}</p>
+                        <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <p className="text-sm text-amber-800 font-medium">建议：{detailedAnalysis.tiYongAnalysis.advice}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 互卦与变卦影响 */}
+                    {detailedAnalysis?.tiYongAnalysis && (
+                      <div className="card">
+                        <h2 className="card-title">互卦与变卦影响</h2>
+                        <div className="space-y-3">
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="text-sm font-bold text-gray-700 mb-1">互卦影响（发展过程）</div>
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{detailedAnalysis.tiYongAnalysis.huGuaInfluence}</p>
+                          </div>
+                          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="text-sm font-bold text-gray-700 mb-1">变卦影响（最终结局）</div>
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{detailedAnalysis.tiYongAnalysis.bianGuaInfluence}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 卦象演变分析 */}
+                    {detailedAnalysis?.guaEvolution && (
+                      <div className="card border-2 border-purple-200 bg-purple-50/30">
+                        <h2 className="card-title text-purple-800">卦象演变分析</h2>
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          <div className="p-3 bg-white rounded-lg border border-purple-200 text-center">
+                            <div className="text-xs text-gray-500 mb-1">本卦（起因）</div>
+                            <div className="font-bold text-purple-700">{detailedAnalysis.guaEvolution.benGua.name}</div>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-blue-200 text-center">
+                            <div className="text-xs text-gray-500 mb-1">互卦（过程）</div>
+                            <div className="font-bold text-blue-700">{detailedAnalysis.guaEvolution.huGua.name}</div>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-green-200 text-center">
+                            <div className="text-xs text-gray-500 mb-1">变卦（结局）</div>
+                            <div className="font-bold text-green-700">{detailedAnalysis.guaEvolution.bianGua.name}</div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{detailedAnalysis.guaEvolution.evolution}</p>
+                      </div>
+                    )}
+
+                    {/* 应期推断 */}
+                    {detailedAnalysis?.timing && (
+                      <div className="card border-2 border-orange-200 bg-orange-50/30">
+                        <h2 className="card-title text-orange-800">应期推断</h2>
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{detailedAnalysis.timing}</p>
+                      </div>
+                    )}
+
+                    {/* 分领域断语 */}
+                    {detailedAnalysis?.domainAnalysis && (
+                      <div className="card">
+                        <h2 className="card-title">分领域断语</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {[
+                            { icon: '事业', content: detailedAnalysis.domainAnalysis.career, bg: 'bg-blue-50 border-blue-200', title: 'text-blue-700' },
+                            { icon: '财运', content: detailedAnalysis.domainAnalysis.wealth, bg: 'bg-yellow-50 border-yellow-200', title: 'text-yellow-700' },
+                            { icon: '婚姻', content: detailedAnalysis.domainAnalysis.marriage, bg: 'bg-pink-50 border-pink-200', title: 'text-pink-700' },
+                            { icon: '健康', content: detailedAnalysis.domainAnalysis.health, bg: 'bg-green-50 border-green-200', title: 'text-green-700' },
+                            { icon: '考试', content: detailedAnalysis.domainAnalysis.exam, bg: 'bg-purple-50 border-purple-200', title: 'text-purple-700' },
+                          ].map((item) => (
+                            <div key={item.icon} className={`p-3 rounded-lg border ${item.bg}`}>
+                              <div className={`font-bold text-sm ${item.title} mb-1`}>{item.icon}</div>
+                              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{item.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 断卦六步法 */}
+                    {detailedAnalysis?.divinationSteps && detailedAnalysis.divinationSteps.length > 0 && (
+                      <div className="card bg-gradient-to-br from-gray-50 to-white border-gray-300">
+                        <h2 className="card-title">断卦六步法（邵雍传统）</h2>
+                        <div className="space-y-3">
+                          {detailedAnalysis.divinationSteps.map((step: string, i: number) => (
+                            <div key={i} className="p-3 bg-white rounded-lg border border-gray-200">
+                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{step}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 深度综合总结 */}
+                    {detailedAnalysis?.overallSummary && (
+                      <div className="card bg-gradient-to-br from-red-50 via-amber-50 to-yellow-50 border-2 border-red-200">
+                        <h2 className="card-title chinese-red">深度综合总结</h2>
+                        <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                          {detailedAnalysis.overallSummary}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

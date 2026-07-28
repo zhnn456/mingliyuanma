@@ -113,7 +113,7 @@ export default function KnowledgePage() {
   // 文章详情页
   if (selectedArticle) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => setSelectedArticle(null)}
@@ -162,7 +162,7 @@ export default function KnowledgePage() {
 
   // 列表页
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">命理知识</h1>

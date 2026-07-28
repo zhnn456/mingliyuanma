@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { astro } from 'iztro';
 import { checkUsageLimit } from '@/lib/rate-limit';
+import { generateZiweiDetailedAnalysis } from '@/lib/interpretation/ziwei-detailed';
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,6 +73,19 @@ export async function POST(req: NextRequest) {
         earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
       },
       palaces,
+      detailedAnalysis: generateZiweiDetailedAnalysis(palaces, {
+        gender: genderStr,
+        solarDate: dateStr,
+        lunarDate: astrolabe.lunarDate,
+        chineseDate: astrolabe.chineseDate,
+        zodiac: astrolabe.zodiac,
+        sign: astrolabe.sign,
+        fiveElementsClass: astrolabe.fiveElementsClass,
+        soul: astrolabe.soul,
+        body: astrolabe.body,
+        earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
+        earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
+      }),
     };
 
     // 如果用户已登录，保存记录

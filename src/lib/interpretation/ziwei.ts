@@ -350,7 +350,7 @@ const STAR_COMBINATIONS: Record<string, string> = {
 // 五、星曜格局（特殊组合）
 // ============================================================
 
-const STAR_PATTERNS: Record<string, string> = {
+export const STAR_PATTERNS: Record<string, string> = {
   '杀破狼': '杀破狼格局：七杀、破军、贪狼三者在命宫、财帛、官禄三宫相会，主白手起家、开创新局。',
   '府相朝垣': '府相朝垣：天府和天相在命宫左右朝拱，主稳重有成，贵人相助。',
   '日月并明': '日月并明：太阳太阴同守在庙旺之地，主光明磊落，福禄双全。',

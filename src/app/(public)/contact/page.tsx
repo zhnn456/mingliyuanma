@@ -25,7 +25,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">联系我们</h1>

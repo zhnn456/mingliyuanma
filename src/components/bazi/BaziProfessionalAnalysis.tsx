@@ -55,10 +55,19 @@ export function BaziProfessionalAnalysis({ result, xiYongShen }: Props) {
   // ========== 2. 调候分析 ==========
   const tiaoHou = useMemo(() => getTiaoHou(dayGan, month), [dayGan, month]);
 
-  // ========== 3. 格局判定 ==========
-  // 简化版格局判定：看月支藏干是否透出天干
+  // ========== 3. 格局判定（使用扩展算法） ==========
   const geJu = useMemo(() => {
-    // 取月支的所有藏干
+    if (result.geju) {
+      return {
+        name: result.geju.name,
+        description: result.geju.description,
+        details: result.geju.details,
+        level: result.geju.level,
+        classicalRef: result.geju.classicalRef,
+        isEstablished: result.geju.isEstablished,
+      };
+    }
+    // 回退到旧逻辑
     const cangList: Record<string, string[]> = {
       '寅':['甲','丙','戊'],'卯':['乙'],'辰':['戊','乙','癸'],
       '巳':['丙','庚','戊'],'午':['丁','己'],'未':['己','丁','乙'],
@@ -66,25 +75,18 @@ export function BaziProfessionalAnalysis({ result, xiYongShen }: Props) {
       '亥':['壬','甲'],'子':['癸'],'丑':['己','癸','辛'],
     };
     const cang = cangList[monthZhi] || [];
-    // 月支藏干透出天干的情况
     const touGan = cang.filter(c => gans.includes(c));
-    
-    // 根据透出的藏干+月令定格局
     if (touGan.length === 0) {
-      // 无透出，以月支本气论
       const benQi = cang[0];
       const baziShiShen = getShiShenFn(dayGan, benQi);
-      return { name: `${baziShiShen}格`, touGan: [], benQi };
+      return { name: `${baziShiShen}格`, description: '', details: [], level: '正格' as const, classicalRef: '', isEstablished: false };
     }
-    
-    // 取第一个透出的藏干
     const main = touGan[0];
     const ss = getShiShenFn(dayGan, main);
     let geName = ss + '格';
     if (ss === '比肩' || ss === '劫财') geName = '建禄格';
-    if (ss === '七杀' && gans.includes('食神') || gans.includes('伤官')) geName = '七杀格（有制）';
-    return { name: geName, touGan, benQi: cang[0] };
-  }, [monthZhi, gans, dayGan]);
+    return { name: geName, description: '', details: [], level: '正格' as const, classicalRef: '', isEstablished: true };
+  }, [result.geju, monthZhi, gans, dayGan]);
 
   // ========== 4. 长生十二宫 ==========
   const shiErGongData = useMemo(() => {
@@ -218,37 +220,164 @@ export function BaziProfessionalAnalysis({ result, xiYongShen }: Props) {
         </div>
       )}
 
-      {/* 4. 格局分析 */}
+      {/* 4. 格局分析（扩展版） */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">🏛️</span>
           <h2 className="card-title !mb-0">格局分析</h2>
+          {'level' in geJu && (
+            <span className={`text-xs px-2 py-0.5 rounded font-bold ${
+              geJu.level === '从格' ? 'bg-purple-100 text-purple-700' :
+              geJu.level === '化格' ? 'bg-indigo-100 text-indigo-700' :
+              'bg-blue-100 text-blue-700'
+            }`}>{geJu.level}</span>
+          )}
         </div>
         <div className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg border border-purple-200">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-3">
             <span className="text-lg font-bold text-purple-800">{geJu.name}</span>
-            {geJu.touGan.length > 0 && (
-              <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                月支{monthZhi}透出{geJu.touGan.join('、')}
-              </span>
+            {'isEstablished' in geJu && geJu.isEstablished && (
+              <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">格局成立</span>
             )}
           </div>
-          <p className="text-sm text-gray-700">
-            {({
-              '正官格':'月令正官透于天干，或地支会合官局。为人正直，有管理才能，宜公职。',
-              '七杀格':'月令七杀透干，或杀旺得制。性格刚毅，有魄力，宜军警外科。',
-              '七杀格（有制）':'七杀有食伤制化，杀印相生，贵不可言。',
-              '正印格':'月令正印透干。心地善良，学业有成，得长辈庇护。',
-              '偏印格':'月令偏印透干。思维独特，有特殊才能，玄学天赋。',
-              '正财格':'月令正财透干。财运稳定，勤劳致富，勤俭持家。',
-              '偏财格':'月令偏财透干。偏财运佳，慷慨大方，善交际。',
-              '食神格':'月令食神透干。心宽体胖，有口福，才艺好。',
-              '伤官格':'月令伤官透干。聪明伶俐，才华横溢，但易恃才傲物。',
-              '建禄格':'月令比劫，身旺，宜独立创业。',
-            } as Record<string,string>)[geJu.name] || '格局清晰。'}
-          </p>
+          {geJu.description && (
+            <p className="text-sm text-gray-700 mb-3">{geJu.description}</p>
+          )}
+          {geJu.details && geJu.details.length > 0 && (
+            <div className="space-y-1.5 mt-3">
+              {geJu.details.map((d, i) => (
+                <div key={i} className="text-xs text-gray-600 flex items-start gap-1">
+                  <span className="text-purple-400 flex-shrink-0">▪</span>
+                  <span>{d}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {geJu.classicalRef && (
+            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800 italic">
+              📜 {geJu.classicalRef}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 4.1 五行力量量化 */}
+      {result.wuxingStrength && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">⚡</span>
+            <h2 className="card-title !mb-0">五行力量量化</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-cyan-50 to-white rounded-lg border border-cyan-200">
+            <div className="space-y-2 mb-3">
+              {Object.entries(result.wuxingStrength.strengths).map(([wx, str]) => {
+                const max = Math.max(...Object.values(result.wuxingStrength!.strengths), 1);
+                const pct = (str / max) * 100;
+                const isMissing = str === 0;
+                return (
+                  <div key={wx} className="flex items-center gap-2">
+                    <span className="text-sm font-bold w-8" style={{color: WXC(wx)}}>{wx}</span>
+                    <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden relative">
+                      <div className="h-full rounded-full transition-all flex items-center justify-end pr-2"
+                        style={{width: `${Math.max(pct, isMissing ? 2 : 5)}%`, backgroundColor: WXC(wx), opacity: isMissing ? 0.2 : 0.8}}>
+                        {!isMissing && <span className="text-[10px] text-white font-bold">{str}</span>}
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 w-12 text-right">
+                      {isMissing ? '缺失' : `${Math.round(str / result.wuxingStrength!.total * 100)}%`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 flex-wrap text-xs">
+              <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">最旺: {result.wuxingStrength.dominant}</span>
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">最弱: {result.wuxingStrength.weakest}</span>
+              {result.wuxingStrength.missing.length > 0 && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded">缺: {result.wuxingStrength.missing.join('、')}</span>
+              )}
+              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded">总力量: {result.wuxingStrength.total}</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">天干力量=1，地支本气=3，中气=2，余气=1。力量占比反映五行实际强弱。</p>
+          </div>
+        </div>
+      )}
+
+      {/* 4.2 胎元命宫身宫 */}
+      {result.taiYuanMingGong && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🔮</span>
+            <h2 className="card-title !mb-0">胎元 · 命宫 · 身宫</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: '胎元', data: result.taiYuanMingGong.taiYuan, desc: '受胎之月，主先天禀赋', color: 'from-pink-50 to-white border-pink-200' },
+              { label: '命宫', data: result.taiYuanMingGong.mingGong, desc: '命之所在，主一生根本', color: 'from-purple-50 to-white border-purple-200' },
+              { label: '身宫', data: result.taiYuanMingGong.shenGong, desc: '身之所在，主中年运势', color: 'from-blue-50 to-white border-blue-200' },
+            ].map(({ label, data, desc, color }) => (
+              (data.gan || data.zhi) ? (
+                <div key={label} className={`p-3 rounded-lg border bg-gradient-to-br ${color}`}>
+                  <div className="text-xs text-gray-500 mb-1">{label}</div>
+                  <div className="text-xl font-bold text-gray-800 mb-1">
+                    {data.gan && <span style={{color: WXC(TIAN_GAN_WU_XING[data.gan] || '')}}>{data.gan}</span>}
+                    {data.zhi && <span style={{color: WXC(DI_ZHI_WU_XING[data.zhi] || '')}}>{data.zhi}</span>}
+                  </div>
+                  <div className="text-[10px] text-gray-400">{desc}</div>
+                </div>
+              ) : null
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4.3 宫位分析 */}
+      {result.gongWei && result.gongWei.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🏠</span>
+            <h2 className="card-title !mb-0">宫位分析</h2>
+          </div>
+          <div className="space-y-2">
+            {result.gongWei.map((gw, i) => (
+              <div key={i} className="p-3 rounded-lg border bg-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-sm text-gray-800">{gw.position}</span>
+                  <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{gw.palace}</span>
+                  <span className="text-sm font-bold" style={{color: WXC(TIAN_GAN_WU_XING[gw.ganZhi[0]] || '')}}>{gw.ganZhi}</span>
+                  <span className="text-xs text-gray-500">十神: {gw.shiShen}</span>
+                </div>
+                <p className="text-xs text-gray-600">{gw.analysis}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4.4 十神组合分析 */}
+      {result.shishenCombinations && result.shishenCombinations.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🧬</span>
+            <h2 className="card-title !mb-0">十神组合分析</h2>
+            <span className="text-xs text-gray-400">（{result.shishenCombinations.length}组）</span>
+          </div>
+          <div className="space-y-2">
+            {result.shishenCombinations.map((sc, i) => (
+              <div key={i} className="p-3 rounded-lg border bg-gradient-to-r from-indigo-50 to-white border-indigo-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-sm text-indigo-800">{sc.combination}</span>
+                </div>
+                <p className="text-xs text-gray-600 mb-1">{sc.description}</p>
+                <p className="text-xs text-gray-700"><strong>影响：</strong>{sc.influence}</p>
+                {sc.classicalRef && (
+                  <p className="text-[10px] text-yellow-700 italic mt-1">📜 {sc.classicalRef}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 5. 长生十二宫 */}
       <div className="card">
@@ -444,6 +573,368 @@ export function BaziProfessionalAnalysis({ result, xiYongShen }: Props) {
           })}
         </div>
       </div>
+
+      {/* ========== 专项分析（新增） ========== */}
+
+      {/* 事业分析 */}
+      {result.detailedAnalysis?.career && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">💼</span>
+            <h2 className="card-title !mb-0">事业分析</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-white rounded-lg border border-blue-200 space-y-3">
+            <div>
+              <span className="text-xs text-gray-500">事业方向</span>
+              <p className="text-sm text-gray-800 font-medium">{result.detailedAnalysis.career.direction}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">职业性格</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.career.careerCharacter}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">适合行业</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {result.detailedAnalysis.career.suitableIndustries.map((ind, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{ind}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">发展时机</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.career.developmentTiming}</p>
+            </div>
+            {result.detailedAnalysis.career.classicalRef && (
+              <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800 italic">
+                📜 {result.detailedAnalysis.career.classicalRef}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 财运分析 */}
+      {result.detailedAnalysis?.wealth && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">💰</span>
+            <h2 className="card-title !mb-0">财运分析</h2>
+            <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">{result.detailedAnalysis.wealth.level}</span>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-amber-50 to-white rounded-lg border border-amber-200 space-y-3">
+            <div className="flex gap-2">
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">{result.detailedAnalysis.wealth.type}</span>
+            </div>
+            <p className="text-sm text-gray-700">{result.detailedAnalysis.wealth.characteristics}</p>
+            <div>
+              <span className="text-xs text-gray-500">财运高峰期</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.wealth.peakPeriod}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">理财建议</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.wealth.investmentAdvice}</p>
+            </div>
+            <div className="p-2 bg-red-50 border border-red-200 rounded">
+              <span className="text-xs text-red-600 font-medium">⚠️ 风险提示：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.wealth.riskWarning}</span>
+            </div>
+            {result.detailedAnalysis.wealth.classicalRef && (
+              <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800 italic">
+                📜 {result.detailedAnalysis.wealth.classicalRef}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 感情婚姻 */}
+      {result.detailedAnalysis?.marriage && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">❤️</span>
+            <h2 className="card-title !mb-0">感情婚姻</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-pink-50 to-white rounded-lg border border-pink-200 space-y-3">
+            <div>
+              <span className="text-xs text-gray-500">配偶特征</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.marriage.spouseCharacter}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">婚姻前景</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.marriage.marriageProspect}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">桃花运势</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.marriage.romanticLuck}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">有利婚恋年龄</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.marriage.favorableAge}</p>
+            </div>
+            <div className="p-2 bg-pink-50 border border-pink-200 rounded">
+              <span className="text-xs text-pink-600 font-medium">建议：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.marriage.advice}</span>
+            </div>
+            {result.detailedAnalysis.marriage.classicalRef && (
+              <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800 italic">
+                📜 {result.detailedAnalysis.marriage.classicalRef}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 健康分析 */}
+      {result.detailedAnalysis?.health && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🏥</span>
+            <h2 className="card-title !mb-0">健康分析</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-green-50 to-white rounded-lg border border-green-200 space-y-3">
+            <p className="text-sm text-gray-700">{result.detailedAnalysis.health.constitution}</p>
+            <div>
+              <span className="text-xs text-gray-500">需注意部位</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {result.detailedAnalysis.health.weakOrgans.map((org, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100">{org}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">健康风险</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.health.healthRisks}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">养生建议</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.health.maintenanceAdvice}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">饮食建议</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.health.dietaryAdvice}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 学业分析 */}
+      {result.detailedAnalysis?.education && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">📚</span>
+            <h2 className="card-title !mb-0">学业分析</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-indigo-50 to-white rounded-lg border border-indigo-200 space-y-3">
+            <div>
+              <span className="text-xs text-gray-500">学习风格</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.education.learningStyle}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">学业潜力</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.education.academicPotential}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">有利学科</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {result.detailedAnalysis.education.favorableSubjects.map((sub, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded">{sub}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">考试运势</span>
+              <p className="text-sm text-gray-700">{result.detailedAnalysis.education.examLuck}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 六亲关系 */}
+      {result.detailedAnalysis?.family && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">👨‍👩‍👧‍👦</span>
+            <h2 className="card-title !mb-0">六亲关系</h2>
+          </div>
+          <div className="space-y-2">
+            {result.detailedAnalysis.family.relations.map((rel, i) => (
+              <div key={i} className="p-3 rounded-lg border bg-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-sm text-gray-800">{rel.relation}</span>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">{rel.star}</span>
+                </div>
+                <p className="text-xs text-gray-600 mb-1">{rel.analysis}</p>
+                <p className="text-xs text-gray-500">💡 {rel.advice}</p>
+              </div>
+            ))}
+            <div className="p-2 bg-gray-50 rounded text-xs text-gray-500 italic">
+              {result.detailedAnalysis.family.summary}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 性格深度分析 */}
+      {result.detailedAnalysis?.personality && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🧠</span>
+            <h2 className="card-title !mb-0">性格深度分析</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg border border-purple-200 space-y-3">
+            <p className="text-sm text-gray-700">{result.detailedAnalysis.personality.core}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-xs text-green-600 font-medium">优势</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {result.detailedAnalysis.personality.strengths.map((s, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded border border-green-100">{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-red-500 font-medium">注意</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {result.detailedAnalysis.personality.weaknesses.map((w, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100">{w}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div><span className="text-xs text-gray-500">社交风格</span><p className="text-sm text-gray-700">{result.detailedAnalysis.personality.socialStyle}</p></div>
+            <div><span className="text-xs text-gray-500">情感模式</span><p className="text-sm text-gray-700">{result.detailedAnalysis.personality.emotionalStyle}</p></div>
+            <div><span className="text-xs text-gray-500">思维模式</span><p className="text-sm text-gray-700">{result.detailedAnalysis.personality.thinkingStyle}</p></div>
+            <div className="p-2 bg-purple-50 border border-purple-200 rounded">
+              <span className="text-xs text-purple-600 font-medium">成长建议：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.personality.growthAdvice}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 开运建议 */}
+      {result.detailedAnalysis?.luck && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🍀</span>
+            <h2 className="card-title !mb-0">开运建议</h2>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-yellow-50 to-white rounded-lg border border-yellow-200 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-xs text-gray-500">幸运颜色</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {result.detailedAnalysis.luck.luckyColors.map((c, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">{c}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">有利方位</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {result.detailedAnalysis.luck.luckyDirections.map((d, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{d}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">幸运数字</span>
+                <div className="flex gap-1 mt-1">
+                  {result.detailedAnalysis.luck.luckyNumbers.map((n, i) => (
+                    <span key={i} className="text-xs w-6 h-6 flex items-center justify-center bg-yellow-100 text-yellow-800 rounded font-bold">{n}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500">开运物品</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {result.detailedAnalysis.luck.luckyItems.map((item, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded">{item}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">有利行业</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {result.detailedAnalysis.luck.luckyIndustries.map((ind, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded">{ind}</span>
+                ))}
+              </div>
+            </div>
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+              <span className="text-xs text-blue-600 font-medium">风水建议：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.luck.fengShuiAdvice}</span>
+            </div>
+            <div className="p-2 bg-green-50 border border-green-200 rounded">
+              <span className="text-xs text-green-600 font-medium">日常建议：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.luck.dailyAdvice}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 大运详细解读 */}
+      {result.detailedAnalysis?.dayunInterpretations && result.detailedAnalysis.dayunInterpretations.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">📊</span>
+            <h2 className="card-title !mb-0">大运详评（详细解读）</h2>
+          </div>
+          <div className="space-y-2">
+            {result.detailedAnalysis.dayunInterpretations.map((dy, i) => (
+              <div key={i} className="p-3 rounded-lg border bg-white">
+                <p className="text-sm text-gray-700 whitespace-pre-line">{dy.analysis}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 流年解读 */}
+      {result.detailedAnalysis?.liunianInterpretations && result.detailedAnalysis.liunianInterpretations.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">📅</span>
+            <h2 className="card-title !mb-0">流年运势（近年）</h2>
+          </div>
+          <div className="space-y-2">
+            {result.detailedAnalysis.liunianInterpretations.map((ln, i) => (
+              <div key={i} className={`p-3 rounded-lg border ${ln.analysis.includes('【今年流年】') ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                <p className="text-sm text-gray-700">{ln.analysis}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 一生运势综述 */}
+      {result.detailedAnalysis?.lifeOverview && (
+        <div className="card bg-gradient-to-br from-yellow-50 via-white to-red-50 border border-yellow-200">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🌅</span>
+            <h2 className="card-title !mb-0">一生运势综述</h2>
+          </div>
+          <div className="p-4 bg-white/60 rounded-lg space-y-3">
+            <p className="text-sm text-gray-700 whitespace-pre-line">{result.detailedAnalysis.lifeOverview.summary}</p>
+            <div className="space-y-2">
+              {result.detailedAnalysis.lifeOverview.stages.map((stage, i) => (
+                <div key={i} className="p-2 bg-gray-50 rounded border">
+                  <span className="text-xs font-bold text-gray-700">{stage.period}</span>
+                  <p className="text-xs text-gray-600 mt-0.5">{stage.description}</p>
+                </div>
+              ))}
+            </div>
+            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+              <span className="text-xs text-yellow-700 font-medium">关键建议：</span>
+              <span className="text-xs text-gray-700">{result.detailedAnalysis.lifeOverview.keyAdvice}</span>
+            </div>
+            {result.detailedAnalysis.lifeOverview.classicalRef && (
+              <p className="text-xs text-gray-500 italic">📜 {result.detailedAnalysis.lifeOverview.classicalRef}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 古籍引用 */}
       <div className="card bg-gradient-to-br from-yellow-50 via-white to-red-50 border border-yellow-200">

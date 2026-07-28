@@ -1,0 +1,28 @@
+﻿name = "mingli-yuanma"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# ============ D1 数据库绑定 ============
+# 创建命令: wrangler d1 create yuanmamingli
+# 将输出的 database_id 填入下方
+[[d1_databases]]
+binding = "DB"
+database_name = "yuanmamingli"
+database_id = "8eb80fad-28f3-4711-b9d0-4f1fb861b6e0"
+
+# ============ KV 命名空间绑定 ============
+# 创建命令: wrangler kv namespace create SESSIONS
+# 将输出的 id 填入下方
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "758d9485ac404f58bdb29aa249e5a1c8"
+
+# ============ 环境变量 ============
+[vars]
+NEXTAUTH_URL = "https://mingli-yuanma.pages.dev"  # ← 替换为你的域名
+CF_PAGES = "1"
+
+# ============ 敏感变量（用 wrangler secret 设置） ============
+# NEXTAUTH_SECRET: wrangler pages secret put NEXTAUTH_SECRET
+# 不要在这里明文写密钥！

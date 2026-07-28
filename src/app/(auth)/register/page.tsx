@@ -15,7 +15,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       setError('两次输入的密码不一致');
       return;
@@ -42,7 +42,6 @@ export default function RegisterPage() {
         throw new Error(data.error || '注册失败');
       }
 
-      // 注册成功，跳转到登录页
       router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败，请重试');
@@ -52,60 +51,69 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* 装饰背景 */}
+      <div className="absolute inset-0 bg-mesh-gradient opacity-40" />
+      <div className="absolute inset-0 bg-hero-pattern opacity-20" />
+
+      <div className="max-w-md w-full relative z-10">
+        {/* Logo和标题 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold chinese-red">命理网</h1>
-          <p className="text-gray-600 mt-2">创建您的账户</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-700 to-red-900 shadow-lg mb-4 relative">
+            <span className="text-white font-bold text-2xl font-kai">命</span>
+            <div className="absolute inset-0 rounded-2xl border border-gold/30" />
+          </div>
+          <h1 className="text-3xl font-bold chinese-red font-kai">命理网</h1>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="h-px w-8 bg-gold/40" />
+            <span className="text-xs text-gold tracking-widest">MINGLI</span>
+            <div className="h-px w-8 bg-gold/40" />
+          </div>
+          <p className="text-gray-500 mt-3 text-sm">创建您的账户</p>
         </div>
 
-        <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 表单卡片 */}
+        <div className="form-card">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                昵称
-              </label>
+              <label htmlFor="name" className="form-label">昵称（选填）</label>
               <input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="请输入昵称（选填）"
+                placeholder="请输入昵称"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                邮箱
-              </label>
+              <label htmlFor="email" className="form-label">邮箱</label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="请输入邮箱"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                密码
-              </label>
+              <label htmlFor="password" className="form-label">密码</label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="请输入密码（至少6位）"
                 required
                 minLength={6}
@@ -113,15 +121,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                确认密码
-              </label>
+              <label htmlFor="confirmPassword" className="form-label">确认密码</label>
               <input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="请再次输入密码"
                 required
               />
@@ -132,12 +137,20 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full btn-primary py-3 disabled:opacity-50"
             >
-              {loading ? '注册中...' : '注册'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  注册中...
+                </span>
+              ) : '注册'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-500">
               已有账户？{' '}
               <Link href="/login" className="text-red-700 hover:text-red-800 font-medium">
                 立即登录
