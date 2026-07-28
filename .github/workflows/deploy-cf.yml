@@ -56,6 +56,15 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
         run: npm run build:pages
 
+      - name: Verify build output
+        run: |
+          echo "=== Checking build output ==="
+          ls -la .vercel/output/static/ || {
+            echo "::error::.vercel/output/static 不存在，构建失败"
+            exit 1
+          }
+          echo "=== Build output OK ==="
+
       - name: Configure Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -82,7 +91,7 @@ jobs:
             npx wrangler pages secret put NEXTAUTH_SECRET --project-name "$PROJECT_NAME"
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
