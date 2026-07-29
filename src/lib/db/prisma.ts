@@ -9,11 +9,11 @@ export async function getPrisma(): Promise<PrismaClient> {
 
   initPromise = (async () => {
     try {
-      const { getCloudflareContext } = require('@opennextjs/cloudflare');
-      const { PrismaD1 } = require('@prisma/adapter-d1');
+      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+      const { PrismaD1 } = await import('@prisma/adapter-d1');
       const ctx = await getCloudflareContext({ async: true });
-      if (ctx?.env?.DB) {
-        prismaClient = new PrismaClient({ adapter: new PrismaD1(ctx.env.DB) });
+      if ((ctx?.env as any)?.DB) {
+        prismaClient = new PrismaClient({ adapter: new PrismaD1((ctx.env as any).DB) as any });
         return prismaClient;
       }
     } catch {

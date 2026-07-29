@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 
     const agents = await queryAll('SELECT * FROM Agent ORDER BY createdAt DESC');
 
-    const userIds = agents.map(a => (a as any).userId);
-    const agentIds = agents.map(a => (a as any).id);
+    const userIds = agents.map((a: any) => a.userId);
+    const agentIds = agents.map((a: any) => a.id);
 
     const users = userIds.length > 0
       ? await queryAll(
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
           ...userIds
         )
       : [];
-    const userMap = new Map(users.map(u => [(u as any).id, u]));
+    const userMap = new Map(users.map((u: any) => [u.id, u]));
 
     let customerCountMap = new Map<string, number>();
     if (agentIds.length > 0) {
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         `SELECT value, COUNT(*) as cnt FROM SiteConfig WHERE category = ? AND value IN (${agentIds.map(() => '?').join(',')}) GROUP BY value`,
         'agent_customer', ...agentIds
       );
-      customerCountMap = new Map((groupResults as any[]).map(c => [(c as any).value, (c as any).cnt]));
+      customerCountMap = new Map((groupResults as any[]).map((c: any) => [c.value, c.cnt]));
     }
 
     const agentsWithStats = agents.map((agent: any) => {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
         const buf = new Uint8Array(12);
         globalThis.crypto.getRandomValues(buf);
-        return Array.from(buf).map(b => chars[b % chars.length]).join('');
+        return Array.from(buf).map((b: number) => chars[b % chars.length]).join('');
       })();
 
       if (!email) {
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         userId, email, passwordHash, contactName, contactPhone, now
       );
 
-      const randomPart = Array.from(new Uint8Array(4), x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const randomPart = Array.from(new Uint8Array(4), (x: number) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
       const licenseKey = `AGT-${Date.now()}-${randomPart}`;
       const agentId = `agt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'regenerate_license') {
       const { agentId } = body;
-      const randomPart = Array.from(new Uint8Array(4), x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const randomPart = Array.from(new Uint8Array(4), (x: number) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
       const newLicenseKey = `AGT-${Date.now()}-${randomPart}`;
 
       await execute("UPDATE AgentLicense SET status = 'revoked' WHERE agentId = ? AND status = 'active'", agentId);

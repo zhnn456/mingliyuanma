@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
+import { execute } from '@/lib/d1';
 
 const PACKAGES = [
   { id: 'pkg_100', amount: 100, points: 100 },
@@ -14,10 +15,6 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
     const userId = session.user.id;
 
-    const { getCloudflareContext } = require('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    const db = ctx.env.DB;
-
     const body = await req.json();
     const { packageId } = body;
     const pkg = PACKAGES.find((p) => p.id === packageId);
@@ -26,9 +23,10 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
     const orderId = `ord_${Date.now()}`;
 
-    await db.prepare(
-      'INSERT INTO OrderRecord (id, userId, type, itemId, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(orderId, userId, 'recharge', pkg.id, pkg.amount, 'pending', now).run();
+    await execute(
+      'INSERT INTO OrderRecord (id, userId, type, itemId, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      orderId, userId, 'recharge', pkg.id, pkg.amount, 'pending', now
+    );
 
     return NextResponse.json({ orderId, amount: pkg.amount, points: pkg.points, message: '订单创建成功，请扫码支付' });
   } catch (error: any) {

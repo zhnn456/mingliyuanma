@@ -34,7 +34,7 @@ export async function hashPassword(password: string): Promise<string> {
     ['encrypt']
   );
 
-  const keyBytes = new Uint8Array(await key.export());
+  const keyBytes = new Uint8Array(await crypto.subtle.exportKey('raw', key));
   const saltB64 = arrayBufferToBase64(salt);
   const keyB64 = arrayBufferToBase64(keyBytes);
 
@@ -74,7 +74,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
       ['encrypt']
     );
 
-    const actualKey = new Uint8Array(await key.export());
+    const actualKey = new Uint8Array(await crypto.subtle.exportKey('raw', key));
     const expected = new Uint8Array(expectedKey);
 
     if (actualKey.length !== expected.length) return false;
@@ -89,8 +89,8 @@ export async function verifyPassword(password: string, stored: string): Promise<
   }
 }
 
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
+function arrayBufferToBase64(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);

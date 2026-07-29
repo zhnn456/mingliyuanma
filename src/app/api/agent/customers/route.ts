@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       'SELECT * FROM SiteConfig WHERE category = ? AND value = ?',
       'agent_customer', (agent as any).id
     );
-    const customerIds = customerLinks.map(c => c.key.replace('agent_customer:', ''));
+    const customerIds = customerLinks.map((c: any) => c.key.replace('agent_customer:', ''));
 
     if (customerIds.length === 0) {
       return NextResponse.json({ customers: [], total: 0 });

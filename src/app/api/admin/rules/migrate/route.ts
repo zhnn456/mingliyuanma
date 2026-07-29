@@ -6,7 +6,7 @@ import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
  * 后续新增古籍资料可通过后台管理界面直接操作，无需改代码
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { upsertRule, batchUpsertRules, getRuleStats, type RuleData } from '@/lib/rules/engine';
 
 // 导入现有常量规则
@@ -32,7 +32,7 @@ import { QUESTION_TYPES as QIMEN_QUESTION_TYPES, PATTERN_DETAILS as QIMEN_PATTER
 import { MEIHUA_QUESTION_TYPES } from '@/lib/interpretation/meihua-detailed';
 
 // 安全检查：仅管理员可执行迁移
-async function checkAdmin(req: Request) {
+async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
   if (!session || session?.user?.role !== 'admin') {
     return null;
@@ -40,7 +40,7 @@ async function checkAdmin(req: Request) {
   return session;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
@@ -299,7 +299,7 @@ export async function POST(request: Request) {
 }
 
 /** GET 查看迁移状态（规则统计） */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const session = await checkAdmin(req);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });

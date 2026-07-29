@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
+import { queryFirst, execute } from '@/lib/d1';
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,20 +8,16 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
     const userId = session.user.id;
 
-    const { getCloudflareContext } = require('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    const db = ctx.env.DB;
-
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    const signed = await db.prepare("SELECT 1 FROM SiteConfig WHERE key = ?").bind(`signin:${userId}:${today}`).first();
+    const signed = await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${today}`);
     if (signed) return NextResponse.json({ error: '今日已签到' }, { status: 400 });
 
-    const lastSigned = await db.prepare("SELECT 1 FROM SiteConfig WHERE key = ?").bind(`signin:${userId}:${yesterday}`).first();
+    const lastSigned = await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${yesterday}`);
     let streak = 1;
     if (lastSigned) {
-      const s = await db.prepare("SELECT value FROM SiteConfig WHERE key = ?").bind(`signin_streak:${userId}`).first() as any;
+      const s = await queryFirst("SELECT value FROM SiteConfig WHERE key = ?", `signin_streak:${userId}`) as any;
       streak = (parseInt(s?.value || '0') || 0) + 1;
     }
 
@@ -29,16 +26,16 @@ export async function POST(req: NextRequest) {
     const total = basePoints + bonusPoints;
     const now = new Date().toISOString();
 
-    await db.prepare("INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, 'signin', ?)").bind(`signin:${userId}:${today}`, '1', now).run();
-    await db.prepare("UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE key = ?").bind(String(streak), now, `signin_streak:${userId}`).run();
+    await execute("INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, 'signin', ?)", `signin:${userId}:${today}`, '1', now);
+    await execute("UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE key = ?", String(streak), now, `signin_streak:${userId}`);
 
-    const row = await db.prepare('SELECT balance FROM UserPoints WHERE userId = ?').bind(userId).first() as any;
+    const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
     const current = row?.balance || 0;
     const newBalance = current + total;
 
-    await db.prepare('INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(`pts_${Date.now()}`, userId, total, newBalance, 'daily_signin', bonusPoints > 0 ? `连续签到${streak}天` : '每日签到', now).run();
-    await db.prepare('INSERT OR REPLACE INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?)').bind(userId, newBalance, now).run();
+    await execute('INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      `pts_${Date.now()}`, userId, total, newBalance, 'daily_signin', bonusPoints > 0 ? `连续签到${streak}天` : '每日签到', now);
+    await execute('INSERT OR REPLACE INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?)', userId, newBalance, now);
 
     return NextResponse.json({ points: total, basePoints, bonusPoints, streak, balance: newBalance, message: '签到成功' });
   } catch (error: any) {
@@ -53,15 +50,11 @@ export async function GET(req: NextRequest) {
     if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
     const userId = session.user.id;
 
-    const { getCloudflareContext } = require('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    const db = ctx.env.DB;
-
     const today = new Date().toISOString().split('T')[0];
-    const signed = !!(await db.prepare("SELECT 1 FROM SiteConfig WHERE key = ?").bind(`signin:${userId}:${today}`).first());
-    const streakRow = await db.prepare("SELECT value FROM SiteConfig WHERE key = ?").bind(`signin_streak:${userId}`).first() as any;
+    const signed = !!(await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${today}`));
+    const streakRow = await queryFirst("SELECT value FROM SiteConfig WHERE key = ?", `signin_streak:${userId}`) as any;
     const streak = parseInt(streakRow?.value || '0') || 0;
-    const balanceRow = await db.prepare('SELECT balance FROM UserPoints WHERE userId = ?').bind(userId).first() as any;
+    const balanceRow = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
     const balance = balanceRow?.balance || 0;
 
     return NextResponse.json({ signed, today, streak, balance });

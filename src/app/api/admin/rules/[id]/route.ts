@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';
 import { clearRuleCache } from '@/lib/rules/engine';
 
-async function checkAdmin(req: Request) {
+async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
   if (!session || (session.user as any)?.role !== 'admin') {
     return null;
@@ -12,7 +12,7 @@ async function checkAdmin(req: Request) {
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -34,7 +34,7 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -81,7 +81,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { queryAll, queryFirst } from '@/lib/d1';
 
-// 脱敏名称池
 const ANON_NAMES = [
   '善信·慧', '善信·明', '善信·诚', '善信·德', '善信·仁',
   '虔诚·行者', '虔诚·居士', '虔诚·信士', '虔诚·善人',
@@ -15,7 +15,6 @@ const ANON_NAMES = [
 
 const ITEMS = ['清香', '鲜花', '水果', '素食', '供灯', '宝鼎'];
 
-/** 相对时间 */
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
@@ -30,21 +29,16 @@ function timeAgo(dateStr: string): string {
 
 export async function GET() {
   try {
-    const { getCloudflareContext } = require('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    const db = ctx.env.DB;
-
-    // 查真实记录
-    const real = await db.prepare(`
+    const real = await queryAll(`
       SELECT o.id, o.userId, o.itemId, o.amount, o.supplyIds, o.createdAt,
              u.name as userName, i.name as itemName
       FROM OfferingRecord o
       LEFT JOIN User u ON o.userId = u.id
       LEFT JOIN OfferingItem i ON o.itemId = i.id
       ORDER BY o.createdAt DESC LIMIT 20
-    `).all() as any;
+    `) as any[];
 
-    const realItems = (real.results || []).map((r: any) => {
+    const realItems = real.map((r: any) => {
       let dedication = '';
       try { const d = JSON.parse(r.supplyIds || '{}'); dedication = d.dedication || ''; } catch {}
       return {
@@ -57,26 +51,24 @@ export async function GET() {
       };
     });
 
-    // 统计
-    const stats = await db.prepare(`
+    const stats = await queryFirst(`
       SELECT COUNT(*) as totalOff, COALESCE(SUM(amount),0) as totalLing,
              (SELECT COUNT(DISTINCT userId) FROM OfferingRecord) as totalUsers
       FROM OfferingRecord
-    `).first() as any;
-    const totalOff = (stats as any)?.totalOff || 0;
-    const totalLing = (stats as any)?.totalLing || 0;
-    const totalUsers = (stats as any)?.totalUsers || 0;
+    `) as any;
+    const totalOff = stats?.totalOff || 0;
+    const totalLing = stats?.totalLing || 0;
+    const totalUsers = stats?.totalUsers || 0;
 
-    // 模拟数据 - 虚构更多供奉记录，脱敏展示
     const fakeCount = Math.max(50, 100 - realItems.length);
-    const fakeItems = [];
+    const fakeItems: any[] = [];
     const now = Date.now();
     for (let i = 0; i < fakeCount; i++) {
       const name = ANON_NAMES[Math.floor(Math.random() * ANON_NAMES.length)];
       const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
       const prices: Record<string, number> = { '清香': 100, '鲜花': 200, '水果': 300, '素食': 500, '供灯': 1000, '宝鼎': 2000 };
       const amount = prices[item] || 100;
-      const minutesAgo = Math.floor(Math.random() * 10080); // 随机7天内
+      const minutesAgo = Math.floor(Math.random() * 10080);
       const dedication = ['阖家平安', '身体健康', '工作顺利', '学业有成', '姻缘美满', '', '', ''][Math.floor(Math.random() * 8)];
       fakeItems.push({
         userName: name,
@@ -88,7 +80,6 @@ export async function GET() {
       });
     }
 
-    // 合并真实+模拟，混排按时间排序
     const allItems = [...realItems, ...fakeItems].sort((a, b) => {
       const ta = a.timeAgo === '刚刚' ? 0 : parseInt(a.timeAgo) || 99999;
       const tb = b.timeAgo === '刚刚' ? 0 : parseInt(b.timeAgo) || 99999;
@@ -99,8 +90,8 @@ export async function GET() {
       items: allItems,
       stats: {
         totalOfferings: totalOff + fakeCount,
-        totalUsers: totalUsers + 18, // 虚构人数
-        totalLingzhu: totalLing + fakeItems.reduce((s, i) => s + i.amount, 0),
+        totalUsers: totalUsers + 18,
+        totalLingzhu: totalLing + fakeItems.reduce((s: number, i: any) => s + i.amount, 0),
         realCount: realItems.length,
         fakeCount,
       },

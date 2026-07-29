@@ -80,20 +80,21 @@ export async function getSession(req: NextRequest) {
   return verifyAndParseToken(token);
 }
 
-export function requireAuth(req: NextRequest) {
-  return getSession(req);
+export async function requireAuth(req: NextRequest) {
+  const session = await getSession(req);
+  return { allowed: !!session, session };
 }
 
 export async function requireAdmin(req: NextRequest) {
   const session = await getSession(req);
-  if (!session) return null;
-  if (session.role !== 'admin') return null;
-  return session;
+  if (!session) return { allowed: false, session: null };
+  if (session.role !== 'admin') return { allowed: false, session: null };
+  return { allowed: true, session };
 }
 
 export async function requireAgent(req: NextRequest) {
   const session = await getSession(req);
-  if (!session) return null;
-  if (!['admin', 'agent'].includes(session.role)) return null;
-  return session;
+  if (!session) return { allowed: false, session: null };
+  if (!['admin', 'agent'].includes(session.role)) return { allowed: false, session: null };
+  return { allowed: true, session };
 }

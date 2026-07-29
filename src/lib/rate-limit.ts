@@ -4,7 +4,7 @@
  * 使用 D1 直接操作，避免 Prisma 在 Workers 上的兼容性问题
  */
 import { queryFirst, execute } from '@/lib/d1';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 
 export interface LimitConfig {
@@ -25,8 +25,8 @@ export const DEFAULT_LIMITS: Record<string, LimitConfig> = {
   meihua:{ free: 3, monthly: 999, yearly: 999, lifetime: 999, guest: 3, allowGuest: true },
 };
 
-export async function checkUsageLimit(moduleName: string, customLimits?: LimitConfig, req?: Request) {
-  const session = await getSession(req);
+export async function checkUsageLimit(moduleName: string, customLimits?: LimitConfig, req?: NextRequest) {
+  const session = req ? await getSession(req) : null;
   const limits = customLimits || DEFAULT_LIMITS[moduleName];
 
   if (!limits) {
