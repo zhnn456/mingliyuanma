@@ -121,62 +121,60 @@ export default function OfferingPage() {
         {msg && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">{msg}</div>}
 
         {/* ======== 供奉广场 ======== */}
-        <div className="bg-gradient-to-br from-red-800 via-red-900 to-red-950 rounded-xl p-6 mb-6 text-white shadow-xl relative overflow-hidden">
-          {/* 装饰 */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-500/20 rounded-full blur-2xl" />
+        <div className="bg-gradient-to-br from-amber-50 via-stone-50 to-white rounded-xl p-6 mb-6 border border-stone-200 shadow-sm relative overflow-hidden">
+          {/* 装饰 - 淡雅水墨 */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-100/40 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-stone-200/50 rounded-full blur-2xl" />
 
           {/* 标题 */}
           <div className="flex items-center gap-2 mb-4 relative z-10">
             <span className="text-lg">🏮</span>
-            <span className="font-bold text-lg" style={{ fontFamily: 'serif' }}>供奉广场</span>
-            <span className="text-xs text-red-300 ml-auto">功德无量 · 善念常存</span>
+            <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>供奉广场</span>
+            <span className="text-xs text-stone-400 ml-auto">功德无量 · 善念常存</span>
           </div>
 
-          {/* 数字统计 - 大号醒目 */}
+          {/* 数字统计 - 素雅风格 */}
           <div className="grid grid-cols-3 gap-3 mb-4 relative z-10">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-              <div className="text-2xl md:text-3xl font-bold text-yellow-300">{squareStats.totalOfferings || 0}</div>
-              <div className="text-xs text-red-200 mt-0.5">累计供奉(场)</div>
+            <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
+              <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalOfferings || 0}</div>
+              <div className="text-xs text-stone-500 mt-0.5">累计供奉(场)</div>
             </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-              <div className="text-2xl md:text-3xl font-bold text-yellow-300">{squareStats.totalUsers || 0}</div>
-              <div className="text-xs text-red-200 mt-0.5">参与人数</div>
+            <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
+              <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalUsers || 0}</div>
+              <div className="text-xs text-stone-500 mt-0.5">参与人数</div>
             </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-              <div className="text-2xl md:text-3xl font-bold text-yellow-300">{squareStats.totalLingzhu || 0}</div>
-              <div className="text-xs text-red-200 mt-0.5">累计灵珠(💎)</div>
+            <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
+              <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalLingzhu || 0}</div>
+              <div className="text-xs text-stone-500 mt-0.5">累计灵珠(💎)</div>
             </div>
           </div>
 
           {/* 滚动供奉动态 */}
-          <div className="relative overflow-hidden rounded-lg bg-black/20 backdrop-blur" style={{ height: '140px' }}>
+          <div className="relative overflow-hidden rounded-lg bg-white/40 border border-stone-100" style={{ height: '140px' }}>
             <div className="absolute inset-0 flex flex-col gap-2 p-3 animate-scroll-up">
               {[...square, ...square, ...square].map((item: any, idx: number) => (
-                <div key={idx} className="flex items-center gap-2 text-sm text-red-100/90 bg-white/5 rounded-lg px-3 py-1.5">
-                  <span className="w-6 h-6 rounded-full bg-yellow-500/30 flex items-center justify-center text-xs font-bold text-yellow-300 flex-shrink-0">
+                <div key={idx} className="flex items-center gap-2 text-sm text-stone-600 bg-white/70 rounded-lg px-3 py-1.5 border border-stone-50">
+                  <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 flex-shrink-0">
                     {(item.userName || '?')[0]}
                   </span>
-                  <span className="font-medium text-white/90 truncate max-w-[70px]">{item.userName}</span>
-                  <span>供奉了</span>
-                  <span className="font-bold text-yellow-300">{item.itemName}</span>
-                  <span className="text-yellow-400 text-xs">{item.amount}💎</span>
-                  {item.dedication && <span className="text-red-200/70 truncate max-w-[100px] text-xs">「{item.dedication}」</span>}
-                  <span className="ml-auto text-red-200/50 text-xs flex-shrink-0">{item.timeAgo}</span>
+                  <span className="font-medium text-stone-700 truncate max-w-[70px]">{item.userName}</span>
+                  <span className="text-stone-400">供奉了</span>
+                  <span className="font-bold text-amber-700">{item.itemName}</span>
+                  <span className="text-amber-600 text-xs">{item.amount}💎</span>
+                  {item.dedication && <span className="text-stone-400 truncate max-w-[100px] text-xs">「{item.dedication}」</span>}
+                  <span className="ml-auto text-stone-300 text-xs flex-shrink-0">{item.timeAgo}</span>
                 </div>
               ))}
             </div>
-            {/* 渐变遮罩 */}
-            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+            {/* 渐变遮罩 - 素雅 */}
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
           </div>
 
           {/* 引导文案 */}
-          <div className="text-center mt-3 text-sm text-red-200 relative z-10">
-            已有 <strong className="text-yellow-300">{squareStats.totalUsers || 0}</strong> 位善信参与供奉 · 心诚则灵，福不唐捐
+          <div className="text-center mt-3 text-sm text-stone-500 relative z-10">
+            已有 <strong className="text-amber-700">{squareStats.totalUsers || 0}</strong> 位善信参与供奉 · 心诚则灵，福不唐捐
           </div>
         </div>
-
-        {/* Tabs */}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
@@ -186,7 +184,7 @@ export default function OfferingPage() {
             { key: 'leaderboard' as const, label: '功德榜', icon: '🏆' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${tab === t.key ? 'bg-red-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}>
+              className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${tab === t.key ? 'bg-amber-700 text-white' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200'}`}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -199,10 +197,10 @@ export default function OfferingPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               {CATEGORIES.map(cat => (
                 <button key={cat.id} onClick={() => setSelectedCat(cat.id)}
-                  className={`card text-center p-4 hover:shadow-xl transition-all cursor-pointer ${selectedCat === cat.id ? 'ring-2 ring-red-600 shadow-lg' : ''}`}>
+                  className={`card text-center p-4 hover:shadow-md transition-all cursor-pointer border border-stone-200 ${selectedCat === cat.id ? 'ring-2 ring-amber-600 shadow-md bg-amber-50/50' : 'bg-white'}`}>
                   <div className="text-4xl mb-2">{cat.icon}</div>
-                  <h3 className="text-sm font-bold text-gray-900">{cat.name}</h3>
-                  <p className="text-xs text-gray-600 mt-1">{cat.desc}</p>
+                  <h3 className="text-sm font-bold text-stone-800">{cat.name}</h3>
+                  <p className="text-xs text-stone-500 mt-1">{cat.desc}</p>
                 </button>
               ))}
             </div>
@@ -212,47 +210,47 @@ export default function OfferingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 {ITEMS.map(item => (
                   <button key={item.name} onClick={() => setSelected(item.name)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${selected === item.name ? 'border-red-600 bg-red-50 shadow-md' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${selected === item.name ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-stone-200 hover:border-stone-300 bg-white'}`}>
                     <div className="text-3xl mb-2">{item.icon}</div>
-                    <div className="font-medium text-gray-900 text-sm">{item.name}</div>
-                    <div className="text-sm text-purple-700 font-bold mt-1">{item.price} 💎</div>
+                    <div className="font-medium text-stone-800 text-sm">{item.name}</div>
+                    <div className="text-sm text-amber-700 font-bold mt-1">{item.price} 💎</div>
                   </button>
                 ))}
               </div>
 
               {/* 供奉表单 */}
               {selected && (
-                <div className="bg-white rounded-xl border p-6 mb-6">
-                  <h2 className="font-bold text-gray-900 mb-4">供奉信息</h2>
+                <div className="bg-white rounded-xl border border-stone-200 p-6 mb-6 shadow-sm">
+                  <h2 className="font-bold text-stone-800 mb-4">供奉信息</h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">数量</label>
+                      <label className="block text-sm font-medium text-stone-700 mb-2">数量</label>
                       <div className="flex items-center gap-3">
-                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold">-</button>
-                        <span className="text-xl font-bold text-gray-900 w-12 text-center">{qty}</span>
-                        <button onClick={() => setQty(qty + 1)} className="w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold">+</button>
+                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold">-</button>
+                        <span className="text-xl font-bold text-stone-800 w-12 text-center">{qty}</span>
+                        <button onClick={() => setQty(qty + 1)} className="w-10 h-10 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold">+</button>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">回向/祈愿</label>
+                      <label className="block text-sm font-medium text-stone-700 mb-2">回向/祈愿</label>
                       <textarea value={dedication} onChange={e => setDedication(e.target.value)} placeholder="输入您的祈愿或回向文..." rows={3}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm" />
+                        className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm text-stone-700" />
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-stone-50 rounded-lg p-4 border border-stone-100">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">供奉费用</span>
-                        <span className="text-xl font-bold text-purple-700">{((ITEMS.find(i => i.name === selected)?.price || 0) * qty)} 💎</span>
+                        <span className="text-stone-600">供奉费用</span>
+                        <span className="text-xl font-bold text-amber-700">{((ITEMS.find(i => i.name === selected)?.price || 0) * qty)} 💎</span>
                       </div>
                       <div className="flex justify-between items-center text-sm mt-1">
-                        <span className="text-gray-500">当前灵珠</span>
-                        <span className="font-medium">{balance} 💎</span>
+                        <span className="text-stone-500">当前灵珠</span>
+                        <span className="font-medium text-stone-700">{balance} 💎</span>
                       </div>
                     </div>
                     <button onClick={handleSubmit} disabled={loading || !user}
-                      className="w-full bg-red-700 text-white py-3 rounded-xl text-lg font-medium disabled:opacity-50 hover:bg-red-800">
+                      className="w-full bg-amber-700 text-white py-3 rounded-xl text-lg font-medium disabled:opacity-50 hover:bg-amber-800 transition-colors">
                       {loading ? '供奉中...' : '开始供奉'}
                     </button>
-                    {!user && <p className="text-center text-sm text-gray-500">请先 <Link href="/login" className="text-red-700 hover:underline">登录</Link> 后供奉</p>}
+                    {!user && <p className="text-center text-sm text-stone-500">请先 <Link href="/login" className="text-amber-700 hover:underline">登录</Link> 后供奉</p>}
                   </div>
                 </div>
               )}
@@ -260,13 +258,13 @@ export default function OfferingPage() {
             
             {/* 供奉说明 */}
             {selectedCat && (
-              <div className="bg-gradient-to-r from-red-50 via-parchment-50 to-red-50 rounded-xl p-6 border border-red-100">
-                <h3 className="font-bold text-gray-900 text-sm mb-2">🙏 关于供奉</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+              <div className="bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 rounded-xl p-6 border border-stone-200">
+                <h3 className="font-bold text-stone-800 text-sm mb-2">🙏 关于供奉</h3>
+                <p className="text-sm text-stone-600 leading-relaxed">
                   供奉是一种表达虔诚与敬意的方式，通过供奉可以积累功德、祈福平安。 
                   心诚则灵，每一份供奉都是善念的传递。
                 </p>
-                <p className="text-xs text-gray-400 mt-3">
+                <p className="text-xs text-stone-400 mt-3">
                   ⚠️ 免责声明：供奉行为仅为传统文化表达，不代表真实生活事件。 
                   所有供奉均为虚拟功德，请理性看待，勿过度依赖。
                 </p>
@@ -276,32 +274,32 @@ export default function OfferingPage() {
 
         {/* ======== 记录 Tab ======== */}
         {tab === 'records' && (
-          <div className="bg-white rounded-xl border">
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm">
             {!user ? (
-              <div className="p-12 text-center"><p className="text-gray-500 mb-4">请先登录</p><Link href="/login" className="btn-primary px-6 py-2">去登录</Link></div>
+              <div className="p-12 text-center"><p className="text-stone-500 mb-4">请先登录</p><Link href="/login" className="btn-primary px-6 py-2">去登录</Link></div>
             ) : dataLoading ? (
-              <div className="p-12 text-center text-gray-400">加载中...</div>
+              <div className="p-12 text-center text-stone-400">加载中...</div>
             ) : records.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-5xl mb-3">🙏</div>
-                <p className="text-gray-500">暂无供奉记录</p>
+                <p className="text-stone-500">暂无供奉记录</p>
                 <button onClick={() => setTab('offer')} className="btn-primary px-6 py-2 mt-4">去供奉</button>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-stone-100">
                 {records.map((r: any) => (
                   <div key={r.id} className="flex items-center gap-4 p-4">
-                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{'🙏'}</div>
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{'🙏'}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 text-sm">{r.itemId || '供奉'}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="font-medium text-stone-800 text-sm">{r.itemId || '供奉'}</div>
+                      <div className="text-xs text-stone-500 mt-0.5">
                         {r.type === 'monthly' ? '包月' : r.type === 'yearly' ? '包年' : '单次'}
                         {r.endDate && ` · 至 ${new Date(r.endDate).toLocaleDateString('zh-CN')}`}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="font-bold text-purple-700">{r.amount} 💎</div>
-                      <div className="text-xs text-gray-400">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('zh-CN') : ''}</div>
+                      <div className="font-bold text-amber-700">{r.amount} 💎</div>
+                      <div className="text-xs text-stone-400">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('zh-CN') : ''}</div>
                     </div>
                   </div>
                 ))}
@@ -312,24 +310,24 @@ export default function OfferingPage() {
 
         {/* ======== 排行榜 Tab ======== */}
         {tab === 'leaderboard' && (
-          <div className="bg-white rounded-xl border">
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm">
             {dataLoading ? (
-              <div className="p-12 text-center text-gray-400">加载中...</div>
+              <div className="p-12 text-center text-stone-400">加载中...</div>
             ) : leaderboard.length === 0 ? (
-              <div className="p-12 text-center"><div className="text-5xl mb-3">🏆</div><p className="text-gray-500">暂无排行数据</p></div>
+              <div className="p-12 text-center"><div className="text-5xl mb-3">🏆</div><p className="text-stone-500">暂无排行数据</p></div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-stone-100">
                 {leaderboard.map((item: any) => (
                   <div key={item.userId} className="flex items-center gap-3 p-4">
-                    <div className="w-8 text-center font-bold text-gray-500 text-lg">{rankIcon(item.rank)}</div>
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-sm font-medium">
+                    <div className="w-8 text-center font-bold text-stone-500 text-lg">{rankIcon(item.rank)}</div>
+                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-sm font-medium text-amber-700">
                       {item.name[0]?.toUpperCase()}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900 text-sm">{item.name}</div>
-                      <div className="text-xs text-gray-500">供奉 {item.count} 次</div>
+                      <div className="font-medium text-stone-800 text-sm">{item.name}</div>
+                      <div className="text-xs text-stone-500">供奉 {item.count} 次</div>
                     </div>
-                    <div className="font-bold text-purple-700">{item.totalAmount} 💎</div>
+                    <div className="font-bold text-amber-700">{item.totalAmount} 💎</div>
                   </div>
                 ))}
               </div>
