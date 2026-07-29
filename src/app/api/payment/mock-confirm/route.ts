@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { requireAuth } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 import { MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 

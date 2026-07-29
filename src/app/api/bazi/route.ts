@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     );
     
     // 分析喜用神
-    const xiYongShen = analyzeXiYongShen(result.wuxing, result.fourPillars.day.gan);
+    const xiYongShen = analyzeXiYongShen(result.wuxing, result.fourPillars.day.gan, result.fourPillars.month.zhi);
 
     // 生成专项详细分析
     const detailedAnalysis = generateDetailedAnalysis(result);

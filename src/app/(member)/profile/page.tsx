@@ -13,10 +13,14 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: 'orders', label: '订单记录', icon: '🧾' },
   { key: 'offerings', label: '供奉记录', icon: '🙏' },
   { key: 'fortune', label: '每日运势', icon: '🔮' },
-  { key: 'points', label: '积分明细', icon: '⭐' },
+  { key: 'points', label: '灵珠明细', icon: '⭐' },
   { key: 'tickets', label: '我的工单', icon: '🎫' },
   { key: 'security', label: '安全设置', icon: '🔒' },
   { key: 'settings', label: '偏好设置', icon: '⚙️' },
+];
+
+const NAV_LINKS: { label: string; icon: string; href: string }[] = [
+  { label: '灵珠充值', icon: '💎', href: '/profile/recharge' },
 ];
 
 const TYPE_NAMES: Record<string, string> = { bazi: '八字', ziwei: '紫微', qimen: '奇门', meihua: '梅花' };
@@ -63,7 +67,7 @@ export default function ProfilePage() {
       fetch('/api/user/history?limit=100').then(r => r.json()).then(d => setRecords(d.records || [])).catch(() => {}),
       fetch('/api/user/orders').then(r => r.json()).then(d => setOrders(d.orders || [])).catch(() => {}),
       fetch('/api/offering?type=records').then(r => r.json()).then(d => setOfferings(d.records || [])).catch(() => {}),
-      fetch('/api/user/points').then(r => r.json()).then(d => { setPoints(d.balance || 0); setPointsLedger(d.rows || []); }).catch(() => {}),
+      fetch('/api/user/lingzhu').then(r => r.json()).then(d => { setPoints(d.balance || 0); setPointsLedger(d.rows || []); }).catch(() => {}),
       fetch('/api/user/tickets').then(r => r.json()).then(d => setTickets(d.tickets || [])).catch(() => {}),
     ]).then(() => setLoading(false));
   }, [user]);
@@ -143,7 +147,7 @@ export default function ProfilePage() {
                 {[
                   { label: '排盘记录', value: records.length, icon: '📋' },
                   { label: '订单', value: orders.length, icon: '🧾' },
-                  { label: '积分', value: points, icon: '⭐' },
+                  { label: '灵珠', value: points, icon: '⭐' },
                 ].map(item => (
                   <div key={item.label} className="bg-gray-50 rounded-xl p-4 text-center">
                     <div className="text-2xl font-bold text-gray-900">{item.value}</div>
@@ -284,13 +288,13 @@ export default function ProfilePage() {
           </div>
         );
 
-      // ======== 积分明细 ========
+      // ======== 灵珠明细 ========
       case 'points':
         return (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">积分明细</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">灵珠明细</h2>
             <div className="bg-white rounded-xl border p-6 mb-4">
-              <div className="text-center"><div className="text-xs text-gray-500">当前积分</div><div className="text-3xl font-bold text-red-700 mt-1">{points}</div></div>
+              <div className="text-center"><div className="text-xs text-gray-500">当前灵珠</div><div className="text-3xl font-bold text-red-700 mt-1">{points}</div></div>
             </div>
             <div className="bg-white rounded-xl border divide-y max-h-[500px] overflow-y-auto">
               {pointsLedger.length === 0 ? <div className="p-8 text-center text-gray-400">暂无记录</div> : pointsLedger.map((r: any) => (
@@ -427,9 +431,18 @@ export default function ProfilePage() {
               <span>{item.label}</span>
             </button>
           ))}
-        </nav>
+	        </nav>
 
-        {/* 底部 */}
+	        {/* 灵珠充值入口 */}
+	        <div className="px-3 pb-2">
+	          <Link href="/profile/recharge"
+	            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 font-medium hover:from-purple-100 hover:to-purple-200 transition-colors border border-purple-200">
+	            <span>💎</span>
+	            <span>灵珠充值</span>
+	          </Link>
+	        </div>
+
+	        {/* 底部 */}
         <div className="p-3 border-t">
           <Link href="/" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">
             <span>←</span><span>返回首页</span>

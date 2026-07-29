@@ -74,10 +74,17 @@ export async function POST(req: NextRequest) {
           queryTime,
           dunType: result.ju?.type || '',
           juNumber: result.ju?.number || 0,
-          tianPan: JSON.stringify(result.palaces),
-          diPan: JSON.stringify(result.palaces),
-          renPan: JSON.stringify(result.palaces.map((p: any) => p.gate)),
-          shenPan: JSON.stringify(result.palaces.map((p: any) => p.deity)),
+          tianPan: JSON.stringify(result.palaces.filter((p: any) => p.star)),
+          diPan: JSON.stringify(result.palaces.map((p: any) => ({
+            position: p.position, trigram: p.trigram,
+            heavenlyStem: p.heavenlyStem, earthlyStem: p.earthlyStem, earthBranch: p.earthBranch,
+          }))),
+          renPan: JSON.stringify(result.palaces.map((p: any) => ({
+            position: p.position, gate: p.gate,
+          }))),
+          shenPan: JSON.stringify(result.palaces.map((p: any) => ({
+            position: p.position, deity: p.deity,
+          }))),
           interpretation: JSON.stringify({ result, detailedAnalysis }),
         },
       });

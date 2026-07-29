@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
-    if (!session?.user?.email) {
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session?.user?.id) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
     });
 
     if (!user) {

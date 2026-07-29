@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/security';
+import { requireAdmin } from '@/lib/auth-server';
 import { listCoupons, createCoupon, getCouponByCode, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {

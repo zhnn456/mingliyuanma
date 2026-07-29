@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requireAdmin } from '@/lib/security';
+import { requireAuth, requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

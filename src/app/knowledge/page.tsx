@@ -11,6 +11,7 @@ interface Article {
   categoryName: string;
   summary: string;
   icon: string;
+  image?: string;
   level: string;
   levelName: string;
   tags: string[];
@@ -75,6 +76,18 @@ function renderMarkdown(content: string) {
       elements.push(<h4 key={i} className="text-base font-bold text-gray-700 mt-4 mb-2">{h3Match[1]}</h4>);
       return;
     }
+    // 图片 ![alt](url)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      flushList();
+      elements.push(
+        <div key={i} className="my-6 text-center">
+          <img src={imgMatch[2]} alt={imgMatch[1]} className="max-w-full rounded-xl shadow-md mx-auto" loading="lazy" />
+          {imgMatch[1] && <p className="text-xs text-gray-400 mt-2">{imgMatch[1]}</p>}
+        </div>
+      );
+      return;
+    }
 
     // 粗体行
     const boldMatch = line.match(/^\*\*(.+)\*\*$/);
@@ -120,6 +133,20 @@ function renderMarkdown(content: string) {
   return elements;
 }
 
+/* ========== 文章封面图映射（占位图） ========== */
+function getArticleImage(article: { id: string; category: string }): string | null {
+  const specific: Record<string, string> = {
+    'basic-yinyang': '/images/knowledge/categories/basic.svg',
+    'bazi-intro': '/images/knowledge/categories/bazi.svg',
+    'ziwei-intro': '/images/knowledge/categories/ziwei.svg',
+    'qimen-intro': '/images/knowledge/categories/qimen.svg',
+    'meihua-intro': '/images/knowledge/categories/meihua.svg',
+  };
+  if (specific[article.id]) return specific[article.id];
+  const catDefaults: Record<string, string> = { basic: '/images/knowledge/categories/basic.svg', bazi: '/images/knowledge/categories/bazi.svg', ziwei: '/images/knowledge/categories/ziwei.svg', qimen: '/images/knowledge/categories/qimen.svg', meihua: '/images/knowledge/categories/meihua.svg' };
+  return catDefaults[article.category] || null;
+}
+
 /* ========== 目录提取 ========== */
 function extractTOC(content: string): { id: string; title: string; level: number }[] {
   const toc: { id: string; title: string; level: number }[] = [];
@@ -158,7 +185,7 @@ export default function KnowledgePage() {
       if (keyword) params.set('keyword', keyword);
       const res = await fetch(`/api/knowledge?${params}`);
       const data = await res.json();
-      setArticles(data.articles || []);
+	      setArticles((data.articles || []).map((a: any) => ({ ...a, image: a.image || getArticleImage(a) })));
     } catch {
       setArticles([]);
     } finally {
@@ -175,7 +202,7 @@ export default function KnowledgePage() {
       const res = await fetch(`/api/knowledge?id=${id}`);
       const data = await res.json();
       if (data.article) {
-        setSelectedArticle(data.article);
+        setSelectedArticle({ ...data.article, image: data.article?.image || getArticleImage(data.article) });
         setPrevArticle(data.prev);
         setNextArticle(data.next);
         setRelatedArticles(data.relatedArticles || []);
@@ -258,6 +285,13 @@ export default function KnowledgePage() {
                     <p className="text-gray-500 mt-3 text-sm leading-relaxed">{selectedArticle.summary}</p>
                   </div>
                 </div>
+
+                {/* 封面图 */}
+                {selectedArticle.image && (
+                  <div className="mb-6 rounded-xl overflow-hidden shadow-md">
+                    <img src={selectedArticle.image} alt={selectedArticle.title} className="w-full h-64 object-cover" />
+                  </div>
+                )}
 
                 {/* 标签 */}
                 {selectedArticle.tags.length > 0 && (
@@ -594,10 +628,15 @@ export default function KnowledgePage() {
                   <button
                     key={article.id}
                     onClick={() => fetchArticleDetail(article.id)}
-                    className="card text-left hover:shadow-lg transition-all group"
+                    className="card overflow-hidden text-left hover:shadow-lg transition-all group"
                   >
-                    <div className="flex items-start gap-4">
-                      <span className="text-3xl flex-shrink-0 mt-1">{article.icon}</span>
+                    {article.image || getArticleImage(article) ? (
+                      <div className="w-full h-36 bg-gray-100 overflow-hidden">
+                        <img src={article.image || getArticleImage(article) || ''} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      </div>
+                    ) : (<span className="text-3xl flex-shrink-0 mt-1 ml-4">{article.icon}</span>)}
+                    <div className="p-4 flex items-start gap-4">
+                      {article.image && <span className="text-3xl flex-shrink-0 mt-1">{article.icon}</span>}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-900 group-hover:text-red-700 transition-colors">
                           {article.title}

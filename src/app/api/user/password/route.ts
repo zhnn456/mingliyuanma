@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { execute, queryFirst } from '@/lib/d1';
 

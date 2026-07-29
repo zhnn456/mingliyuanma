@@ -163,14 +163,38 @@ export function calculateByText(text: string): MeihuaResult {
 }
 
 /**
- * 计算文字笔画数（简化版，使用Unicode编码值）
+ * 计算文字笔画数
+ * 使用简化的笔画对照表，未收录的字符用Unicode码位取模
  */
+const STROKE_MAP: Record<string, number> = {
+  '一':1,'二':2,'三':3,'四':5,'五':4,'六':4,'七':2,'八':2,'九':2,'十':2,
+  '大':3,'小':3,'天':4,'地':6,'人':2,'上':3,'下':3,'中':4,'心':4,'日':4,
+  '月':4,'水':4,'火':4,'木':4,'金':8,'土':3,'山':3,'石':5,'田':5,'龙':5,
+  '风':4,'云':4,'雷':13,'电':5,'春':9,'夏':10,'秋':9,'冬':5,'年':6,'岁':6,
+  '甲':5,'乙':1,'丙':5,'丁':2,'戊':5,'己':3,'庚':8,'辛':7,'壬':4,'癸':9,
+  '子':3,'丑':4,'寅':11,'卯':5,'辰':7,'巳':3,'午':4,'未':5,'申':5,'酉':7,
+  '戌':6,'亥':6,'乾':11,'坤':8,'震':15,'巽':12,'坎':7,'离':10,'艮':6,'兑':7,
+  '生':5,'成':6,'吉':6,'凶':4,'福':13,'禄':12,'寿':7,'喜':12,'财':7,'运':7,
+};
+const STROKE_CACHE: Record<string, number> = {};
+
 function getStrokeCount(text: string): number {
   let sum = 0;
   for (let i = 0; i < text.length; i++) {
-    sum += text.charCodeAt(i);
+    const char = text[i];
+    if (STROKE_MAP[char]) {
+      sum += STROKE_MAP[char];
+    } else if (STROKE_CACHE[char]) {
+      sum += STROKE_CACHE[char];
+    } else {
+      // 未收录字符：简化为按长度比例估算
+      const code = text.charCodeAt(i);
+      const estimated = Math.max(1, ((code % 50) + 5) % 30);
+      STROKE_CACHE[char] = estimated;
+      sum += estimated;
+    }
   }
-  return sum % 100 || 1;
+  return sum % 64 || 1;
 }
 
 /**

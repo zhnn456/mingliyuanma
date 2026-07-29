@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/security';
+import { requireAdmin } from '@/lib/auth-server';
 import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: NextRequest) {

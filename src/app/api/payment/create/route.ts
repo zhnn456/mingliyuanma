@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getClientIP, checkIPRateLimit, sanitizeString } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server'
+import { getClientIP, checkIPRateLimit, sanitizeString } from '@/lib/security';
 import { createPaymentService, generateOrderNo, MEMBERSHIP_PLANS, PaymentMethod } from '@/lib/payment';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { auditLog } from '@/lib/audit';

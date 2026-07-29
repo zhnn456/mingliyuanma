@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateReportData, checkReportAccess, ReportType, REPORT_CONFIG } from '@/lib/pdf';
-import { requireAuth } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 
 /**

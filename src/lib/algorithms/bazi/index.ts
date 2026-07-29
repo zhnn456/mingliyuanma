@@ -395,51 +395,71 @@ export function calculateBazi(
 }
 
 /**
- * 分析喜用神（简化版）
+ * 分析喜用神（进阶版）
+ * 考虑：五行加权、旺衰、调候（季节）、日主强弱
  */
-export function analyzeXiYongShen(wuxing: Record<string, number>, dayGan: string): { xi: string; yong: string; ji: string } {
+export function analyzeXiYongShen(wuxing: Record<string, number>, dayGan: string, monthZhi?: string): { xi: string; yong: string; ji: string } {
   const dayWuxing = TIAN_GAN_WU_XING[dayGan];
-  
-  // 统计五行强弱
-  let maxWuxing = '';
-  let minWuxing = '';
-  let maxCount = 0;
-  let minCount = 999;
-  
-  for (const [wx, count] of Object.entries(wuxing)) {
-    if (count > maxCount) {
-      maxCount = count;
-      maxWuxing = wx;
-    }
-    if (count < minCount) {
-      minCount = count;
-      minWuxing = wx;
-    }
-  }
-  
-  // 简化规则：日主强则抑之，日主弱则扶之
-  const dayCount = wuxing[dayWuxing] || 0;
-  const total = Object.values(wuxing).reduce((a, b) => a + b, 0);
-  const isStrong = dayCount > total / 5;
   
   // 五行生克关系
   const sheng: Record<string, string> = { '金': '水', '水': '木', '木': '火', '火': '土', '土': '金' };
   const ke: Record<string, string> = { '金': '木', '木': '土', '土': '水', '水': '火', '火': '金' };
+  const beike: Record<string, string> = { '金': '火', '木': '金', '土': '木', '水': '土', '火': '水' };
   
+  const monthWx: Record<string, string> = {
+    '寅': '木', '卯': '木', '辰': '土',
+    '巳': '火', '午': '火', '未': '土',
+    '申': '金', '酉': '金', '戌': '土',
+    '亥': '水', '子': '水', '丑': '土',
+  };
+
+  // 加权统计（考虑得令）
+  const weighted: Record<string, number> = {};
+  for (const [wx, count] of Object.entries(wuxing)) {
+    let score = count * 2;
+    if (monthZhi && monthWx[monthZhi] === wx) {
+      score += 3; // 得令加成
+    }
+    if (count >= 3) score += 1; // 多根加成
+    weighted[wx] = score;
+  }
+
+  const total = Object.values(weighted).reduce((a, b) => a + b, 1);
+  const avg = total / Math.max(Object.keys(weighted).length, 1);
+  const dayCount = weighted[dayWuxing] || 0;
+  const isStrong = dayCount > avg * 1.2;
+  const isWeak = dayCount < avg * 0.8;
+
   let xi: string, yong: string, ji: string;
-  
+
   if (isStrong) {
-    // 日主强：用克、泄、耗
-    yong = ke[dayWuxing]; // 用克日主的五行所克的
-    xi = sheng[dayWuxing]; // 喜日主所生的
-    ji = dayWuxing; // 忌同五行
-  } else {
-    // 日主弱：用生、扶
+    yong = sheng[dayWuxing] || ke[dayWuxing];
+    xi = ke[dayWuxing] || sheng[dayWuxing];
+    ji = dayWuxing;
+  } else if (isWeak) {
     const shengWo = Object.entries(sheng).find(([_, v]) => v === dayWuxing)?.[0] || dayWuxing;
-    yong = shengWo; // 用生我者
-    xi = dayWuxing; // 喜同五行
-    ji = ke[dayWuxing]; // 忌克我者所克的
+    yong = shengWo;
+    xi = dayWuxing;
+    ji = beike[dayWuxing];
+  } else {
+    // 中和：用调候
+    const th = getTiaoHou(monthZhi);
+    yong = th?.yong || sheng[dayWuxing] || '木';
+    xi = th?.xi || dayWuxing;
+    ji = th?.ji || beike[dayWuxing] || '金';
   }
   
   return { xi, yong, ji };
+}
+
+/** 调候用神 */
+function getTiaoHou(monthZhi?: string): { yong: string; xi: string; ji: string } | null {
+  if (!monthZhi) return null;
+  const m: Record<string, number> = { '寅':1,'卯':2,'辰':3,'巳':4,'午':5,'未':6,'申':7,'酉':8,'戌':9,'亥':10,'子':11,'丑':12 };
+  const mon = m[monthZhi] || 0;
+  if (mon >= 5 && mon <= 6) return { yong:'水', xi:'金', ji:'火' };  // 夏喜水
+  if (mon >= 11 || mon <= 1) return { yong:'火', xi:'木', ji:'水' }; // 冬喜火
+  if (mon >= 2 && mon <= 4) return { yong:'火', xi:'土', ji:'木' };  // 春喜火土
+  if (mon >= 7 && mon <= 9) return { yong:'水', xi:'木', ji:'金' };  // 秋喜水木
+  return null;
 }

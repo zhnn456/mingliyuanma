@@ -17,6 +17,7 @@ export interface KnowledgeArticle {
   level: ArticleLevel;
   levelName: string;
   icon: string;
+  image?: string; // 封面图路径（相对 /images/knowledge/）
   order?: number;
   relatedIds?: string[];
   prevId?: string;

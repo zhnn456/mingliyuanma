@@ -1,5 +1,6 @@
 /**
  * 服务端鉴权工具 — raw D1 版
+ * 使用 HMAC-SHA256 签名令牌
  */
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,6 +14,65 @@ export interface Session {
   };
 }
 
+// Token 密钥（环境变量优先，开发环境用默认值）
+function getSecretKey(): string {
+  return process.env.NEXTAUTH_SECRET || 'mingli-dev-secret-key-change-in-production';
+}
+
+/**
+ * 使用 Web Crypto API 计算 HMAC-SHA256 签名
+ */
+async function signToken(payload: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(getSecretKey()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const sigHex = Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return payload + '.' + sigHex;
+}
+
+/**
+ * 验证令牌签名并解析
+ */
+async function verifyAndParseToken(token: string): Promise<any> {
+  try {
+    const lastDot = token.lastIndexOf('.');
+    if (lastDot === -1) return null;
+    const payload = token.slice(0, lastDot);
+    const sig = token.slice(lastDot + 1);
+
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(getSecretKey()),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    const expectedHex = Array.from(new Uint8Array(expectedSig))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    if (sig !== expectedHex) return null;
+
+    // Base64 解码 payload
+    const binary = atob(payload);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
 function getTokenFromRequest(req?: Request | NextRequest): string | null {
   if (!req) return null;
   const cookie = req.headers.get('cookie');
@@ -21,16 +81,7 @@ function getTokenFromRequest(req?: Request | NextRequest): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-function parseToken(token: string): any {
-  try {
-    const binary = atob(token);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return null;
-  }
-}
+export { signToken };
 
 async function queryUserById(id: string) {
   try {
@@ -49,7 +100,7 @@ export async function getSession(req?: Request | NextRequest): Promise<Session |
     const token = getTokenFromRequest(req);
     if (!token) return null;
 
-    const payload = parseToken(token);
+    const payload = await verifyAndParseToken(token);
     if (!payload?.sub) return null;
     if (payload.exp && payload.exp < Date.now()) return null;
 

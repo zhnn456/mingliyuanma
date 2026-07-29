@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPassword } from '@/lib/password';
+import { signToken } from '@/lib/auth-server';
 
 /**
  * 直接从 D1 查询用户（不经过 Prisma，避免适配器兼容问题）
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '用户不存在或密码错误' }, { status: 401 });
     }
 
-    // base64 token（用 TextEncoder 支持中文等 Unicode 字符）
+    // 签名令牌（HMAC-SHA256，防篡改）
     const payload = JSON.stringify({
       sub: user.id,
       email: user.email,
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < bytes.length; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-    const token = btoa(binary);
+    const token = await signToken(btoa(binary));
     const cookieStr = `token=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=2592000; Secure`;
 
     return new NextResponse(JSON.stringify({

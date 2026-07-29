@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 /** 简单的每日运势生成（基于八字天干地支） */

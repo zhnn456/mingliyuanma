@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/security';
+import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 

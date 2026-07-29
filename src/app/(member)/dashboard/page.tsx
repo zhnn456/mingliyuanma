@@ -62,10 +62,10 @@ export default function DashboardPage() {
 
           {/* 积分 + 签到 */}
           <div className="border-t border-parchment-100 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="text-xs text-gray-500">积分</span>
-                <div className="text-lg font-bold text-red-700">{points}</div>
+                <div className="flex items-center gap-6">
+                  <div>
+                    <span className="text-xs text-gray-500">灵珠</span>
+                    <div className="text-lg font-bold text-purple-700">{points}</div>
               </div>
               <Link href="/profile/points" className="text-xs text-red-600 hover:text-red-800">明细 →</Link>
             </div>

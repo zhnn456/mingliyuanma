@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { requireAdmin } from '@/lib/security';
+import { requireAdmin } from '@/lib/auth-server';
 import { clearRuleCache } from '@/lib/rules/engine';
 
 async function checkAdmin(req: Request) {

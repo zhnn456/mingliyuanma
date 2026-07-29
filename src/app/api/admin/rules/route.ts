@@ -1,4 +1,4 @@
-import { requireAdmin, requireAgent, requireAuth } from '@/lib/security';
+import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
 /**
  * 规则管理 API
  * GET  - 查询规则列表（支持分类/类型筛选、关键词搜索、分页）
@@ -16,7 +16,7 @@ function safeParseJSON(str: string | null | undefined): any {
 
 async function checkAdmin(req: Request) {
   const { allowed, session } = await requireAdmin(req);
-  if (!session || session?.role !== 'admin') {
+  if (!session || session?.user?.role !== 'admin') {
     return null;
   }
   return session;

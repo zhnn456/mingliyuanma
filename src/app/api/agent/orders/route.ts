@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAgent } from '@/lib/security';
+import { requireAgent } from '@/lib/auth-server';
 import { queryAll } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {

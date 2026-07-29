@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { requireAuth } from '@/lib/security';
+import { requireAuth } from '@/lib/auth-server';
 
 /**
  * 查询订单支付状态

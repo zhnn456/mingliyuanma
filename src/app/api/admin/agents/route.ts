@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { requireAdmin, sanitizeString } from '@/lib/security';
+import { requireAdmin } from '@/lib/auth-server'
+import { sanitizeString } from '@/lib/security';
 import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 

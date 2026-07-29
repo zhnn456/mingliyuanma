@@ -1,6 +1,7 @@
 /**
  * 安全工具库
- * 提供输入验证、XSS防护、SQL注入防护等安全功能
+ * 注意：IP 速率限制在 CF Workers 多实例环境下不精确
+ *       生产环境建议在 Cloudflare Dashboard 配置 WAF 速率限制规则
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,14 +13,12 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export function sanitizeString(input: unknown): string {
   if (typeof input !== 'string') return '';
-  // 用更可靠的方式转义 HTML 特殊字符
   return input
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
     .trim()
     .slice(0, 1000);
 }
@@ -101,41 +100,41 @@ export function sanitizeNumber(input: unknown, min?: number, max?: number): numb
   return num;
 }
 
-// ============ IP 限流 ============
+// ============ IP 限流（单实例内存版） ============
+// 注意：Cloudflare Workers 多实例环境下不精确
+// 精确限流请使用 Cloudflare WAF Rate Limiting 规则
 
 interface RateLimitEntry {
   count: number;
   resetTime: number;
-  blocked: boolean;
 }
 
-// 内存存储（生产环境应使用 Redis）
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
 /**
- * IP 级别速率限制
- * @param ip 客户端 IP
- * @param maxRequests 最大请求数
- * @param windowMs 时间窗口（毫秒）
- * @returns { allowed: boolean; remaining: number; resetTime: number }
+ * IP 级别速率限制（尽力而为，非精确）
  */
 export function checkIPRateLimit(
   ip: string,
   maxRequests: number = 60,
   windowMs: number = 60_000
 ): { allowed: boolean; remaining: number; resetTime: number } {
+  // 对于 Workers 环境，直接放行（限流由 Cloudflare WAF 处理）
+  if (typeof process !== 'undefined' && process.env.CLOUDFLARE_WORKER) {
+    return { allowed: true, remaining: maxRequests, resetTime: Date.now() + windowMs };
+  }
+
   const key = `ip:${ip}`;
   const now = Date.now();
   const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs, blocked: false });
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
     return { allowed: true, remaining: maxRequests - 1, resetTime: now + windowMs };
   }
 
   entry.count++;
   if (entry.count > maxRequests) {
-    entry.blocked = true;
     return { allowed: false, remaining: 0, resetTime: entry.resetTime };
   }
 
@@ -189,57 +188,4 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   return response;
-}
-
-// ============ 授权检查 ============
-
-import { getSession } from '@/lib/auth-server';
-
-/**
- * 检查登录状态
- */
-export async function requireAuth(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
-  const session = await getSession(req);
-  if (!session) {
-    return { allowed: false, session: null };
-  }
-  return { allowed: true, session };
-}
-
-/**
- * 检查管理员权限
- */
-export async function requireAdmin(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
-  const session = await getSession(req);
-  if (!session || session.user.role !== 'admin') {
-    return { allowed: false, session: null };
-  }
-  return { allowed: true, session };
-}
-
-/**
- * 检查代理商权限
- */
-export async function requireAgent(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
-  const session = await getSession(req);
-  if (!session || !['admin', 'agent'].includes(session.user.role)) {
-    return { allowed: false, session: null };
-  }
-  return { allowed: true, session };
-}
-
-/**
- * 检查会员等级
- */
-export async function requireMemberLevel(minLevel: 'free' | 'monthly' | 'yearly' | 'lifetime', req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
-  const session = await getSession(req);
-  if (!session) {
-    return { allowed: false, session: null };
-  }
-  const levels = ['free', 'monthly', 'yearly', 'lifetime'];
-  const userLevel = session.user.memberLevel || 'free';
-  if (levels.indexOf(userLevel) < levels.indexOf(minLevel)) {
-    return { allowed: false, session };
-  }
-  return { allowed: true, session };
 }

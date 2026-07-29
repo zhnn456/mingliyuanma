@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { requireAgent } from '@/lib/security';
+import { requireAgent } from '@/lib/auth-server';
 
 /**
  * 代理商仪表盘统计数据
