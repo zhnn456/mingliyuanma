@@ -41,7 +41,7 @@ jobs:
         env:
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || secrets.NEXTAUTH_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-        run: npx opennextjs-cloudflare build
+        run: npm run build:worker
 
       - name: Verify build output
         run: |
