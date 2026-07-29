@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { generateMeihuaInterpretation } from '@/lib/interpretation/meihua';
 import { MEIHUA_QUESTION_TYPES, type MeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { HexagramLookup } from '@/components/HexagramLookup';
@@ -50,7 +50,7 @@ function HexagramLines({ lines, dongYao, label, size = 'normal' }: { lines: numb
 }
 
 export default function MeihuaPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const [result, setResult] = useState<MeihuaResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

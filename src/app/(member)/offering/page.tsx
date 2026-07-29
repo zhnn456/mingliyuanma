@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
 const defaultCategories = [
@@ -43,7 +43,7 @@ interface LeaderboardItem {
 }
 
 export default function OfferingPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('offer');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);

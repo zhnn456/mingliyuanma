@@ -193,15 +193,25 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
 
 // ============ 授权检查 ============
 
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth-server';
+
+/**
+ * 检查登录状态
+ */
+export async function requireAuth(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
+  const session = await getSession(req);
+  if (!session) {
+    return { allowed: false, session: null };
+  }
+  return { allowed: true, session };
+}
 
 /**
  * 检查管理员权限
  */
-export async function requireAdmin(): Promise<{ allowed: boolean; session: any }> {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as any)?.role !== 'admin') {
+export async function requireAdmin(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
+  const session = await getSession(req);
+  if (!session || session.user.role !== 'admin') {
     return { allowed: false, session: null };
   }
   return { allowed: true, session };
@@ -210,20 +220,9 @@ export async function requireAdmin(): Promise<{ allowed: boolean; session: any }
 /**
  * 检查代理商权限
  */
-export async function requireAgent(): Promise<{ allowed: boolean; session: any }> {
-  const session = await getServerSession(authOptions);
-  if (!session || !['admin', 'agent'].includes((session.user as any)?.role)) {
-    return { allowed: false, session: null };
-  }
-  return { allowed: true, session };
-}
-
-/**
- * 检查登录状态
- */
-export async function requireAuth(): Promise<{ allowed: boolean; session: any }> {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+export async function requireAgent(req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
+  const session = await getSession(req);
+  if (!session || !['admin', 'agent'].includes(session.user.role)) {
     return { allowed: false, session: null };
   }
   return { allowed: true, session };
@@ -232,13 +231,13 @@ export async function requireAuth(): Promise<{ allowed: boolean; session: any }>
 /**
  * 检查会员等级
  */
-export async function requireMemberLevel(minLevel: 'free' | 'monthly' | 'yearly' | 'lifetime'): Promise<{ allowed: boolean; session: any }> {
-  const session = await getServerSession(authOptions);
+export async function requireMemberLevel(minLevel: 'free' | 'monthly' | 'yearly' | 'lifetime', req?: NextRequest | Request): Promise<{ allowed: boolean; session: any }> {
+  const session = await getSession(req);
   if (!session) {
     return { allowed: false, session: null };
   }
   const levels = ['free', 'monthly', 'yearly', 'lifetime'];
-  const userLevel = (session.user as any)?.memberLevel || 'free';
+  const userLevel = session.user.memberLevel || 'free';
   if (levels.indexOf(userLevel) < levels.indexOf(minLevel)) {
     return { allowed: false, session };
   }

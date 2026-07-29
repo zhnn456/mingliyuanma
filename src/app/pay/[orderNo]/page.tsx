@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
 interface OrderData {
@@ -37,7 +37,7 @@ const PAYMENT_METHODS = [
 export default function PayPage({ params }: { params: Promise<{ orderNo: string }> }) {
   const { orderNo } = use(params);
   const router = useRouter();
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
 
   const [order, setOrder] = useState<OrderData | null>(null);
   const [payment, setPayment] = useState<PaymentInfo | null>(null);

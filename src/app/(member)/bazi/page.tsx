@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { PaipanForm } from '@/components/PaipanForm';
 import { BaziChart } from '@/components/bazi/BaziChart';
 import { BaziInterpretation } from '@/components/bazi/BaziInterpretation';
@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast';
 import { BaziResult } from '@/types';
 
 export default function BaziPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

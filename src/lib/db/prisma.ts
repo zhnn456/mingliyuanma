@@ -1,37 +1,41 @@
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+let prismaClient: PrismaClient | null = null;
 
 /**
- * 创建 PrismaClient 实例
- * - Cloudflare Workers 环境（OpenNext）：通过 D1 adapter 连接 D1 数据库
- * - 本地开发环境：通过 DATABASE_URL 连接本地 SQLite
+ * 获取 Prisma 实例（延迟初始化）
+ * 在 Cloudflare Workers 上，getCloudflareContext 只能在请求处理期间调用
+ * 所以不能像普通 Node.js 那样在模块加载时初始化
  */
-function createPrismaClient(): PrismaClient {
-  // Cloudflare Workers 环境（通过 @opennextjs/cloudflare 部署）
-  if (process.env.CF_PAGES === '1') {
-    try {
-      // @ts-ignore - @opennextjs/cloudflare 仅在 CF 环境安装
-      const { getCloudflareContext } = require('@opennextjs/cloudflare');
-      // @ts-ignore - @prisma/adapter-d1 仅在 CF 环境安装
-      const { PrismaD1 } = require('@prisma/adapter-d1');
-      const env = getCloudflareContext().env;
-      const adapter = new PrismaD1(env.DB);
-      return new PrismaClient({ adapter });
-    } catch (e) {
-      console.error('[Prisma] D1 adapter initialization failed:', e);
-      throw e;
+function getPrisma(): PrismaClient {
+  if (prismaClient) return prismaClient;
+
+  // 尝试用 D1 adapter（Cloudflare Workers/Pages）
+  try {
+    const { getCloudflareContext } = require('@opennextjs/cloudflare');
+    const { PrismaD1 } = require('@prisma/adapter-d1');
+    const ctx = getCloudflareContext({ async: false });
+    if (ctx?.env?.DB) {
+      prismaClient = new PrismaClient({ adapter: new PrismaD1(ctx.env.DB) });
+      return prismaClient;
     }
+  } catch {
+    // 不在 Cloudflare Workers 环境
   }
 
-  // 本地开发环境 - 普通 SQLite
-  return new PrismaClient();
+  // 本地开发 — SQLite
+  prismaClient = new PrismaClient();
+  return prismaClient;
 }
 
-if (!globalForPrisma.prisma) {
-  globalForPrisma.prisma = createPrismaClient();
-}
-
-export const prisma = globalForPrisma.prisma;
+/**
+ * 使用 Proxy 实现透明的延迟初始化
+ * 不管在哪个环境，import { prisma } from '@/lib/db/prisma' 后都能直接用
+ * 第一次调用 prisma.user.findMany() 等操作时才会真正初始化
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: keyof PrismaClient) {
+    const client = getPrisma();
+    return client[prop];
+  },
+});

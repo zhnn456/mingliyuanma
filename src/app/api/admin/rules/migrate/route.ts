@@ -1,3 +1,4 @@
+import { requireAdmin, requireAgent, requireAuth } from '@/lib/security';
 /**
  * 规则迁移 API
  *
@@ -6,8 +7,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { upsertRule, batchUpsertRules, getRuleStats, type RuleData } from '@/lib/rules/engine';
 
 // 导入现有常量规则
@@ -34,8 +33,8 @@ import { MEIHUA_QUESTION_TYPES } from '@/lib/interpretation/meihua-detailed';
 
 // 安全检查：仅管理员可执行迁移
 async function checkAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as any)?.role !== 'admin') {
+  const { allowed, session } = await requireAdmin();
+  if (!session || session?.role !== 'admin') {
     return null;
   }
   return session;

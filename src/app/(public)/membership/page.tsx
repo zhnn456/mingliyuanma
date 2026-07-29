@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
 const plans = [
@@ -49,7 +49,7 @@ const plans = [
 ];
 
 export default function MembershipPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const router = useRouter();
   const [buying, setBuying] = useState<string | null>(null);
   const [buyError, setBuyError] = useState('');

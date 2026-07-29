@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -40,9 +40,9 @@ export function MemberBadge({ level }: { level: string }) {
 }
 
 export function FeatureGate({ feature, requiredLevel, children, fallback }: FeatureGateProps) {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   
-  const userLevel = (session?.user as any)?.memberLevel || 'free';
+  const userLevel = session?.memberLevel || 'free';
   const canAccess = LEVEL_ORDER[userLevel] >= LEVEL_ORDER[requiredLevel];
 
   if (canAccess) {

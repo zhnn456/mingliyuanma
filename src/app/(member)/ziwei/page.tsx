@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { generateZiweiInterpretation, PALACE_MEANING, MAIN_STAR_INTERPRETATION } from '@/lib/interpretation/ziwei';
 import { PaipanForm } from '@/components/PaipanForm';
 import { useToast } from '@/components/Toast';
@@ -210,7 +210,7 @@ function detectCombinations(palaces: Palace[]): string[] {
 }
 
 export default function ZiweiPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const { addToast } = useToast();
   const [result, setResult] = useState<ZiweiResult | null>(null);
   const [loading, setLoading] = useState(false);

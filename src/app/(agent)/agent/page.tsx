@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
@@ -20,7 +20,7 @@ interface AgentStats {
 }
 
 export default function AgentDashboardPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -29,7 +29,7 @@ export default function AgentDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const isAgent = ['admin', 'agent'].includes((session as any)?.user?.role || '');
+  const isAgent = ['admin', 'agent'].includes(session?.role || '');
 
   useEffect(() => {
     if (isAgent) loadOverview();

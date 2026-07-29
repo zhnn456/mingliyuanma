@@ -6,13 +6,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
+import { requireAdmin } from '@/lib/security';
 import { clearRuleCache } from '@/lib/rules/engine';
 
 async function checkAdmin() {
-  const session = await getServerSession(authOptions);
+  const { allowed, session } = await requireAdmin();
   if (!session || (session.user as any)?.role !== 'admin') {
     return null;
   }

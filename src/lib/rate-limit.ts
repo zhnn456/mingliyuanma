@@ -2,10 +2,9 @@
  * 会员使用限制中间件
  * 统一管理各 API 的调用频率和次数限制
  */
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth-server';
 
 export interface LimitConfig {
   /** 每日免费限制次数 */
@@ -36,8 +35,8 @@ export const DEFAULT_LIMITS: Record<string, LimitConfig> = {
  * 检查用户是否可以使用指定模块
  * @returns { canUse: boolean; session: any; error?: NextResponse }
  */
-export async function checkUsageLimit(moduleName: string, customLimits?: LimitConfig) {
-  const session = await getServerSession(authOptions);
+export async function checkUsageLimit(moduleName: string, customLimits?: LimitConfig, req?: Request) {
+  const session = await getSession(req);
   const limits = customLimits || DEFAULT_LIMITS[moduleName];
 
   if (!limits) {
@@ -58,7 +57,7 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: session?.user?.id },
     });
 
     if (!user) {

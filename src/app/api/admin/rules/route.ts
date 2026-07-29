@@ -1,3 +1,4 @@
+import { requireAdmin, requireAgent, requireAuth } from '@/lib/security';
 /**
  * 规则管理 API
  * GET  - 查询规则列表（支持分类/类型筛选、关键词搜索、分页）
@@ -5,8 +6,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { searchRules, upsertRule, getRuleStats, getRuleTypes, type RuleCategory } from '@/lib/rules/engine';
 
 /** 安全解析 JSON，失败返回 null */
@@ -16,8 +15,8 @@ function safeParseJSON(str: string | null | undefined): any {
 }
 
 async function checkAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as any)?.role !== 'admin') {
+  const { allowed, session } = await requireAdmin();
+  if (!session || session?.role !== 'admin') {
     return null;
   }
   return session;

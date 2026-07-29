@@ -2,13 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { useState } from 'react';
 
 export function Header() {
-  const { data: session } = useSession();
+  const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  // 管理后台和代理商后台显示独立布局，不显示前台导航
+  if (pathname.startsWith('/admin') || pathname.startsWith('/agent')) {
+    return null;
+  }
 
   const navItems = [
     { href: '/', label: '首页' },
@@ -64,9 +69,9 @@ export function Header() {
 
           {/* User Menu */}
           <div className="hidden md:flex items-center space-x-3">
-            {session ? (
+            {user ? (
               <div className="flex items-center space-x-3">
-                {['admin', 'agent'].includes((session.user as any)?.role) && (
+                {['admin', 'agent'].includes(user.role) && (
                   <Link
                     href="/agent"
                     className="px-4 py-2 text-sm text-gold-dark hover:text-gold rounded-lg transition-colors border border-gold/30 hover:border-gold/50 hover:bg-gold/5"
@@ -74,7 +79,7 @@ export function Header() {
                     代理商
                   </Link>
                 )}
-                {(session.user as any)?.role === 'admin' && (
+                {user.role === 'admin' && (
                   <Link
                     href="/admin"
                     className="px-4 py-2 text-sm text-gray-600 hover:text-red-700 rounded-lg transition-colors hover:bg-red-50/50"
@@ -87,9 +92,9 @@ export function Header() {
                   className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:text-red-700 hover:bg-red-50/50 rounded-lg transition-colors"
                 >
                   <span className="w-9 h-9 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center text-sm font-bold text-red-700 border border-red-200 shadow-sm">
-                    {(session.user?.name || '?')[0]}
+                    {(user.name || '?')[0]}
                   </span>
-                  <span className="font-medium">{session.user?.name || '个人中心'}</span>
+                  <span className="font-medium">{user.name || '个人中心'}</span>
                 </Link>
                 <button
                   onClick={() => signOut()}
@@ -145,7 +150,7 @@ export function Header() {
                 </Link>
               ))}
               <div className="divider-gold my-3" />
-              {session ? (
+              {user ? (
                 <>
                   <Link
                     href="/profile"

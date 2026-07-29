@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ReportPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);

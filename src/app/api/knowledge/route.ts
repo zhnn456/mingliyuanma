@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { KNOWLEDGE_ARTICLES, getArticleById, getArticlesByCategory, searchArticles } from '@/lib/knowledge';
+import {
+  getAllArticles,
+  getArticleById,
+  getArticlesByCategory,
+  searchArticles,
+  getRelatedArticles,
+  getPrevNextArticle,
+} from '@/lib/knowledge/server';
+import { LEARNING_PATHS } from '@/lib/knowledge';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,21 +15,41 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
     const category = searchParams.get('category');
     const keyword = searchParams.get('keyword');
+    const related = searchParams.get('related');
+    const type = searchParams.get('type');
 
+    // 获取学习路径
+    if (type === 'learning-paths') {
+      return NextResponse.json({ paths: LEARNING_PATHS });
+    }
+
+    // 获取相关文章
+    if (related) {
+      const relatedArticles = getRelatedArticles(related);
+      return NextResponse.json({ articles: relatedArticles });
+    }
+
+    // 获取单篇文章（含上下篇导航）
     if (id) {
       const article = getArticleById(id);
       if (!article) {
         return NextResponse.json({ error: '文章不存在' }, { status: 404 });
       }
-      return NextResponse.json({ article });
+      const nav = getPrevNextArticle(id);
+      const relatedArticles = getRelatedArticles(id);
+      return NextResponse.json({
+        article,
+        prev: nav.prev ? { id: nav.prev.id, title: nav.prev.title } : null,
+        next: nav.next ? { id: nav.next.id, title: nav.next.title } : null,
+        relatedArticles,
+      });
     }
 
-    let articles = KNOWLEDGE_ARTICLES;
-
-    if (category) {
+    // 文章列表
+    let articles = getAllArticles();
+    if (category && category !== 'all') {
       articles = getArticlesByCategory(category);
     }
-
     if (keyword) {
       articles = searchArticles(keyword);
     }
@@ -37,6 +65,8 @@ export async function GET(req: NextRequest) {
         level: a.level,
         levelName: a.levelName,
         tags: a.tags,
+        order: a.order,
+        readingTime: a.readingTime,
       })),
       total: articles.length,
     });

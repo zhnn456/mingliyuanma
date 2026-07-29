@@ -1,6 +1,5 @@
+import { getSession } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { generateReportData, checkReportAccess, ReportType, REPORT_CONFIG } from '@/lib/pdf';
 import { requireAuth } from '@/lib/security';
 import { auditLog } from '@/lib/audit';
@@ -28,7 +27,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无效的报告类型' }, { status: 400 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session?.user?.id;
 
     // 检查访问权限
     const access = await checkReportAccess(userId, type, recordId);

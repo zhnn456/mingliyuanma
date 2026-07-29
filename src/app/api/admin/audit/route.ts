@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { queryAuditLogs, cleanOldAuditLogs } from '@/lib/audit';
 import { requireAdmin } from '@/lib/security';

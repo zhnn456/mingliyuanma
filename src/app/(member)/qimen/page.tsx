@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 import { BAMEN_INTERPRETATION, JIUXING_INTERPRETATION, BASHEN_INTERPRETATION } from '@/lib/interpretation/qimen';
 import { QUESTION_TYPES, generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
 import { useToast } from '@/components/Toast';
@@ -65,7 +65,7 @@ function getGateLevel(gate: string): string {
 }
 
 export default function QimenPage() {
-  const { data: session } = useSession();
+  const { user: session } = useAuth();
   const { addToast } = useToast();
   const [result, setResult] = useState<QimenResult | null>(null);
   const [loading, setLoading] = useState(false);
