@@ -17,4 +17,7 @@ nul
 .vercel/
 .wrangler/
 .open-next/
+.next_copy/
+.next-build/
+.next-mingli/
 .dev.vars
