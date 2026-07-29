@@ -30,7 +30,7 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.2",
+    "@opennextjs/cloudflare": "^1.20.1",
     "@prisma/adapter-d1": "^7.9.1",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",

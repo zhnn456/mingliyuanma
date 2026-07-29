@@ -34,6 +34,16 @@ export default function OfferingPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [square, setSquare] = useState<any[]>([]);
+  const [squareStats, setSquareStats] = useState({ totalOfferings: 0, totalLingzhu: 0 });
+
+  // 加载供奉广场
+  useEffect(() => {
+    fetch('/api/offering/square').then(r => r.json()).then(d => {
+      setSquare(d.items || []);
+      setSquareStats({ totalOfferings: d.totalOfferings || 0, totalLingzhu: d.totalLingzhu || 0 });
+    }).catch(() => {});
+  }, []);
   const [msg, setMsg] = useState('');
 
   // 加载灵珠余额
@@ -109,6 +119,32 @@ export default function OfferingPage() {
         {/* 反馈消息 */}
         {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 text-center text-sm">{success}</div>}
         {msg && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">{msg}</div>}
+
+        {/* ======== 供奉广场 ======== */}
+        <div className="bg-gradient-to-r from-red-50 via-parchment-50 to-red-50 rounded-xl border border-red-100 p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-gray-500">🙏 供奉广场</span>
+              <span className="text-gray-400">累计 <strong className="text-red-700">{squareStats.totalOfferings}</strong> 次 · <strong className="text-purple-700">{squareStats.totalLingzhu} 💎</strong></span>
+            </div>
+          </div>
+          <div className="relative overflow-hidden" style={{ height: '76px' }}>
+            <div className="absolute inset-0 flex flex-col gap-1.5 animate-scroll-up">
+              {[...square, ...square].map((item: any, idx: number) => (
+                <div key={`${item.id}-${idx}`} className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-xs font-bold text-red-700 flex-shrink-0">
+                    {(item.userName || '?')[0]}
+                  </span>
+                  <span className="font-medium text-gray-800">{item.userName}</span>
+                  <span>供奉了</span>
+                  <span className="font-bold text-purple-700">{item.itemName}</span>
+                  <span className="text-purple-600">{item.amount}💎</span>
+                  {item.dedication && <span className="text-gray-400 truncate max-w-[120px]">「{item.dedication}」</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">

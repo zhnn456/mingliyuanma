@@ -747,3 +747,12 @@ input:focus, select:focus, textarea:focus,
   color: #fff;
   border-color: #7f1d1d;
 }
+
+/* 供奉广场滚动动画 */
+@keyframes scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.animate-scroll-up {
+  animation: scroll-up 30s linear infinite;
+}

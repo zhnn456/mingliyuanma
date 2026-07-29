@@ -32,6 +32,7 @@ const nextConfig = {
     ];
   },
   // 隐藏 X-Powered-By 头
-  poweredByHeader: false,}
+  poweredByHeader: false,
+};
 
 module.exports = nextConfig

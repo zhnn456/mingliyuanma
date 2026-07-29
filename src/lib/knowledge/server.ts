@@ -61,60 +61,69 @@ const CATEGORY_NAMES: Record<ArticleCategory, string> = {
 let _articlesCache: KnowledgeArticle[] | null = null;
 let _articlesMap: Map<string, KnowledgeArticle> | null = null;
 
+/**
+ * 判断是否在 Workers 环境（无 fs 模块）
+ */
+function isWorkersEnv(): boolean {
+  return typeof process !== 'undefined' && (
+    !!(process as any).env?.CF_PAGES ||
+    !!(process as any).env?.CLOUDFLARE_WORKER
+  );
+}
+
 function loadArticles(): KnowledgeArticle[] {
   if (_articlesCache) return _articlesCache;
 
   let articles: KnowledgeArticle[] = [];
 
-  // 优先从文件系统读取（开发环境）
-  try {
-    const fs = require('fs') as typeof import('fs');
-    const path = require('path') as typeof import('path');
-    const knowledgeDir = path.join(process.cwd(), 'data', 'knowledge');
+  if (!isWorkersEnv()) {
+    // 开发环境：从文件系统读取
+    try {
+      // 动态 require，避免 Worker 构建时打包 fs
+      const fsMod = require('fs');
+      const pathMod = require('path');
+      const knowledgeDir = pathMod.join(process.cwd(), 'data', 'knowledge');
 
-    if (fs.existsSync(knowledgeDir)) {
-      const cats = fs.readdirSync(knowledgeDir, { withFileTypes: true });
-      for (const catDir of cats) {
-        if (!catDir.isDirectory()) continue;
-        const category = catDir.name as ArticleCategory;
-        const catPath = path.join(knowledgeDir, category);
-        const files = fs.readdirSync(catPath).filter((f: string) => f.endsWith('.md'));
+      if (fsMod.existsSync(knowledgeDir)) {
+        const cats = fsMod.readdirSync(knowledgeDir, { withFileTypes: true });
+        for (const catDir of cats) {
+          if (!catDir.isDirectory()) continue;
+          const category = catDir.name as ArticleCategory;
+          const catPath = pathMod.join(knowledgeDir, category);
+          const files = fsMod.readdirSync(catPath).filter((f: string) => f.endsWith('.md'));
 
-        for (const file of files) {
-          const rawContent = fs.readFileSync(path.join(catPath, file), 'utf-8');
-          const { frontmatter, body } = parseFrontmatter(rawContent);
-          const id = file.replace(/\.md$/, '');
+          for (const file of files) {
+            const rawContent = fsMod.readFileSync(pathMod.join(catPath, file), 'utf-8');
+            const { frontmatter, body } = parseFrontmatter(rawContent);
+            const id = file.replace(/\.md$/, '');
 
-          articles.push({
-            id,
-            title: frontmatter.title || id,
-            category: frontmatter.category || category,
-            categoryName: frontmatter.categoryName || CATEGORY_NAMES[category] || category,
-            summary: frontmatter.summary || '',
-            content: body,
-            tags: frontmatter.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
-            level: frontmatter.level || 'beginner',
-            levelName: frontmatter.levelName || LEVEL_NAMES[frontmatter.level || 'beginner'],
-            icon: frontmatter.icon || '📄',
-            order: frontmatter.order || 0,
-            relatedIds: frontmatter.relatedIds?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
-            prevId: frontmatter.prevId,
-            nextId: frontmatter.nextId,
-            readingTime: frontmatter.readingTime || Math.max(1, Math.ceil(body.length / 500)),
-          });
+            articles.push({
+              id, title: frontmatter.title || id,
+              category: frontmatter.category || category,
+              categoryName: frontmatter.categoryName || CATEGORY_NAMES[category] || category,
+              summary: frontmatter.summary || '', content: body,
+              tags: frontmatter.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
+              level: frontmatter.level || 'beginner',
+              levelName: frontmatter.levelName || LEVEL_NAMES[frontmatter.level || 'beginner'],
+              icon: frontmatter.icon || '📄', order: frontmatter.order || 0,
+              relatedIds: frontmatter.relatedIds?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
+              prevId: frontmatter.prevId, nextId: frontmatter.nextId,
+              readingTime: frontmatter.readingTime || Math.max(1, Math.ceil(body.length / 500)),
+            });
+          }
         }
-      }
 
-      articles.sort((a, b) => (a.order || 999) - (b.order || 999));
-      _articlesCache = articles;
-      _articlesMap = new Map(articles.map(a => [a.id, a]));
-      return articles;
+        articles.sort((a, b) => (a.order || 999) - (b.order || 999));
+        _articlesCache = articles;
+        _articlesMap = new Map(articles.map(a => [a.id, a]));
+        return articles;
+      }
+    } catch {
+      // fs 不可用时，fall through 到预生成数据
     }
-  } catch {
-    // 文件系统不可用（CF Workers），使用预生成数据
   }
 
-  // 生产环境：使用构建时预生成的数据
+  // 生产环境（CF Workers）：使用构建时预生成的数据
   articles = KNOWLEDGE_ARTICLES as KnowledgeArticle[];
   _articlesCache = articles;
   _articlesMap = new Map(articles.map(a => [a.id, a]));
