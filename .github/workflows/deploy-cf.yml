@@ -19,11 +19,10 @@ env:
 
 jobs:
   deploy:
-    name: Build & Deploy to CF Workers
+    name: Build & Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,63 +36,12 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Build for Cloudflare Workers (OpenNext)
+      - name: Build + Deploy
         env:
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || secrets.NEXTAUTH_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || 'https://bazi6.cc.cd' }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-        run: npm run build:worker
+        run: npm run deploy:worker
 
-      - name: Verify build output
-        run: |
-          echo "=== Checking build output ==="
-          ls -la .open-next/ || {
-            echo "::error::.open-next/ 不存在，构建失败"
-            exit 1
-          }
-          echo "=== Build output OK ==="
-
-      - name: Configure Cloudflare
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN secret 未设置"
-            exit 1
-          fi
-          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::CLOUDFLARE_ACCOUNT_ID secret 未设置"
-            exit 1
-          fi
-
-      - name: Set NEXTAUTH_SECRET
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-        run: |
-          echo "$NEXTAUTH_SECRET" | \
-            npx wrangler secret put NEXTAUTH_SECRET --name "$WORKER_NAME"
-
-      - name: Run D1 database migration
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -f prisma/migrations.sql ]; then
-            npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql
-            echo "::notice::D1 migration applied"
-          else
-            echo "::warning::prisma/migrations.sql not found, skipping DB migration"
-          fi
-
-      - name: Deploy to Cloudflare Workers
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          OPEN_NEXT_DEPLOY: "true"
-        run: npx wrangler deploy
-
-      - name: Output deployment URL
-        run: |
-          echo "::notice::部署完成: https://${{ env.WORKER_NAME }}.workers.dev"
+      - name: Output URL
+        run: echo "部署完成 ✅ https://${{ env.WORKER_NAME }}.workers.dev"
