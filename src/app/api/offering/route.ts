@@ -4,7 +4,7 @@ import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAuth();
+    const { allowed, session } = await requireAuth(req);
     if (!session?.user?.email) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
     const user = await queryFirst('SELECT id, email, name FROM User WHERE email = ?', session.user.email) as any;
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAuth();
+    const { allowed, session } = await requireAuth(req);
     if (!session?.user?.email) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const user = await queryFirst('SELECT id, email FROM User WHERE email = ?', session.user.email) as any;

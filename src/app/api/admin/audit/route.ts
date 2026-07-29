@@ -9,7 +9,7 @@ import { requireAdmin } from '@/lib/security';
  */
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -42,9 +42,9 @@ export async function GET(req: NextRequest) {
  * 清理旧审计日志
  * DELETE /api/admin/audit
  */
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

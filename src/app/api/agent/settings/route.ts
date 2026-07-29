@@ -6,9 +6,9 @@ import { auditLog } from '@/lib/audit';
 /**
  * 获取代理商设置
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAgent();
+    const { allowed, session } = await requireAgent(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -51,7 +51,7 @@ export async function GET() {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAgent();
+    const { allowed, session } = await requireAgent(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

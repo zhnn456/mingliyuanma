@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin();
+    const { allowed, session } = await requireAdmin(req);
     if (!session?.user?.email) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }

@@ -1,4 +1,4 @@
-﻿﻿<#
+﻿<#
 .SYNOPSIS
     命理网 Cloudflare Pages 一键部署脚本
 .DESCRIPTION

@@ -4,7 +4,7 @@ import { queryFirst, queryAll, execute, getUserStats } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin();
+    const { allowed, session } = await requireAdmin(req);
     if (!session || session?.role !== 'admin') {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin();
+    const { allowed, session } = await requireAdmin(req);
     if (!session || session?.role !== 'admin') {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

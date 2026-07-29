@@ -7,7 +7,7 @@ import { requireAuth } from '@/lib/security';
  */
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAuth();
+    const { allowed, session } = await requireAuth(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }

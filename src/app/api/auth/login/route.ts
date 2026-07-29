@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyPassword } from '@/lib/password';
 
 /**
  * 直接从 D1 查询用户（不经过 Prisma，避免适配器兼容问题）
@@ -36,8 +37,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '用户不存在或密码错误' }, { status: 401 });
     }
 
-    // 直接比较密码
-    if (user.passwordHash !== 'GoEQaPyhFZj50lO7$5e01o2y8sdcy' && password !== 'admin123') {
+    // 验证密码
+    if (!user.passwordHash) {
+      return NextResponse.json({ error: '用户不存在或密码错误' }, { status: 401 });
+    }
+    const isValid = await verifyPassword(password, user.passwordHash);
+    if (!isValid) {
       return NextResponse.json({ error: '用户不存在或密码错误' }, { status: 401 });
     }
 
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
       binary += String.fromCharCode(bytes[i]);
     }
     const token = btoa(binary);
-    const cookieStr = `token=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000; Secure`;
+    const cookieStr = `token=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=2592000; Secure`;
 
     return new NextResponse(JSON.stringify({
       user: {

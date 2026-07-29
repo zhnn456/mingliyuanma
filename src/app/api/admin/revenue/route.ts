@@ -4,7 +4,7 @@ import { queryAll } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);

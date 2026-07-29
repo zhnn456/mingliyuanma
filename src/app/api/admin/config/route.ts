@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/security';
 import { queryAll, execute } from '@/lib/d1';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const configs = await queryAll('SELECT * FROM SiteConfig ORDER BY category, key');
@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { key, value, category } = await req.json();

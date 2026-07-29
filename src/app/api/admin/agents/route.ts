@@ -4,9 +4,9 @@ import { requireAdmin, sanitizeString } from '@/lib/security';
 import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -48,7 +48,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin();
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin();
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

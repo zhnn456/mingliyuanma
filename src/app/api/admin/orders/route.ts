@@ -4,7 +4,7 @@ import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin();
+    const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
     const { orderId, status } = await req.json();
     if (!orderId || !status) return NextResponse.json({ error: '参数不足' }, { status: 400 });

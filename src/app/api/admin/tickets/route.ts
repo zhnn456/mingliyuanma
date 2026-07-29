@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/security';
 import { queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
-  const { allowed } = await requireAdmin();
+  const { allowed } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
   const status = req.nextUrl.searchParams.get('status') || '';
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { allowed } = await requireAdmin();
+  const { allowed } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
   const { ticketId, status } = await req.json();

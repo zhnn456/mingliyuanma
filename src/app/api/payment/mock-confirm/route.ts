@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '此接口仅在开发环境可用' }, { status: 403 });
     }
 
-    const { allowed, session } = await requireAuth();
+    const { allowed, session } = await requireAuth(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }

@@ -32,8 +32,8 @@ import { QUESTION_TYPES as QIMEN_QUESTION_TYPES, PATTERN_DETAILS as QIMEN_PATTER
 import { MEIHUA_QUESTION_TYPES } from '@/lib/interpretation/meihua-detailed';
 
 // 安全检查：仅管理员可执行迁移
-async function checkAdmin() {
-  const { allowed, session } = await requireAdmin();
+async function checkAdmin(req: Request) {
+  const { allowed, session } = await requireAdmin(req);
   if (!session || session?.role !== 'admin') {
     return null;
   }
@@ -41,7 +41,7 @@ async function checkAdmin() {
 }
 
 export async function POST(request: Request) {
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
@@ -299,8 +299,8 @@ export async function POST(request: Request) {
 }
 
 /** GET 查看迁移状态（规则统计） */
-export async function GET() {
-  const session = await checkAdmin();
+export async function GET(req: Request) {
+  const session = await checkAdmin(req);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }

@@ -21,16 +21,16 @@ async function getDB(): Promise<any> {
 /** 执行查询，返回第一行 */
 export async function queryFirst(sql: string, ...params: any[]) {
   const db = await getDB();
-  const stmt = db.prepare(sql);
-  if (params.length > 0) stmt.bind(...params);
+  let stmt = db.prepare(sql);
+  if (params.length > 0) stmt = stmt.bind(...params);
   return await stmt.first();
 }
 
 /** 执行查询，返回所有行 */
 export async function queryAll(sql: string, ...params: any[]) {
   const db = await getDB();
-  const stmt = db.prepare(sql);
-  if (params.length > 0) stmt.bind(...params);
+  let stmt = db.prepare(sql);
+  if (params.length > 0) stmt = stmt.bind(...params);
   const res = await stmt.all();
   return res.results || [];
 }
@@ -38,8 +38,8 @@ export async function queryAll(sql: string, ...params: any[]) {
 /** 执行写入（INSERT/UPDATE/DELETE） */
 export async function execute(sql: string, ...params: any[]) {
   const db = await getDB();
-  const stmt = db.prepare(sql);
-  if (params.length > 0) stmt.bind(...params);
+  let stmt = db.prepare(sql);
+  if (params.length > 0) stmt = stmt.bind(...params);
   return await stmt.run();
 }
 

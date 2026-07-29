@@ -10,8 +10,8 @@ import { prisma } from '@/lib/db/prisma';
 import { requireAdmin } from '@/lib/security';
 import { clearRuleCache } from '@/lib/rules/engine';
 
-async function checkAdmin() {
-  const { allowed, session } = await requireAdmin();
+async function checkAdmin(req: Request) {
+  const { allowed, session } = await requireAdmin(req);
   if (!session || (session.user as any)?.role !== 'admin') {
     return null;
   }
@@ -24,7 +24,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
@@ -49,7 +49,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
@@ -88,7 +88,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }

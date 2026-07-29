@@ -11,7 +11,7 @@ import { auditLog } from '@/lib/audit';
  */
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAgent();
+    const { allowed, session } = await requireAgent(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAgent();
+    const { allowed, session } = await requireAgent(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

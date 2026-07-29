@@ -14,8 +14,8 @@ function safeParseJSON(str: string | null | undefined): any {
   try { return JSON.parse(str); } catch { return null; }
 }
 
-async function checkAdmin() {
-  const { allowed, session } = await requireAdmin();
+async function checkAdmin(req: Request) {
+  const { allowed, session } = await requireAdmin(req);
   if (!session || session?.role !== 'admin') {
     return null;
   }
@@ -24,7 +24,7 @@ async function checkAdmin() {
 
 /** 查询规则列表 */
 export async function GET(request: Request) {
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 
 /** 创建新规则 */
 export async function POST(request: Request) {
-  const session = await checkAdmin();
+  const session = await checkAdmin(request);
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }

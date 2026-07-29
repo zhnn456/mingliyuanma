@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/security';
 import { listCoupons, createCoupon, getCouponByCode, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
-  const { allowed } = await requireAdmin();
+  const { allowed } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get('page') || '1');
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { allowed } = await requireAdmin();
+  const { allowed } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
   const body = await req.json();
   if (!body.code || !body.name) return NextResponse.json({ error: '缺少必填字段' }, { status: 400 });
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { allowed } = await requireAdmin();
+  const { allowed } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
   const { id, isActive } = await req.json();
   await execute('UPDATE Coupon SET isActive = ? WHERE id = ?', isActive ? 1 : 0, id);
