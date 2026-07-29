@@ -1,29 +1,23 @@
 /**
  * 会员使用限制中间件
  * 统一管理各 API 的调用频率和次数限制
+ * 使用 D1 直接操作，避免 Prisma 在 Workers 上的兼容性问题
  */
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, execute } from '@/lib/d1';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 
 export interface LimitConfig {
-  /** 每日免费限制次数 */
   free: number;
-  /** 月卡每日限制次数 */
   monthly: number;
-  /** 年卡每日限制次数 */
   yearly: number;
-  /** 终身每日限制次数 */
   lifetime: number;
-  /** 游客每日限制次数（未登录） */
   guest: number;
-  /** 是否允许游客使用 */
   allowGuest?: boolean;
 }
 
 export type MemberLevelKey = 'free' | 'monthly' | 'yearly' | 'lifetime';
 
-// 各模块默认限制配置
 export const DEFAULT_LIMITS: Record<string, LimitConfig> = {
   bazi:  { free: 1, monthly: 999, yearly: 999, lifetime: 999, guest: 1, allowGuest: true },
   ziwei: { free: 1, monthly: 999, yearly: 999, lifetime: 999, guest: 1, allowGuest: true },
@@ -31,10 +25,6 @@ export const DEFAULT_LIMITS: Record<string, LimitConfig> = {
   meihua:{ free: 3, monthly: 999, yearly: 999, lifetime: 999, guest: 3, allowGuest: true },
 };
 
-/**
- * 检查用户是否可以使用指定模块
- * @returns { canUse: boolean; session: any; error?: NextResponse }
- */
 export async function checkUsageLimit(moduleName: string, customLimits?: LimitConfig, req?: Request) {
   const session = await getSession(req);
   const limits = customLimits || DEFAULT_LIMITS[moduleName];
@@ -43,7 +33,6 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
     return { canUse: true, session };
   }
 
-  // 游客处理
   if (!session) {
     if (!limits.allowGuest) {
       return {
@@ -56,36 +45,34 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: session?.user?.id },
-    });
+    const user = await queryFirst(
+      'SELECT id, memberLevel, memberExpiry, dailyUsage, lastUsageDate FROM User WHERE id = ?',
+      session.user.id
+    ) as any;
 
     if (!user) {
       return { canUse: true, session };
     }
 
-    // 检查会员是否过期 — 过期自动降级为 free
-    let effectiveLevel = user.memberLevel as MemberLevelKey;
+    let effectiveLevel = (user.memberLevel || 'free') as MemberLevelKey;
     if (effectiveLevel !== 'free' && effectiveLevel !== 'lifetime') {
       if (user.memberExpiry && new Date(user.memberExpiry) < new Date()) {
-        // 会员已过期，自动降级并更新数据库
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { memberLevel: 'free', memberExpiry: null },
-        });
+        await execute(
+          'UPDATE User SET memberLevel = ?, memberExpiry = NULL, updatedAt = ? WHERE id = ?',
+          'free', new Date().toISOString(), user.id
+        );
         effectiveLevel = 'free';
       }
     }
 
     const today = new Date().toISOString().split('T')[0];
-    let dailyUsage = user.dailyUsage;
+    let dailyUsage = user.dailyUsage || 0;
 
-    // 如果不是今天，重置计数
     if (user.lastUsageDate !== today) {
       dailyUsage = 0;
     }
 
-    const limit = limits[effectiveLevel] ?? limits.free;
+    const limit = (limits as any)[effectiveLevel] ?? limits.free;
 
     if (dailyUsage >= limit) {
       return {
@@ -98,18 +85,13 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
       };
     }
 
-    // 增加使用次数
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        dailyUsage: dailyUsage + 1,
-        lastUsageDate: today,
-      },
-    });
+    await execute(
+      'UPDATE User SET dailyUsage = ?, lastUsageDate = ?, updatedAt = ? WHERE id = ?',
+      dailyUsage + 1, today, new Date().toISOString(), user.id
+    );
 
     return { canUse: true, session };
   } catch {
-    // 出错时允许使用（降级处理）
     return { canUse: true, session };
   }
 }

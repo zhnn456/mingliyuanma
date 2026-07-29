@@ -1,6 +1,6 @@
 /**
  * Next.js 中间件
- * - 管理后台路由保护
+ * - 管理后台路由保护（带 HMAC 签名验证）
  * - IP 级别速率限制
  * - 安全响应头注入
  */
@@ -17,30 +17,45 @@ interface RateEntry {
 
 const rateLimitMap = new Map<string, RateEntry>();
 
-function cleanupRateLimit() {
-  const now = Date.now();
-  rateLimitMap.forEach((entry, key) => {
-    if (now > entry.resetTime) rateLimitMap.delete(key);
-  });
+function getSecretKey(): string {
+  return process.env.NEXTAUTH_SECRET || 'mingli-dev-secret-key-change-in-production';
 }
 
-function getTokenFromCookie(req: NextRequest): string | null {
-  const cookie = req.headers.get('cookie');
-  if (!cookie) return null;
-  const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function parseToken(token: string): any {
+async function verifyAndParseToken(token: string): Promise<any> {
   try {
-    const binary = atob(token);
+    const lastDot = token.lastIndexOf('.');
+    if (lastDot === -1) return null;
+    const payload = token.slice(0, lastDot);
+    const sig = token.slice(lastDot + 1);
+
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(getSecretKey()),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    const expectedHex = Array.from(new Uint8Array(expectedSig))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    if (sig !== expectedHex) return null;
+
+    const binary = atob(payload);
     const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return null;
+  }
+}
+
+function cleanupRateLimit() {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetTime) rateLimitMap.delete(key);
   }
 }
 
@@ -51,27 +66,26 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 管理后台路由保护
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    const token = getTokenFromCookie(req);
-    if (!token) {
+    const cookie = req.headers.get('cookie') || '';
+    const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+    if (!match) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
-    const payload = parseToken(token);
+    const token = decodeURIComponent(match[1]);
+    const payload = await verifyAndParseToken(token);
     if (!payload || payload.role !== 'admin') {
       return NextResponse.redirect(new URL('/login', req.url));
     }
   }
 
-  // IP 速率限制
   const forwarded = req.headers.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-  const now = Date.now();
-  if (now % 100 === 0) cleanupRateLimit();
+  cleanupRateLimit();
   const key = `ip:${ip}`;
   const entry = rateLimitMap.get(key);
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+  if (!entry || Date.now() > entry.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: Date.now() + RATE_LIMIT_WINDOW });
   } else {
     entry.count++;
     if (entry.count > RATE_LIMIT_MAX) {

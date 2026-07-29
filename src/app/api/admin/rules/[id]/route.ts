@@ -1,12 +1,5 @@
-/**
- * 单条规则管理 API
- * GET   - 查看规则详情
- * PUT   - 更新规则
- * DELETE - 删除规则
- */
-
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';
 import { clearRuleCache } from '@/lib/rules/engine';
 
@@ -18,7 +11,6 @@ async function checkAdmin(req: Request) {
   return session;
 }
 
-/** 查看规则详情 */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -29,9 +21,7 @@ export async function GET(
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
 
-  const rule = await prisma.divinationRule.findUnique({
-    where: { id },
-  });
+  const rule = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
 
   if (!rule) {
     return NextResponse.json({ error: '规则不存在' }, { status: 404 });
@@ -39,11 +29,10 @@ export async function GET(
 
   return NextResponse.json({
     ...rule,
-    content: rule.content ? JSON.parse(rule.content) : null,
+    content: (rule as any).content ? JSON.parse((rule as any).content) : null,
   });
 }
 
-/** 更新规则 */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -67,22 +56,30 @@ export async function PUT(
   if (isActive !== undefined) updateData.isActive = isActive;
 
   try {
-    const existing = await prisma.divinationRule.findUnique({ where: { id } });
+    const existing = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
     if (!existing) {
       return NextResponse.json({ error: '规则不存在' }, { status: 404 });
     }
-    const rule = await prisma.divinationRule.update({
-      where: { id },
-      data: updateData,
-    });
+
+    const sets: string[] = [];
+    const params: any[] = [];
+    if (updateData.content !== undefined) { sets.push('content = ?'); params.push(updateData.content); }
+    if (updateData.classicSource !== undefined) { sets.push('classicSource = ?'); params.push(updateData.classicSource); }
+    if (updateData.classicQuote !== undefined) { sets.push('classicQuote = ?'); params.push(updateData.classicQuote); }
+    if (updateData.priority !== undefined) { sets.push('priority = ?'); params.push(updateData.priority); }
+    if (updateData.isActive !== undefined) { sets.push('isActive = ?'); params.push(updateData.isActive ? 1 : 0); }
+
+    params.push(id);
+    await execute(`UPDATE DivinationRule SET ${sets.join(', ')} WHERE id = ?`, ...params);
     clearRuleCache();
+
+    const rule = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
     return NextResponse.json({ success: true, rule });
   } catch {
     return NextResponse.json({ error: '更新失败' }, { status: 500 });
   }
 }
 
-/** 删除规则 */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -94,11 +91,11 @@ export async function DELETE(
   }
 
   try {
-    const existing = await prisma.divinationRule.findUnique({ where: { id } });
+    const existing = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
     if (!existing) {
       return NextResponse.json({ error: '规则不存在' }, { status: 404 });
     }
-    await prisma.divinationRule.delete({ where: { id } });
+    await execute('DELETE FROM DivinationRule WHERE id = ?', id);
     clearRuleCache();
     return NextResponse.json({ success: true });
   } catch {

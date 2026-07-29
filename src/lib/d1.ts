@@ -43,6 +43,18 @@ export async function execute(sql: string, ...params: any[]) {
   return await stmt.run();
 }
 
+/** 批量事务执行（D1 事务） */
+export async function batch(statements: Array<{ sql: string; params?: any[] }>) {
+  const db = await getDB();
+  const batch = db.batch();
+  for (const { sql, params } of statements) {
+    let stmt = db.prepare(sql);
+    if (params && params.length > 0) stmt = stmt.bind(...params);
+    batch.add(stmt);
+  }
+  return await batch.run();
+}
+
 // ============= 业务查询封装 =============
 
 /** 通过 ID 查用户 */

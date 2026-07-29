@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, batch } from '@/lib/d1';
 import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 
-/**
- * 支付回调统一入口
- * 路径: /api/payment/callback?method=wechat|alipay
- */
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -25,95 +21,71 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ code: 'FAIL', message: '支付验证失败' }, { status: 400 });
     }
 
-    // 查找订单
-    const order = await prisma.order.findUnique({
-      where: { orderNo: result.orderNo },
-    });
+    const order = await queryFirst(
+      'SELECT * FROM "Order" WHERE orderNo = ?',
+      result.orderNo
+    ) as any;
 
     if (!order) {
       console.error('回调订单不存在:', result.orderNo);
       return NextResponse.json({ code: 'FAIL', message: '订单不存在' }, { status: 404 });
     }
 
-    // 验证金额（过滤 NaN）
     const paidAmount = result.amount;
     if (isNaN(paidAmount) || Math.abs(order.amount - paidAmount) > 0.01) {
       console.error('回调金额不匹配:', order.amount, paidAmount);
       return NextResponse.json({ code: 'FAIL', message: '金额不匹配' }, { status: 400 });
     }
 
-    // 幂等处理：已支付则直接返回成功
     if (order.status === 'paid') {
       return NextResponse.json({ code: 'SUCCESS', message: '成功' });
     }
 
-    // 用事务包裹所有写操作，防止崩溃导致数据不一致
-    await prisma.$transaction(async (tx) => {
-      // 更新订单状态
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'paid',
-          transactionId: result.transactionId,
-          paidAt: new Date(),
-        },
+    const now = new Date().toISOString();
+
+    const batchStatements: Array<{ sql: string; params?: any[] }> = [
+      {
+        sql: 'UPDATE "Order" SET status = ?, transactionId = ?, paidAt = ?, updatedAt = ? WHERE id = ?',
+        params: ['paid', result.transactionId, now, now, order.id],
+      },
+      {
+        sql: 'INSERT INTO Payment (id, orderId, userId, method, amount, status, transactionId, paidAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        params: [`pay_${Date.now()}`, order.id, order.userId, result.method, order.amount, 'success', result.transactionId, now, now],
+      },
+    ];
+
+    if (order.type === 'membership') {
+      const plan = MEMBERSHIP_PLANS.find((p) => p.level === order.targetId);
+      const days = plan?.durationDays ?? 30;
+      const expiry = days ? new Date(Date.now() + days * 86400000).toISOString() : null;
+
+      batchStatements.push({
+        sql: 'UPDATE User SET memberLevel = ?, memberExpiry = ?, updatedAt = ? WHERE id = ?',
+        params: [order.targetId || 'monthly', expiry, now, order.userId],
       });
 
-      // 创建支付记录
-      await tx.payment.create({
-        data: {
-          orderId: order.id,
-          userId: order.userId,
-          method: result.method,
-          amount: order.amount,
-          status: 'success',
-          transactionId: result.transactionId,
-          paidAt: new Date(),
-        },
+      await auditLog({
+        userId: order.userId,
+        action: 'member_upgrade',
+        details: { level: order.targetId, orderNo: order.orderNo },
+        status: 'success',
+      });
+    } else if (order.type === 'offering') {
+      const [itemId, offerType] = (order.targetId || '').split(':::');
+      batchStatements.push({
+        sql: 'INSERT INTO OfferingRecord (id, userId, itemId, amount, type, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        params: [`off_${Date.now()}`, order.userId, itemId || order.targetId || '', order.amount, offerType || 'single', 'completed', now],
       });
 
-      // 根据订单类型处理业务逻辑
-      if (order.type === 'membership') {
-        // 从套餐配置读取天数（避免硬编码）
-        const plan = MEMBERSHIP_PLANS.find((p) => p.level === order.targetId);
-        const days = plan?.durationDays ?? 30;
-        const expiry = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
+      await auditLog({
+        userId: order.userId,
+        action: 'offering_create',
+        details: { orderNo: order.orderNo, targetId: order.targetId },
+        status: 'success',
+      });
+    }
 
-        await tx.user.update({
-          where: { id: order.userId },
-          data: {
-            memberLevel: order.targetId || 'monthly',
-            memberExpiry: expiry,
-          },
-        });
-
-        await auditLog({
-          userId: order.userId,
-          action: 'member_upgrade',
-          details: { level: order.targetId, orderNo: order.orderNo },
-          status: 'success',
-        });
-      } else if (order.type === 'offering') {
-        // 创建供奉记录（targetId 编码为 itemId:::offerType）
-        const [itemId, offerType] = (order.targetId || '').split(':::');
-        await tx.offeringRecord.create({
-          data: {
-            userId: order.userId,
-            itemId: itemId || order.targetId || '',
-            amount: order.amount,
-            type: offerType || 'single',
-            status: 'active',
-          },
-        });
-
-        await auditLog({
-          userId: order.userId,
-          action: 'offering_create',
-          details: { orderNo: order.orderNo, targetId: order.targetId },
-          status: 'success',
-        });
-      }
-    });
+    await batch(batchStatements);
 
     await auditLog({
       userId: order.userId,
@@ -122,17 +94,12 @@ export async function POST(req: NextRequest) {
       status: 'success',
     });
 
-    // 返回成功响应（微信需要返回特定格式）
     if (method === 'wechat') {
-      return NextResponse.json({
-        return_code: 'SUCCESS',
-        return_msg: 'OK',
-      });
+      return NextResponse.json({ return_code: 'SUCCESS', return_msg: 'OK' });
     }
-
     return NextResponse.json({ code: 'SUCCESS', message: '成功' });
-  } catch (error) {
-    console.error('支付回调处理失败:', error);
+  } catch (error: any) {
+    console.error('支付回调处理失败:', error?.message);
     return NextResponse.json({ code: 'FAIL', message: '处理失败' }, { status: 500 });
   }
 }

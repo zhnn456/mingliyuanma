@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, execute } from '@/lib/d1';
 import { requireAgent } from '@/lib/auth-server'
 import { sanitizeString } from '@/lib/security';
 import { auditLog } from '@/lib/audit';
 
-/**
- * 获取代理商设置
- */
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);
@@ -15,7 +12,7 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const agent = await prisma.agent.findUnique({ where: { userId } });
+    const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
 
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
@@ -23,21 +20,21 @@ export async function GET(req: NextRequest) {
 
     let siteConfig: any = {};
     try {
-      siteConfig = JSON.parse(agent.siteConfig || '{}');
+      siteConfig = JSON.parse((agent as any).siteConfig || '{}');
     } catch {}
 
     return NextResponse.json({
       agent: {
-        id: agent.id,
-        companyName: agent.companyName,
-        brandName: agent.brandName,
-        domain: agent.domain,
-        logo: agent.logo,
-        contactName: agent.contactName,
-        contactPhone: agent.contactPhone,
-        licenseKey: agent.licenseKey,
-        licenseExpiry: agent.licenseExpiry,
-        isActive: agent.isActive,
+        id: (agent as any).id,
+        companyName: (agent as any).companyName,
+        brandName: (agent as any).brandName,
+        domain: (agent as any).domain,
+        logo: (agent as any).logo,
+        contactName: (agent as any).contactName,
+        contactPhone: (agent as any).contactPhone,
+        licenseKey: (agent as any).licenseKey,
+        licenseExpiry: (agent as any).licenseExpiry,
+        isActive: (agent as any).isActive,
         siteConfig,
       },
     });
@@ -47,9 +44,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/**
- * 更新代理商设置（白标定制）
- */
 export async function PUT(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);
@@ -58,7 +52,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const agent = await prisma.agent.findUnique({ where: { userId } });
+    const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
 
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
@@ -74,24 +68,32 @@ export async function PUT(req: NextRequest) {
     if (contactName !== undefined) updateData.contactName = sanitizeString(contactName);
     if (contactPhone !== undefined) updateData.contactPhone = sanitizeString(contactPhone);
 
-    // 合并 siteConfig
     if (siteConfig) {
       let existingConfig: any = {};
       try {
-        existingConfig = JSON.parse(agent.siteConfig || '{}');
+        existingConfig = JSON.parse((agent as any).siteConfig || '{}');
       } catch {}
       updateData.siteConfig = JSON.stringify({ ...existingConfig, ...siteConfig });
     }
 
-    const updated = await prisma.agent.update({
-      where: { id: agent.id },
-      data: updateData,
-    });
+    const sets: string[] = [];
+    const params: any[] = [];
+    if (updateData.brandName !== undefined) { sets.push('brandName = ?'); params.push(updateData.brandName); }
+    if (updateData.logo !== undefined) { sets.push('logo = ?'); params.push(updateData.logo); }
+    if (updateData.companyName !== undefined) { sets.push('companyName = ?'); params.push(updateData.companyName); }
+    if (updateData.contactName !== undefined) { sets.push('contactName = ?'); params.push(updateData.contactName); }
+    if (updateData.contactPhone !== undefined) { sets.push('contactPhone = ?'); params.push(updateData.contactPhone); }
+    if (updateData.siteConfig !== undefined) { sets.push('siteConfig = ?'); params.push(updateData.siteConfig); }
+
+    params.push((agent as any).id);
+    await execute(`UPDATE Agent SET ${sets.join(', ')} WHERE id = ?`, ...params);
+
+    const updated = { ...agent, ...updateData };
 
     await auditLog({
       userId,
       action: 'agent_update_customer',
-      details: { agentId: agent.id, updated: Object.keys(updateData) },
+      details: { agentId: (agent as any).id, updated: Object.keys(updateData) },
       status: 'success',
     });
 

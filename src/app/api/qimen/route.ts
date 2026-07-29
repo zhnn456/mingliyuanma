@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { execute } from '@/lib/d1';
 import { QimenChart } from '3meta';
 import { checkUsageLimit } from '@/lib/rate-limit';
 import { generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
@@ -68,26 +68,30 @@ export async function POST(req: NextRequest) {
     // 如果用户已登录，保存记录
     if (session) {
       const queryTime = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      await prisma.qimenRecord.create({
-        data: {
-          userId: (session.user as any).id,
-          queryTime,
-          dunType: result.ju?.type || '',
-          juNumber: result.ju?.number || 0,
-          tianPan: JSON.stringify(result.palaces.filter((p: any) => p.star)),
-          diPan: JSON.stringify(result.palaces.map((p: any) => ({
-            position: p.position, trigram: p.trigram,
-            heavenlyStem: p.heavenlyStem, earthlyStem: p.earthlyStem, earthBranch: p.earthBranch,
-          }))),
-          renPan: JSON.stringify(result.palaces.map((p: any) => ({
-            position: p.position, gate: p.gate,
-          }))),
-          shenPan: JSON.stringify(result.palaces.map((p: any) => ({
-            position: p.position, deity: p.deity,
-          }))),
-          interpretation: JSON.stringify({ result, detailedAnalysis }),
-        },
-      });
+      const recordId = `qmr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      await execute(
+        `INSERT INTO QimenRecord (id, userId, queryTime, dunType, juNumber, tianPan, diPan, renPan, shenPan, interpretation, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        recordId,
+        (session.user as any).id,
+        queryTime,
+        result.ju?.type || '',
+        result.ju?.number || 0,
+        JSON.stringify(result.palaces.filter((p: any) => p.star)),
+        JSON.stringify(result.palaces.map((p: any) => ({
+          position: p.position, trigram: p.trigram,
+          heavenlyStem: p.heavenlyStem, earthlyStem: p.earthlyStem, earthBranch: p.earthBranch,
+        }))),
+        JSON.stringify(result.palaces.map((p: any) => ({
+          position: p.position, gate: p.gate,
+        }))),
+        JSON.stringify(result.palaces.map((p: any) => ({
+          position: p.position, deity: p.deity,
+        }))),
+        JSON.stringify({ result, detailedAnalysis }),
+        now
+      );
     }
 
     return NextResponse.json({ result, detailedAnalysis });

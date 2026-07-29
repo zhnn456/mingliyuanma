@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, queryAll } from '@/lib/d1';
 import { requireAgent } from '@/lib/auth-server';
 
-/**
- * 代理商仪表盘统计数据
- */
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);
@@ -14,57 +11,53 @@ export async function GET(req: NextRequest) {
 
     const userId = (session.user as any).id;
 
-    // 获取代理商信息
-    const agent = await prisma.agent.findUnique({
-      where: { userId },
-    });
+    const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
 
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
     }
 
-    // 统计该代理商的客户数（通过 siteConfig 记录的 agent-customer 关系）
-    const customerLinks = await prisma.siteConfig.findMany({
-      where: {
-        category: 'agent_customer',
-        value: agent.id,
-      },
-    });
+    const customerLinks = await queryAll(
+      'SELECT * FROM SiteConfig WHERE category = ? AND value = ?',
+      'agent_customer', agent.id
+    );
 
     const customerIds = customerLinks.map(c => c.key.replace('agent_customer:', ''));
     const customerCount = customerIds.length;
 
-    // 统计客户的排盘记录数
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString();
 
     let totalBazi = 0, totalZiwei = 0, totalQimen = 0, totalMeihua = 0;
     let todayBazi = 0, todayZiwei = 0, todayQimen = 0, todayMeihua = 0;
 
     if (customerIds.length > 0) {
+      const placeholders = customerIds.map(() => '?').join(',');
+      const countSql = (table: string) =>
+        `SELECT COUNT(*) as count FROM ${table} WHERE userId IN (${placeholders})`;
+      const todayCountSql = (table: string) =>
+        `SELECT COUNT(*) as count FROM ${table} WHERE userId IN (${placeholders}) AND createdAt >= ?`;
+
       [totalBazi, totalZiwei, totalQimen, totalMeihua] = await Promise.all([
-        prisma.baziRecord.count({ where: { userId: { in: customerIds } } }),
-        prisma.ziweiRecord.count({ where: { userId: { in: customerIds } } }),
-        prisma.qimenRecord.count({ where: { userId: { in: customerIds } } }),
-        prisma.meihuaRecord.count({ where: { userId: { in: customerIds } } }),
+        (queryFirst(countSql('BaziRecord'), ...customerIds) as any)?.count || 0,
+        (queryFirst(countSql('ZiweiRecord'), ...customerIds) as any)?.count || 0,
+        (queryFirst(countSql('QimenRecord'), ...customerIds) as any)?.count || 0,
+        (queryFirst(countSql('MeihuaRecord'), ...customerIds) as any)?.count || 0,
       ]);
 
       [todayBazi, todayZiwei, todayQimen, todayMeihua] = await Promise.all([
-        prisma.baziRecord.count({ where: { userId: { in: customerIds }, createdAt: { gte: today } } }),
-        prisma.ziweiRecord.count({ where: { userId: { in: customerIds }, createdAt: { gte: today } } }),
-        prisma.qimenRecord.count({ where: { userId: { in: customerIds }, createdAt: { gte: today } } }),
-        prisma.meihuaRecord.count({ where: { userId: { in: customerIds }, createdAt: { gte: today } } }),
+        (queryFirst(todayCountSql('BaziRecord'), ...customerIds, todayStr) as any)?.count || 0,
+        (queryFirst(todayCountSql('ZiweiRecord'), ...customerIds, todayStr) as any)?.count || 0,
+        (queryFirst(todayCountSql('QimenRecord'), ...customerIds, todayStr) as any)?.count || 0,
+        (queryFirst(todayCountSql('MeihuaRecord'), ...customerIds, todayStr) as any)?.count || 0,
       ]);
     }
 
-    // 统计该代理商名下的订单和收入
-    // 通过 siteConfig 记录的 agent-order 关系
-    const orderLinks = await prisma.siteConfig.findMany({
-      where: {
-        category: 'agent_order',
-        value: agent.id,
-      },
-    });
+    const orderLinks = await queryAll(
+      'SELECT * FROM SiteConfig WHERE category = ? AND value = ?',
+      'agent_order', agent.id
+    );
     const orderIds = orderLinks.map(c => c.key.replace('agent_order:', ''));
 
     let totalRevenue = 0;
@@ -72,25 +65,25 @@ export async function GET(req: NextRequest) {
     let todayOrders = 0;
 
     if (orderIds.length > 0) {
-      const orders = await prisma.order.findMany({
-        where: { id: { in: orderIds }, status: 'paid' },
-      });
-      totalRevenue = orders.reduce((sum, o) => sum + o.amount, 0);
+      const orderPlaceholders = orderIds.map(() => '?').join(',');
+      const orders = await queryAll(
+        `SELECT * FROM "Order" WHERE id IN (${orderPlaceholders}) AND status = ?`,
+        ...orderIds, 'paid'
+      ) as any[];
+      totalRevenue = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
       totalOrders = orders.length;
-      todayOrders = orders.filter(o => o.paidAt && o.paidAt >= today).length;
+      todayOrders = orders.filter(o => o.paidAt && o.paidAt >= todayStr).length;
     }
 
-    // 解析代理商配置
     let siteConfig: any = {};
     try {
       siteConfig = JSON.parse(agent.siteConfig || '{}');
     } catch {}
 
-    // 授权信息
-    const license = await prisma.agentLicense.findFirst({
-      where: { agentId: agent.id, status: 'active' },
-      orderBy: { createdAt: 'desc' },
-    });
+    const license = await queryFirst(
+      'SELECT * FROM AgentLicense WHERE agentId = ? AND status = ? ORDER BY createdAt DESC',
+      agent.id, 'active'
+    );
 
     return NextResponse.json({
       agent: {
@@ -104,10 +97,10 @@ export async function GET(req: NextRequest) {
         siteConfig,
       },
       license: license ? {
-        licenseKey: license.licenseKey,
-        maxUsers: license.maxUsers,
-        expiryAt: license.expiryAt,
-        features: license.features ? JSON.parse(license.features) : [],
+        licenseKey: (license as any).licenseKey,
+        maxUsers: (license as any).maxUsers,
+        expiryAt: (license as any).expiryAt,
+        features: (license as any).features ? JSON.parse((license as any).features) : [],
       } : null,
       stats: {
         customerCount,

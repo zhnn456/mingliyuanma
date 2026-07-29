@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst } from '@/lib/d1';
 import { verifyPassword, hashPassword } from '@/lib/password';
 
 /**
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. 查用户
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await queryFirst('SELECT * FROM User WHERE email = ?', email);
     if (!user) {
       return NextResponse.json({ step: 'find_user', error: '用户不存在' });
     }

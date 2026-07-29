@@ -6,7 +6,7 @@
  * - 通过浏览器 print-to-PDF 生成精美报告
  */
 
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst } from '@/lib/d1';
 
 // ============ 报告类型 ============
 
@@ -110,9 +110,7 @@ export async function generateReportData(
   let userInfo: any = {};
 
   if (type === 'bazi') {
-    const record = await prisma.baziRecord.findUnique({
-      where: { id: recordId },
-    });
+    const record = await queryFirst('SELECT * FROM BaziRecord WHERE id = ?', recordId) as any;
     if (!record || record.userId !== userId) return null;
 
     userInfo = {
@@ -140,9 +138,7 @@ export async function generateReportData(
       detailedAnalysis = interpretation.detailedAnalysis;
     }
   } else if (type === 'ziwei') {
-    const record = await prisma.ziweiRecord.findUnique({
-      where: { id: recordId },
-    });
+    const record = await queryFirst('SELECT * FROM ZiweiRecord WHERE id = ?', recordId) as any;
     if (!record || record.userId !== userId) return null;
 
     userInfo = {
@@ -163,9 +159,7 @@ export async function generateReportData(
       detailedAnalysis = interpretation.detailedAnalysis;
     }
   } else if (type === 'qimen') {
-    const record = await prisma.qimenRecord.findUnique({
-      where: { id: recordId },
-    });
+    const record = await queryFirst('SELECT * FROM QimenRecord WHERE id = ?', recordId) as any;
     if (!record || record.userId !== userId) return null;
 
     userInfo = {
@@ -186,9 +180,7 @@ export async function generateReportData(
       detailedAnalysis = interpretation.detailedAnalysis;
     }
   } else if (type === 'meihua') {
-    const record = await prisma.meihuaRecord.findUnique({
-      where: { id: recordId },
-    });
+    const record = await queryFirst('SELECT * FROM MeihuaRecord WHERE id = ?', recordId) as any;
     if (!record || record.userId !== userId) return null;
 
     userInfo = {
@@ -235,9 +227,7 @@ export async function checkReportAccess(
   type: ReportType,
   recordId: string
 ): Promise<{ allowed: boolean; reason?: string; needPayment?: boolean; price?: number }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  });
+  const user = await queryFirst('SELECT * FROM User WHERE id = ?', userId) as any;
 
   if (!user) {
     return { allowed: false, reason: '用户不存在' };
@@ -263,14 +253,10 @@ export async function checkReportAccess(
   }
 
   // 检查是否已购买此报告
-  const existingOrder = await prisma.order.findFirst({
-    where: {
-      userId,
-      type: 'pdf_report',
-      targetId: `${type}:${recordId}`,
-      status: 'paid',
-    },
-  });
+  const existingOrder = await queryFirst(
+    'SELECT * FROM "Order" WHERE userId = ? AND type = ? AND targetId = ? AND status = ?',
+    userId, 'pdf_report', `${type}:${recordId}`, 'paid'
+  );
 
   if (existingOrder) {
     return { allowed: true };

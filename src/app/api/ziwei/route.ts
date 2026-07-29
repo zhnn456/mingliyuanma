@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { execute } from '@/lib/d1';
 import { astro } from 'iztro';
 import { checkUsageLimit } from '@/lib/rate-limit';
 import { generateZiweiDetailedAnalysis } from '@/lib/interpretation/ziwei-detailed';
@@ -90,28 +90,32 @@ export async function POST(req: NextRequest) {
 
     // 如果用户已登录，保存记录
     if (session) {
-      await prisma.ziweiRecord.create({
-        data: {
-          userId: (session.user as any).id,
-          gender,
-          birthDate: dateStr,
-          birthTime: `${String(hour).padStart(2, '0')}:00`,
-          isLunar,
-          mingGong: result.basic.fiveElementsClass,
-          palaceData: JSON.stringify(result.palaces),
-          starData: JSON.stringify(result.palaces.flatMap((p: any) => p.majorStars)),
-          sihuaData: JSON.stringify(
-            result.palaces.flatMap((p: any) =>
-              p.majorStars.filter((s: any) => s.mutagen).map((s: any) => ({
-                palace: p.name,
-                star: s.name,
-                mutagen: s.mutagen,
-              }))
-            )
-          ),
-          interpretation: JSON.stringify({ result }),
-        },
-      });
+      const recordId = `zwr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      await execute(
+        `INSERT INTO ZiweiRecord (id, userId, gender, birthDate, birthTime, isLunar, mingGong, palaceData, starData, sihuaData, interpretation, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        recordId,
+        (session.user as any).id,
+        gender,
+        dateStr,
+        `${String(hour).padStart(2, '0')}:00`,
+        isLunar ? 1 : 0,
+        result.basic.fiveElementsClass,
+        JSON.stringify(result.palaces),
+        JSON.stringify(result.palaces.flatMap((p: any) => p.majorStars)),
+        JSON.stringify(
+          result.palaces.flatMap((p: any) =>
+            p.majorStars.filter((s: any) => s.mutagen).map((s: any) => ({
+              palace: p.name,
+              star: s.name,
+              mutagen: s.mutagen,
+            }))
+          )
+        ),
+        JSON.stringify({ result }),
+        now
+      );
     }
 
     return NextResponse.json({ result });

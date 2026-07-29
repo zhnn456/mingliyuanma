@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>命理网 · 新设计稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a0a0f; --ink-2:#13131c; --gold:#c8a45c; --gold-l:#ddb87a; --gold-d:#a68a3e;
+  --cinnabar:#9b1c1c; --cinnabar-d:#6b1313; --paper:#f5f0e8; --paper-d:#e8dcc8;
+  --jade:#2d8c3c; --water:#1a5276;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Serif SC',serif;background:var(--ink);color:var(--paper);
+  overflow-x:hidden;line-height:1.7;
+}
+.font-brush{font-family:'Ma Shan Zheng',cursive}
+.font-kai{font-family:'ZCOOL XiaoWei',serif}
+a{color:inherit;text-decoration:none}
+
+/* ===== 通用 ===== */
+.tag-eyebrow{
+  display:inline-flex;align-items:center;gap:.75rem;
+  font-size:.72rem;letter-spacing:.4em;color:var(--gold);
+  text-transform:uppercase;font-weight:600;
+}
+.tag-eyebrow::before,.tag-eyebrow::after{
+  content:'';width:32px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.gold-text{
+  background:linear-gradient(135deg,#a68a3e 0%,#f4d98a 45%,#c8a45c 70%,#a68a3e 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.divider-gold{height:1px;background:linear-gradient(90deg,transparent,rgba(200,164,92,.5),transparent)}
+
+/* ===== 导航 ===== */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 2.5rem;
+  background:rgba(10,10,15,.55);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(200,164,92,.12);
+  transition:all .3s;
+}
+.nav-brand{display:flex;align-items:center;gap:.6rem;font-family:'Ma Shan Zheng',cursive;font-size:1.5rem;color:var(--gold)}
+.nav-brand .sep{color:var(--gold);opacity:.5}
+.nav-links{display:flex;gap:2rem;font-size:.85rem;letter-spacing:.15em}
+.nav-links a{color:rgba(245,240,232,.7);transition:color .2s;position:relative}
+.nav-links a:hover{color:var(--gold-l)}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:-6px;width:0;height:1px;background:var(--gold);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-cta{padding:.55rem 1.4rem;border:1px solid var(--gold);border-radius:2px;color:var(--gold);font-size:.8rem;letter-spacing:.2em;transition:all .3s}
+.nav-cta:hover{background:var(--gold);color:var(--ink)}
+@media(max-width:768px){.nav-links{display:none}.nav{padding:1rem 1.2rem}}
+
+/* ============ HERO ============ */
+.hero{
+  position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#1a1a28 0%,#0a0a0f 70%);
+}
+#starCanvas{position:absolute;inset:0;z-index:1}
+.hero-mist{
+  position:absolute;inset:0;z-index:2;opacity:.5;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 30%,rgba(155,28,28,.12),transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 70%,rgba(200,164,92,.08),transparent 60%);
+}
+/* 八卦环 */
+.bagua{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(680px,90vw);height:min(680px,90vw);z-index:2;opacity:.18;
+}
+.bagua .ring-outer{animation:spin 80s linear infinite;transform-origin:center}
+.bagua .ring-inner{animation:spin 60s linear infinite reverse;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 太极 */
+.taiji{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:140px;height:140px;z-index:3;opacity:.4;
+  animation:breathe 6s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{opacity:.4;transform:translate(-50%,-50%) scale(1)}50%{opacity:.6;transform:translate(-50%,-50%) scale(1.08)}}
+
+.hero-content{position:relative;z-index:5;text-align:center;padding:0 1.5rem;max-width:900px}
+.hero-eyebrow{margin-bottom:2.2rem;animation:fadeUp 1s .2s both}
+.hero-title{
+  font-family:'Ma Shan Zheng',cursive;
+  font-size:clamp(4.5rem,14vw,11rem);line-height:1;letter-spacing:.08em;
+  margin-bottom:1.5rem;
+  animation:fadeUp 1.2s .4s both;
+}
+.hero-title .glow{
+  filter:drop-shadow(0 0 30px rgba(200,164,92,.35));
+}
+.hero-sub{
+  font-family:'ZCOOL XiaoWei',serif;
+  font-size:clamp(1.3rem,3vw,2rem);letter-spacing:.5em;
+  color:var(--gold-l);margin-bottom:1rem;
+  animation:fadeUp 1s .7s both;
+}
+.hero-desc{
+  font-size:1rem;color:rgba(245,240,232,.6);max-width:560px;margin:0 auto 2.8rem;
+  letter-spacing:.1em;
+  animation:fadeUp 1s .9s both;
+}
+.hero-cta{display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap;animation:fadeUp 1s 1.1s both}
+.btn-gold{
+  padding:.95rem 2.6rem;background:linear-gradient(135deg,var(--gold-d),var(--gold),var(--gold-l));
+  color:var(--ink);font-weight:700;letter-spacing:.2em;font-size:.95rem;border-radius:2px;
+  box-shadow:0 4px 24px rgba(200,164,92,.3);transition:all .3s;position:relative;overflow:hidden;
+}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(200,164,92,.45)}
+.btn-gold::after{
+  content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+  animation:shine 3s infinite;
+}
+@keyframes shine{0%{left:-100%}60%,100%{left:200%}}
+.btn-ghost{
+  padding:.95rem 2.6rem;border:1px solid rgba(200,164,92,.5);color:var(--gold-l);
+  letter-spacing:.2em;font-size:.95rem;border-radius:2px;transition:all .3s;
+}
+.btn-ghost:hover{background:rgba(200,164,92,.1);border-color:var(--gold)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* 滚动提示 */
+.scroll-hint{
+  position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:5;
+  display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  color:rgba(245,240,232,.4);font-size:.7rem;letter-spacing:.3em;
+  animation:fadeUp 1s 1.5s both;
+}
+.scroll-hint .line{width:1px;height:40px;background:linear-gradient(180deg,var(--gold),transparent);animation:scrollLine 2s ease-in-out infinite}
+@keyframes scrollLine{0%,100%{transform:scaleY(.4);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}}
+
+/* ============ 四象服务 ============ */
+.services{padding:8rem 0 4rem;position:relative;background:var(--ink)}
+.section-head{text-align:center;margin-bottom:5rem;padding:0 1.5rem}
+.section-head h2{font-family:'Ma Shan Zheng',cursive;font-size:clamp(2.5rem,6vw,4.5rem);margin:1.2rem 0 .8rem;letter-spacing:.1em}
+.section-head p{color:rgba(245,240,232,.5);font-size:1rem;letter-spacing:.15em}
+
+.service-block{
+  position:relative;min-height:100vh;display:flex;align-items:center;
+  padding:6rem 2rem;overflow:hidden;
+}
+.service-block:nth-child(odd){background:linear-gradient(135deg,#0d0d14,#13131c)}
+.service-block:nth-child(even){background:linear-gradient(135deg,#13131c,#0a0a0f)}
+.service-inner{
+  max-width:1200px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;
+}
+.service-visual{
+  position:relative;height:420px;display:flex;align-items:center;justify-content:center;
+}
+.service-text .num{
+  font-family:'Ma Shan Zheng',cursive;font-size:6rem;color:rgba(200,164,92,.15);
+  line-height:1;position:absolute;top:-3rem;left:-1rem;
+}
+.service-text{position:relative}
+.service-text .tag-eyebrow{margin-bottom:1.2rem}
+.service-text h3{font-family:'Ma Shan Zheng',cursive;font-size:clamp(2.8rem,5vw,4rem);margin-bottom:.4rem;letter-spacing:.08em}
+.service-text .en{color:rgba(200,164,92,.6);letter-spacing:.3em;font-size:.8rem;text-transform:uppercase;margin-bottom:1.5rem}
+.service-text .desc{color:rgba(245,240,232,.65);font-size:1.05rem;margin-bottom:1.8rem;letter-spacing:.05em}
+.service-features{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:2rem}
+.service-features span{
+  padding:.4rem 1rem;border:1px solid rgba(200,164,92,.25);border-radius:2px;
+  font-size:.78rem;color:rgba(245,240,232,.6);letter-spacing:.1em;
+}
+.service-link{
+  display:inline-flex;align-items:center;gap:.6rem;color:var(--gold);
+  font-size:.9rem;letter-spacing:.2em;border-bottom:1px solid var(--gold);padding-bottom:.3rem;
+  transition:gap .3s;
+}
+.service-link:hover{gap:1rem}
+@media(max-width:768px){
+  .service-inner{grid-template-columns:1fr;gap:2rem}
+  .service-visual{height:260px;order:-1}
+  .service-block{padding:4rem 1.5rem;min-height:auto}
+}
+
+/* 八字-水墨柱 */
+.bazi-visual{position:relative;width:100%;height:100%}
+.bazi-pillar{
+  position:absolute;width:60px;background:linear-gradient(180deg,rgba(200,164,92,.05),rgba(200,164,92,.15),rgba(200,164,92,.05));
+  border:1px solid rgba(200,164,92,.3);border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;
+  padding:1.2rem 0;
+}
+.bazi-pillar .ch{font-family:'Ma Shan Zheng',cursive;font-size:2rem;color:var(--gold-l)}
+.bazi-pillar .label{font-size:.6rem;letter-spacing:.2em;color:rgba(245,240,232,.4);writing-mode:vertical-rl}
+.bazi-pillar:nth-child(1){left:8%;top:15%;height:70%;animation:floatY 5s ease-in-out infinite}
+.bazi-pillar:nth-child(2){left:32%;top:8%;height:80%;animation:floatY 5s .8s ease-in-out infinite}
+.bazi-pillar:nth-child(3){left:56%;top:18%;height:68%;animation:floatY 5s 1.6s ease-in-out infinite}
+.bazi-pillar:nth-child(4){left:80%;top:10%;height:75%;animation:floatY 5s 2.4s ease-in-out infinite}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* 紫微-星图 */
+.ziwei-visual{position:relative;width:100%;height:100%}
+.ziwei-orbit{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  border:1px solid rgba(200,164,92,.15);border-radius:50%;
+}
+.ziwei-orbit.o1{width:380px;height:380px}
+.ziwei-orbit.o2{width:260px;height:260px}
+.ziwei-orbit.o3{width:140px;height:140px}
+.ziwei-star{
+  position:absolute;border-radius:50%;background:var(--gold-l);
+  box-shadow:0 0 10px var(--gold),0 0 20px rgba(200,164,92,.4);
+  animation:twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.ziwei-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Ma Shan Zheng',cursive;font-size:2.5rem;color:var(--gold);
+  text-shadow:0 0 20px rgba(200,164,92,.5);
+}
+
+/* 奇门-九宫 */
+.qimen-visual{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.qimen-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:6px;width:300px;height:300px;
+}
+.qimen-cell{
+  background:rgba(200,164,92,.06);border:1px solid rgba(200,164,92,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Ma Shan Zheng',cursive;font-size:1.6rem;color:var(--gold-l);
+  transition:all .3s;cursor:default;
+}
+.qimen-cell:hover{background:rgba(200,164,92,.15);transform:scale(1.05)}
+.qimen-cell.center{background:rgba(155,28,28,.15);border-color:var(--cinnabar);color:var(--cinnabar)}
+.qimen-cell:nth-child(odd){animation:cellPulse 4s ease-in-out infinite}
+@keyframes cellPulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* 梅花-梅花图 */
+.meihua-visual{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.plum-blossom{position:relative;width:280px;height:280px}
+.plum-petal{
+  position:absolute;top:50%;left:50%;width:110px;height:110px;
+  background:radial-gradient(circle,rgba(200,164,92,.25),rgba(200,164,92,.05));
+  border-radius:50% 0 50% 50%;transform-origin:0 0;
+  animation:petalFloat 6s ease-in-out infinite;
+}
+.plum-core{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:40px;height:40px;border-radius:50%;background:var(--cinnabar);
+  box-shadow:0 0 30px rgba(155,28,28,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Ma Shan Zheng',cursive;color:var(--gold-l);font-size:1.2rem;
+}
+@keyframes petalFloat{0%,100%{opacity:.5}50%{opacity:.9}}
+
+/* ============ 阴阳五行哲学 ============ */
+.philosophy{
+  padding:8rem 2rem;background:linear-gradient(180deg,var(--ink),#0d0d14);
+  text-align:center;position:relative;overflow:hidden;
+}
+.philosophy::before{
+  content:'陰陽';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Ma Shan Zheng',cursive;font-size:clamp(20rem,40vw,38rem);
+  color:rgba(200,164,92,.025);pointer-events:none;line-height:1;
+}
+.wuxing{display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-top:3rem;position:relative;z-index:2}
+.wuxing-item{
+  width:130px;height:130px;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:.3rem;
+  border:1px solid;transition:all .4s;cursor:default;
+}
+.wuxing-item:hover{transform:translateY(-8px) scale(1.05)}
+.wuxing-item .ch{font-family:'Ma Shan Zheng',cursive;font-size:2.2rem}
+.wuxing-item .name{font-size:.72rem;letter-spacing:.2em}
+.wx-jin{border-color:var(--gold);color:var(--gold);background:rgba(200,164,92,.05)}
+.wx-mu{border-color:var(--jade);color:var(--jade);background:rgba(45,140,60,.05)}
+.wx-shui{border-color:#3a7ca5;color:#3a7ca5;background:rgba(58,124,165,.05)}
+.wx-huo{border-color:var(--cinnabar);color:var(--cinnabar);background:rgba(155,28,28,.05)}
+.wx-tu{border-color:#b8860b;color:#b8860b;background:rgba(184,134,11,.05)}
+
+/* ============ 排盘页设计 ============ */
+.page-demo{padding:7rem 2rem 5rem;background:var(--paper);color:#1a1a1a;position:relative}
+.page-demo.dark{background:var(--ink);color:var(--paper)}
+.demo-label{
+  text-align:center;margin-bottom:1rem;font-size:.72rem;letter-spacing:.4em;
+  color:var(--gold);text-transform:uppercase;
+}
+.demo-title{text-align:center;font-family:'Ma Shan Zheng',cursive;font-size:clamp(2rem,5vw,3.5rem);margin-bottom:3rem;letter-spacing:.1em}
+
+/* 八字排盘 - 宣纸古卷 */
+.bazi-board{
+  max-width:900px;margin:0 auto;background:
+    linear-gradient(135deg,#fdf8ef,#f5ecd9);
+  border:1px solid var(--paper-d);border-radius:4px;padding:2.5rem;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);position:relative;
+}
+.bazi-board::before{
+  content:'';position:absolute;inset:8px;border:1px solid rgba(200,164,92,.3);pointer-events:none;
+}
+.bazi-board-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,0,0,.1);padding-bottom:1.2rem;margin-bottom:1.5rem}
+.bazi-board-head .name{font-family:'Ma Shan Zheng',cursive;font-size:1.8rem;color:var(--cinnabar)}
+.bazi-board-head .meta{font-size:.82rem;color:#666;letter-spacing:.1em}
+.bazi-pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.bazi-col{text-align:center}
+.bazi-col .pos{font-size:.75rem;color:#999;letter-spacing:.2em;margin-bottom:.6rem}
+.bazi-col .gan,.bazi-col .zhi{
+  font-family:'Ma Shan Zheng',cursive;font-size:2.6rem;line-height:1.3;
+  background:rgba(155,28,28,.04);border:1px solid rgba(155,28,28,.15);border-radius:2px;
+  padding:.4rem 0;margin-bottom:.4rem;
+}
+.bazi-col .gan{color:var(--cinnabar)}
+.bazi-col .zhi{color:#333}
+.bazi-col .wx{font-size:.7rem;color:#888;letter-spacing:.1em}
+.bazi-col .ten-god{font-size:.72rem;color:var(--gold-d);margin-top:.3rem}
+
+/* 紫微排盘 - 十二宫 */
+.ziwei-board{
+  max-width:900px;margin:0 auto;background:linear-gradient(135deg,#fdf8ef,#f0e6d2);
+  border:1px solid var(--paper-d);padding:1.5rem;border-radius:4px;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);position:relative;
+}
+.ziwei-board::before{content:'';position:absolute;inset:8px;border:1px solid rgba(200,164,92,.3);pointer-events:none}
+.ziwei-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);
+  gap:2px;aspect-ratio:1;position:relative;
+}
+.ziwei-cell{
+  background:rgba(255,255,255,.5);border:1px solid rgba(200,164,92,.25);
+  padding:.5rem;display:flex;flex-direction:column;justify-content:space-between;
+  min-height:90px;transition:all .3s;
+}
+.ziwei-cell:hover{background:rgba(255,250,235,.9);box-shadow:0 0 0 1px var(--gold)}
+.ziwei-cell.center{
+  grid-column:2/4;grid-row:2/4;background:linear-gradient(135deg,#9b1c1c,#6b1313);
+  color:var(--gold-l);align-items:center;justify-content:center;text-align:center;
+}
+.ziwei-cell .palace{font-size:.7rem;color:#999;letter-spacing:.1em}
+.ziwei-cell .star{font-family:'Ma Shan Zheng',cursive;font-size:1.3rem;color:var(--cinnabar);line-height:1.2}
+.ziwei-cell .stem{font-size:.65rem;color:#888}
+.ziwei-cell.center .title{font-family:'Ma Shan Zheng',cursive;font-size:1.6rem;color:var(--gold-l)}
+.ziwei-cell.center .sub{font-size:.7rem;color:rgba(221,184,122,.7);letter-spacing:.2em}
+
+/* ============ CTA ============ */
+.cta{
+  padding:7rem 2rem;text-align:center;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at center,#1a1a28,#0a0a0f);
+}
+.cta::before{
+  content:'';position:absolute;inset:0;opacity:.4;
+  background-image:radial-gradient(circle at 1px 1px,rgba(200,164,92,.08) 1px,transparent 0);
+  background-size:40px 40px;
+}
+.cta-content{position:relative;z-index:2;max-width:600px;margin:0 auto}
+.cta .seal{
+  display:inline-block;padding:.3rem 1rem;border:1px solid var(--gold);color:var(--gold);
+  font-size:.72rem;letter-spacing:.3em;margin-bottom:1.5rem;border-radius:2px;
+  font-family:'ZCOOL XiaoWei',serif;
+}
+.cta h2{font-family:'Ma Shan Zheng',cursive;font-size:clamp(2.2rem,5vw,3.5rem);margin-bottom:1rem;letter-spacing:.1em}
+.cta p{color:rgba(245,240,232,.6);margin-bottom:2rem;letter-spacing:.1em}
+.cta-tags{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;margin-bottom:2.5rem}
+.cta-tags span{
+  padding:.5rem 1.2rem;background:rgba(200,164,92,.08);border:1px solid rgba(200,164,92,.25);
+  border-radius:2px;font-size:.8rem;color:var(--gold-l);letter-spacing:.1em;
+}
+
+/* ============ 页脚 ============ */
+footer{padding:3rem 2rem 2rem;text-align:center;border-top:1px solid rgba(200,164,92,.1);background:var(--ink)}
+footer .brand{font-family:'Ma Shan Zheng',cursive;font-size:1.8rem;color:var(--gold);margin-bottom:.5rem}
+footer p{color:rgba(245,240,232,.35);font-size:.78rem;letter-spacing:.15em}
+
+/* 分隔标记 */
+.demo-divider{
+  text-align:center;padding:4rem 2rem;background:var(--ink);
+  border-top:1px solid rgba(200,164,92,.1);border-bottom:1px solid rgba(200,164,92,.1);
+}
+.demo-divider span{
+  display:inline-block;padding:.5rem 1.5rem;border:1px solid var(--gold);color:var(--gold);
+  font-size:.75rem;letter-spacing:.3em;border-radius:2px;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 导航 ===== -->
+<nav class="nav">
+  <div class="nav-brand"><span>命理</span><span class="sep">·</span><span>網</span></div>
+  <div class="nav-links">
+    <a href="#bazi">八字</a>
+    <a href="#ziwei">紫微</a>
+    <a href="#qimen">奇门</a>
+    <a href="#meihua">梅花</a>
+    <a href="#membership">会员</a>
+  </div>
+  <a href="#membership" class="nav-cta">開 始 排 盤</a>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <canvas id="starCanvas"></canvas>
+  <div class="hero-mist"></div>
+
+  <!-- 八卦环 -->
+  <svg class="bagua" viewBox="0 0 400 400">
+    <g class="ring-outer">
+      <circle cx="200" cy="200" r="195" fill="none" stroke="rgba(200,164,92,.4)" stroke-width="1"/>
+      <circle cx="200" cy="200" r="175" fill="none" stroke="rgba(200,164,92,.2)" stroke-width=".5"/>
+      <!-- 八卦符号 -->
+      <text x="200" y="30" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☰</text>
+      <text x="330" y="90" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☱</text>
+      <text x="375" y="205" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☲</text>
+      <text x="330" y="320" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☳</text>
+      <text x="200" y="380" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☴</text>
+      <text x="70" y="320" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☵</text>
+      <text x="25" y="205" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☶</text>
+      <text x="70" y="90" text-anchor="middle" fill="rgba(200,164,92,.6)" font-size="22" font-family="serif">☷</text>
+    </g>
+    <g class="ring-inner">
+      <circle cx="200" cy="200" r="130" fill="none" stroke="rgba(200,164,92,.3)" stroke-width=".5"/>
+      <circle cx="200" cy="200" r="90" fill="none" stroke="rgba(200,164,92,.2)" stroke-width=".5"/>
+    </g>
+  </svg>
+
+  <!-- 太极 -->
+  <svg class="taiji" viewBox="0 0 100 100">
+    <path d="M50,5 A45,45 0 0,1 50,95 A22.5,22.5 0 0,1 50,50 A22.5,22.5 0 0,0 50,5 Z" fill="#c8a45c"/>
+    <path d="M50,5 A45,45 0 0,0 50,95 A22.5,22.5 0 0,0 50,50 A22.5,22.5 0 0,1 50,5 Z" fill="#0a0a0f"/>
+    <circle cx="50" cy="27.5" r="6" fill="#0a0a0f"/>
+    <circle cx="50" cy="72.5" r="6" fill="#c8a45c"/>
+  </svg>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow tag-eyebrow">千年傳承 · 命理玄學</div>
+    <h1 class="hero-title"><span class="gold-text glow">命理網</span></h1>
+    <p class="hero-sub">觀天象　察地理　識人命</p>
+    <p class="hero-desc">融合四柱八字、紫微斗數、奇門遁甲、梅花易數四大體系，<br>以千年玄學智慧，為閣下解讀命運之奧秘</p>
+    <div class="hero-cta">
+      <a href="#bazi" class="btn-gold">開 始 排 盤</a>
+      <a href="#membership" class="btn-ghost">開 通 會 員</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>向 下 探 索</span>
+    <div class="line"></div>
+  </div>
+</section>
+
+<!-- ============ 四象服务 ============ -->
+<section class="services">
+  <div class="section-head">
+    <div class="tag-eyebrow">四 柱 命 理 · 八 方 運 勢</div>
+    <h2><span class="gold-text">命 理 四 象</span></h2>
+    <p>四大傳統命理體系，各承一脈，共解天機</p>
+  </div>
+
+  <!-- 八字 -->
+  <div class="service-block" id="bazi">
+    <div class="service-inner">
+      <div class="service-text">
+        <span class="num">一</span>
+        <div class="tag-eyebrow">FOUR PILLARS</div>
+        <h3 class="gold-text">四柱八字</h3>
+        <div class="en">SI ZHU BA ZI</div>
+        <p class="desc">以出生之年月日時，配天干地支而成四柱。觀五行之旺衰，察格局之清濁，推大運之流運之流轉，斷一生之休咎。千年命理之根基，盡在其中。</p>
+        <div class="service-features">
+          <span>四柱排盤</span><span>大運流年</span><span>格局分析</span><span>用神取法</span>
+        </div>
+        <a href="#" class="service-link">立 即 體 驗 →</a>
+      </div>
+      <div class="service-visual">
+        <div class="bazi-visual">
+          <div class="bazi-pillar"><span class="ch">甲</span><span class="label">年柱</span><span class="ch">子</span></div>
+          <div class="bazi-pillar"><span class="ch">丙</span><span class="label">月柱</span><span class="ch">寅</span></div>
+          <div class="bazi-pillar"><span class="ch">戊</span><span class="label">日柱</span><span class="ch">辰</span></div>
+          <div class="bazi-pillar"><span class="ch">庚</span><span class="label">時柱</span><span class="ch">午</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 紫微 -->
+  <div class="service-block" id="ziwei">
+    <div class="service-inner">
+      <div class="service-visual">
+        <div class="ziwei-visual">
+          <div class="ziwei-orbit o1"></div>
+          <div class="ziwei-orbit o2"></div>
+          <div class="ziwei-orbit o3"></div>
+          <div class="ziwei-star" style="top:15%;left:50%;width:6px;height:6px"></div>
+          <div class="ziwei-star" style="top:30%;left:75%;width:4px;height:4px;animation-delay:.5s"></div>
+          <div class="ziwei-star" style="top:55%;left:20%;width:5px;height:5px;animation-delay:1s"></div>
+          <div class="ziwei-star" style="top:70%;left:60%;width:7px;height:7px;animation-delay:1.5s"></div>
+          <div class="ziwei-star" style="top:40%;left:40%;width:4px;height:4px;animation-delay:2s"></div>
+          <div class="ziwei-star" style="top:25%;left:25%;width:5px;height:5px;animation-delay:2.5s"></div>
+          <div class="ziwei-center">紫微</div>
+        </div>
+      </div>
+      <div class="service-text">
+        <span class="num">二</span>
+        <div class="tag-eyebrow">ZI WEI STARS</div>
+        <h3 class="gold-text">紫微斗數</h3>
+        <div class="en">ZI WEI DOU SHU</div>
+        <p class="desc">排列十二宮位之星曜，以紫微為帝，眾星拱之。十四主星各司其職，四化飛星流轉其間，揭示人生十二層面之運勢走向，帝王之學也。</p>
+        <div class="service-features">
+          <span>十二宮位</span><span>十四主星</span><span>四化飛星</span><span>大限運勢</span>
+        </div>
+        <a href="#" class="service-link">立 即 體 驗 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 奇门 -->
+  <div class="service-block" id="qimen">
+    <div class="service-inner">
+      <div class="service-text">
+        <span class="num">三</span>
+        <div class="tag-eyebrow">QI MEN DUN JIA</div>
+        <h3 class="gold-text">奇門遁甲</h3>
+        <div class="en">QI MEN DUN JIA</div>
+        <p class="desc">古之帝王之術，黃帝戰蚩尤所用。以天地人神四盤，配三奇六儀，布九宮八卦。測天時、察地利、決人事，趨吉避凶，為決策之利器。</p>
+        <div class="service-features">
+          <span>天地人神</span><span>三奇六儀</span><span>十干克應</span><span>用神分析</span>
+        </div>
+        <a href="#" class="service-link">立 即 體 驗 →</a>
+      </div>
+      <div class="service-visual">
+        <div class="qimen-visual">
+          <div class="qimen-grid">
+            <div class="qimen-cell">巽</div><div class="qimen-cell">離</div><div class="qimen-cell">坤</div>
+            <div class="qimen-cell">震</div><div class="qimen-cell center">中</div><div class="qimen-cell">兌</div>
+            <div class="qimen-cell">艮</div><div class="qimen-cell">坎</div><div class="qimen-cell">乾</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 梅花 -->
+  <div class="service-block" id="meihua">
+    <div class="service-inner">
+      <div class="service-visual">
+        <div class="meihua-visual">
+          <div class="plum-blossom">
+            <div class="plum-petal" style="transform:rotate(0deg) translate(-55px,-55px)"></div>
+            <div class="plum-petal" style="transform:rotate(72deg) translate(-55px,-55px);animation-delay:.3s"></div>
+            <div class="plum-petal" style="transform:rotate(144deg) translate(-55px,-55px);animation-delay:.6s"></div>
+            <div class="plum-petal" style="transform:rotate(216deg) translate(-55px,-55px);animation-delay:.9s"></div>
+            <div class="plum-petal" style="transform:rotate(288deg) translate(-55px,-55px);animation-delay:1.2s"></div>
+            <div class="plum-core">易</div>
+          </div>
+        </div>
+      </div>
+      <div class="service-text">
+        <span class="num">四</span>
+        <div class="tag-eyebrow">MEI HUA YI SHU</div>
+        <h3 class="gold-text">梅花易數</h3>
+        <div class="en">MEI HUA YI SHU</div>
+        <p class="desc">邵康節觀梅而悟，以數起卦，以象斷事。或聞聲、或見色、或得時，皆可成卦。簡潔精準，不拘格套，為占卜之捷徑，心易之門徑。</p>
+        <div class="service-features">
+          <span>六種起卦</span><span>體用分析</span><span>卦象演變</span><span>應期推斷</span>
+        </div>
+        <a href="#" class="service-link">立 即 體 驗 →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阴阳五行 ============ -->
+<section class="philosophy">
+  <div class="tag-eyebrow" style="position:relative;z-index:2">陰 陽 五 行 · 萬 物 之 宗</div>
+  <h2 style="font-family:'Ma Shan Zheng',cursive;font-size:clamp(2.5rem,6vw,4.5rem);margin:1.2rem 0;letter-spacing:.1em;position:relative;z-index:2"><span class="gold-text">五行相生　周而復始</span></h2>
+  <p style="color:rgba(245,240,232,.5);position:relative;z-index:2;letter-spacing:.1em">金生水　水生木　木生火　火生土　土生金</p>
+  <div class="wuxing">
+    <div class="wuxing-item wx-jin"><span class="ch">金</span><span class="name">JIN</span></div>
+    <div class="wuxing-item wx-shui"><span class="ch">水</span><span class="name">SHUI</span></div>
+    <div class="wuxing-item wx-mu"><span class="ch">木</span><span class="name">MU</span></div>
+    <div class="wuxing-item wx-huo"><span class="ch">火</span><span class="name">HUO</span></div>
+    <div class="wuxing-item wx-tu"><span class="ch">土</span><span class="name">TU</span></div>
+  </div>
+</section>
+
+<!-- 分隔 -->
+<div class="demo-divider"><span>以 下 為 排 盤 頁 面 設 計</span></div>
+
+<!-- ============ 八字排盘页 ============ -->
+<section class="page-demo" id="bazi-demo">
+  <div class="demo-label">BA ZI PAI PAN · 八 字 排 盤</div>
+  <h2 class="demo-title" style="color:#1a1a1a"><span style="color:var(--cinnabar)">四柱八字排盤</span></h2>
+  <div class="bazi-board">
+    <div class="bazi-board-head">
+      <div>
+        <div class="name">張子明　男命</div>
+        <div class="meta">公曆 1990年5月18日 辰時　·　農曆 庚午年四月廿四</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Ma Shan Zheng',cursive;font-size:1.2rem;color:var(--gold-d)">庚午　辛巳　壬子　甲辰</div>
+        <div class="meta">日主壬水　·　身弱　·　用神金水</div>
+      </div>
+    </div>
+    <div class="bazi-pillars">
+      <div class="bazi-col">
+        <div class="pos">年柱</div>
+        <div class="gan">庚</div><div class="wx">金·偏印</div>
+        <div class="zhi">午</div><div class="wx">火·正財</div>
+        <div class="ten-god">偏印／正財</div>
+      </div>
+      <div class="bazi-col">
+        <div class="pos">月柱</div>
+        <div class="gan">辛</div><div class="wx">金·正印</div>
+        <div class="zhi">巳</div><div class="wx">火·偏財</div>
+        <div class="ten-god">正印／偏財</div>
+      </div>
+      <div class="bazi-col">
+        <div class="pos">日柱</div>
+        <div class="gan" style="background:rgba(200,164,92,.12);border-color:var(--gold)">壬</div><div class="wx">水·日主</div>
+        <div class="zhi">子</div><div class="wx">水·劫財</div>
+        <div class="ten-god">日主／劫財</div>
+      </div>
+      <div class="bazi-col">
+        <div class="pos">時柱</div>
+        <div class="gan">甲</div><div class="wx">木·食神</div>
+        <div class="zhi">辰</div><div class="wx">土·七殺</div>
+        <div class="ten-god">食神／七殺</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 紫微排盘页 ============ -->
+<section class="page-demo" id="ziwei-demo">
+  <div class="demo-label">ZI WEI DOU SHU · 紫 微 排 盤</div>
+  <h2 class="demo-title" style="color:#1a1a1a"><span style="color:var(--cinnabar)">紫微斗數命盤</span></h2>
+  <div class="ziwei-board">
+    <div class="ziwei-grid">
+      <div class="ziwei-cell"><div class="palace">巳·父母宮</div><div class="star">天機</div><div class="stem">乙</div></div>
+      <div class="ziwei-cell"><div class="palace">午·福德宮</div><div class="star">紫微</div><div class="stem">丙</div></div>
+      <div class="ziwei-cell"><div class="palace">未·田宅宮</div><div class="star">天相</div><div class="stem">丁</div></div>
+      <div class="ziwei-cell"><div class="palace">申·事業宮</div><div class="star">天梁</div><div class="stem">戊</div></div>
+
+      <div class="ziwei-cell"><div class="palace">辰·命宮</div><div class="star">七殺</div><div class="stem">甲</div></div>
+      <div class="ziwei-cell center"><div class="title">紫微命盤</div><div class="sub">陰女 · 土五局</div></div>
+      <div class="ziwei-cell"><div class="palace">酉·僕役宮</div><div class="star">破軍</div><div class="stem">己</div></div>
+
+      <div class="ziwei-cell"><div class="palace">卯·兄弟宮</div><div class="star">天同</div><div class="stem">癸</div></div>
+      <div class="ziwei-cell"><div class="palace">寅·夫妻宮</div><div class="star">武曲</div><div class="stem">壬</div></div>
+      <div class="ziwei-cell"><div class="palace">丑·子女宮</div><div class="star">太陽</div><div class="stem">辛</div></div>
+      <div class="ziwei-cell"><div class="palace">子·財帛宮</div><div class="star">天府</div><div class="stem">庚</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta" id="membership">
+  <div class="cta-content">
+    <div class="seal">會 員 專 享</div>
+    <h2><span class="gold-text">開通會員　解鎖天機</span></h2>
+    <p>無限排盤 · 深度解讀 · 大運流年 · 專屬報告</p>
+    <div class="cta-tags">
+      <span>✦ 無限排盤</span><span>✦ 深度解讀</span><span>✦ PDF報告</span><span>✦ 歷史記錄</span><span>✦ 優先客服</span>
+    </div>
+    <a href="#" class="btn-gold">查 看 會 員 套 餐</a>
+  </div>
+</section>
+
+<footer>
+  <div class="brand">命理網</div>
+  <p>千年傳承 · 解讀命運密碼　© 2026 命理網</p>
+</footer>
+
+<script>
+// 星空 Canvas
+const canvas=document.getElementById('starCanvas');
+const ctx=canvas.getContext('2d');
+let w,h,stars;
+function resize(){
+  w=canvas.width=window.innerWidth;
+  h=canvas.height=canvas.parentElement.offsetHeight;
+  stars=Array.from({length:120},()=>({
+    x:Math.random()*w,y:Math.random()*h,
+    r:Math.random()*1.4+0.3,
+    a:Math.random(),s:Math.random()*0.02+0.005,
+    tx:Math.random()*0.3-0.15,ty:Math.random()*0.3-0.15
+  }));
+}
+function draw(){
+  ctx.clearRect(0,0,w,h);
+  stars.forEach(st=>{
+    st.a+=st.s; if(st.a>1||st.a<0)st.s=-st.s;
+    st.x+=st.tx; st.y+=st.ty;
+    if(st.x<0)st.x=w; if(st.x>w)st.x=0;
+    if(st.y<0)st.y=h; if(st.y>h)st.y=0;
+    ctx.beginPath();
+    ctx.arc(st.x,st.y,Math.max(0.1,st.r),0,Math.PI*2);
+    ctx.fillStyle=`rgba(200,164,92,${Math.max(0,st.a*0.7)})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(draw);
+}
+resize();
+draw();
+window.addEventListener('resize',resize);
+
+// 导航滚动效果
+const nav=document.querySelector('.nav');
+window.addEventListener('scroll',()=>{
+  if(window.scrollY>60){nav.style.background='rgba(10,10,15,.85)';nav.style.padding='.8rem 2.5rem'}
+  else{nav.style.background='rgba(10,10,15,.55)';nav.style.padding='1.1rem 2.5rem'}
+});
+</script>
+</body>
+</html>

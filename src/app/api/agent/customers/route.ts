@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { requireAgent } from '@/lib/auth-server'
 import { sanitizeString } from '@/lib/security';
 import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 
-/**
- * 代理商客户管理
- * GET: 获取客户列表
- * POST: 添加客户（创建用户并关联到代理商）
- */
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);
@@ -18,63 +13,49 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const agent = await prisma.agent.findUnique({ where: { userId } });
+    const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
     }
 
-    // 获取关联的客户ID
-    const customerLinks = await prisma.siteConfig.findMany({
-      where: { category: 'agent_customer', value: agent.id },
-    });
+    const customerLinks = await queryAll(
+      'SELECT * FROM SiteConfig WHERE category = ? AND value = ?',
+      'agent_customer', (agent as any).id
+    );
     const customerIds = customerLinks.map(c => c.key.replace('agent_customer:', ''));
 
     if (customerIds.length === 0) {
       return NextResponse.json({ customers: [], total: 0 });
     }
 
-    // 分页
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    // 查询客户
-    const [customers, total] = await Promise.all([
-      prisma.user.findMany({
-        where: { id: { in: customerIds } },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          phone: true,
-          memberLevel: true,
-          memberExpiry: true,
-          dailyUsage: true,
-          lastUsageDate: true,
-          createdAt: true,
-          _count: {
-            select: {
-              baziRecords: true,
-              ziweiRecords: true,
-              qimenRecords: true,
-              meihuaRecords: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.user.count({ where: { id: { in: customerIds } } }),
-    ]);
+    const placeholders = customerIds.map(() => '?').join(',');
+
+    const customers = await queryAll(
+      `SELECT id, email, name, phone, memberLevel, memberExpiry, dailyUsage, lastUsageDate, createdAt,
+       (SELECT COUNT(*) FROM BaziRecord WHERE userId = u.id) as baziCount,
+       (SELECT COUNT(*) FROM ZiweiRecord WHERE userId = u.id) as ziweiCount,
+       (SELECT COUNT(*) FROM QimenRecord WHERE userId = u.id) as qimenCount,
+       (SELECT COUNT(*) FROM MeihuaRecord WHERE userId = u.id) as meihuaCount
+       FROM User u WHERE u.id IN (${placeholders}) ORDER BY u.createdAt DESC LIMIT ? OFFSET ?`,
+      ...customerIds, limit, offset
+    );
+
+    const totalResult = await queryFirst(
+      `SELECT COUNT(*) as total FROM User WHERE id IN (${placeholders})`,
+      ...customerIds
+    );
 
     return NextResponse.json({
-      customers: customers.map((c: any) => ({
+      customers: (customers as any[]).map((c: any) => ({
         ...c,
-        totalRecords: c._count.baziRecords + c._count.ziweiRecords + c._count.qimenRecords + c._count.meihuaRecords,
+        totalRecords: (c.baziCount || 0) + (c.ziweiCount || 0) + (c.qimenCount || 0) + (c.meihuaCount || 0),
       })),
-      total,
+      total: (totalResult as any)?.total || 0,
       page,
       limit,
     });
@@ -84,9 +65,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/**
- * 代理商为客户创建账号
- */
 export async function POST(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);
@@ -95,31 +73,32 @@ export async function POST(req: NextRequest) {
     }
 
     const agentUserId = (session.user as any).id;
-    const agent = await prisma.agent.findUnique({ where: { userId: agentUserId } });
+    const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', agentUserId);
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
     }
 
-    // 检查授权和用户数限制
-    const license = await prisma.agentLicense.findFirst({
-      where: { agentId: agent.id, status: 'active' },
-    });
+    const license = await queryFirst(
+      'SELECT * FROM AgentLicense WHERE agentId = ? AND status = ? ORDER BY createdAt DESC',
+      (agent as any).id, 'active'
+    );
 
     if (!license) {
       return NextResponse.json({ error: '授权已过期或无效' }, { status: 403 });
     }
 
-    if (license.expiryAt && license.expiryAt < new Date()) {
+    if ((license as any).expiryAt && new Date((license as any).expiryAt) < new Date()) {
       return NextResponse.json({ error: '授权已过期' }, { status: 403 });
     }
 
-    // 统计当前客户数
-    const customerCount = await prisma.siteConfig.count({
-      where: { category: 'agent_customer', value: agent.id },
-    });
+    const customerCountResult = await queryFirst(
+      'SELECT COUNT(*) as count FROM SiteConfig WHERE category = ? AND value = ?',
+      'agent_customer', (agent as any).id
+    );
+    const customerCount = (customerCountResult as any)?.count || 0;
 
-    if (license.maxUsers && customerCount >= license.maxUsers) {
-      return NextResponse.json({ error: `已达最大用户数限制（${license.maxUsers}人）` }, { status: 403 });
+    if ((license as any).maxUsers && customerCount >= (license as any).maxUsers) {
+      return NextResponse.json({ error: `已达最大用户数限制（${(license as any).maxUsers}人）` }, { status: 403 });
     }
 
     const body = await req.json();
@@ -133,50 +112,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '请输入邮箱' }, { status: 400 });
     }
 
-    // 检查邮箱是否已存在
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await queryFirst('SELECT * FROM User WHERE email = ?', email);
     if (existing) {
       return NextResponse.json({ error: '该邮箱已注册' }, { status: 400 });
     }
 
-    // 创建用户
-      const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(password);
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const now = new Date().toISOString();
+    const memberExpiry = memberLevel !== 'free' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name,
-        phone: phone || null,
-        role: 'user',
-        memberLevel,
-        memberExpiry: memberLevel !== 'free' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
-      },
-    });
+    await execute(
+      `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, memberExpiry, createdAt)
+       VALUES (?, ?, ?, ?, ?, 'user', ?, ?, ?)`,
+      userId, email, passwordHash, name, phone || null, memberLevel, memberExpiry, now
+    );
 
-    // 关联到代理商
-    await prisma.siteConfig.create({
-      data: {
-        key: `agent_customer:${user.id}`,
-        value: agent.id,
-        category: 'agent_customer',
-      },
-    });
+    await execute(
+      `INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)`,
+      `agent_customer:${userId}`, (agent as any).id, 'agent_customer', now
+    );
 
     await auditLog({
       userId: agentUserId,
       action: 'agent_update_customer',
-      details: { customerId: user.id, email, name, action: 'create' },
+      details: { customerId: userId, email, name, action: 'create' },
       status: 'success',
     });
 
     return NextResponse.json({
       message: '客户创建成功',
       customer: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        memberLevel: user.memberLevel,
+        id: userId,
+        email,
+        name,
+        memberLevel,
       },
       credentials: { email, password },
     });

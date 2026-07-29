@@ -1,8 +1,9 @@
 /**
  * 审计日志系统
  * 记录所有重要操作，用于安全审计和问题追踪
+ * 使用 D1 直接操作，避免 Prisma 在 Workers 上的兼容性问题
  */
-import { prisma } from '@/lib/db/prisma';
+import { execute, queryAll } from '@/lib/d1';
 
 export type AuditAction =
   | 'login' | 'logout' | 'register'
@@ -25,10 +26,6 @@ export interface AuditLogData {
   status?: 'success' | 'failed' | 'warning';
 }
 
-/**
- * 记录审计日志
- * 使用 SiteConfig 表存储（避免修改 schema），以特定 key 前缀标识
- */
 export async function auditLog(data: AuditLogData): Promise<void> {
   try {
     const now = new Date();
@@ -45,21 +42,15 @@ export async function auditLog(data: AuditLogData): Promise<void> {
       timestamp: now.toISOString(),
     });
 
-    await prisma.siteConfig.create({
-      data: { key, value, category: 'audit' },
-    });
-  } catch (error) {
-    // 审计日志写入失败不应影响主流程
-    console.error('审计日志写入失败:', error);
+    await execute(
+      'INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)',
+      key, value, 'audit', now.toISOString()
+    );
+  } catch {
+    console.error('审计日志写入失败');
   }
 }
 
-/**
- * 在内存中按条件过滤审计日志条目
- * 注意：由于审计日志存储在 SiteConfig 表中且 value 是 JSON 字符串，
- * 无法在数据库层直接按 value 内字段过滤，所以采用全量查+内存过滤。
- * 数据量预估不会太大（单日最多几千条），性能可接受。
- */
 export async function queryAuditLogs(options: {
   date?: string;
   action?: AuditAction;
@@ -70,60 +61,33 @@ export async function queryAuditLogs(options: {
 }): Promise<{ logs: any[]; total: number }> {
   const { date, action, userId, status, limit = 50, offset = 0 } = options;
 
-  let whereClause: any = { category: 'audit' };
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  const rows = await queryAll(
+    "SELECT * FROM SiteConfig WHERE category = 'audit' AND key LIKE ? ORDER BY key DESC",
+    `audit:${targetDate}:%`
+  ) as any[];
 
-  if (date) {
-    whereClause.key = { startsWith: `audit:${date}:` };
-  } else {
-    // 默认查今天的
-    const today = new Date().toISOString().split('T')[0];
-    whereClause.key = { startsWith: `audit:${today}:` };
-  }
-
-  // 先查全部匹配日期的日志
-  const allConfigs = await prisma.siteConfig.findMany({
-    where: whereClause,
-    orderBy: { key: 'desc' },
-  });
-
-  // 解析 JSON 并在内存中过滤
-  let logs = allConfigs
-    .map((c: any) => {
-      try {
-        const parsed = JSON.parse(c.value);
-        return { id: c.key, ...parsed };
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
+  let logs = rows.map((c: any) => {
+    try { return { id: c.key, ...JSON.parse(c.value) }; } catch { return null; }
+  }).filter(Boolean) as any[];
 
   if (action) logs = logs.filter((l: any) => l.action === action);
   if (userId) logs = logs.filter((l: any) => l.userId === userId);
   if (status) logs = logs.filter((l: any) => l.status === status);
 
   const total = logs.length;
-
-  // 分页在内存过滤之后进行
   const pagedLogs = logs.slice(offset, offset + limit);
-
   return { logs: pagedLogs, total };
 }
 
-/**
- * 清理30天前的审计日志
- */
 export async function cleanOldAuditLogs(): Promise<number> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 30);
   const cutoffStr = cutoff.toISOString().split('T')[0];
 
-  const result = await prisma.siteConfig.deleteMany({
-    where: {
-      category: 'audit',
-      key: { lt: `audit:${cutoffStr}:` },
-    },
-  });
-
-  return result.count;
+  const result = await execute(
+    "DELETE FROM SiteConfig WHERE category = 'audit' AND key < ?",
+    `audit:${cutoffStr}:`
+  );
+  return result.changes || 0;
 }

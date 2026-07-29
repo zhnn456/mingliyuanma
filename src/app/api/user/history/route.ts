@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst, queryAll } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,9 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
+    const user = await queryFirst('SELECT * FROM User WHERE id = ?', session.user.id);
 
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
@@ -21,14 +19,14 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
 
     const records: any[] = [];
+    const userId = (user as any).id;
 
     if (!type || type === 'bazi') {
-      const baziRecords = await prisma.baziRecord.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-      records.push(...baziRecords.map((r) => ({
+      const baziRecords = await queryAll(
+        'SELECT * FROM BaziRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        userId, limit
+      );
+      records.push(...(baziRecords as any[]).map((r: any) => ({
         id: r.id,
         type: 'bazi' as const,
         createdAt: r.createdAt,
@@ -42,12 +40,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (!type || type === 'ziwei') {
-      const ziweiRecords = await prisma.ziweiRecord.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-      records.push(...ziweiRecords.map((r) => ({
+      const ziweiRecords = await queryAll(
+        'SELECT * FROM ZiweiRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        userId, limit
+      );
+      records.push(...(ziweiRecords as any[]).map((r: any) => ({
         id: r.id,
         type: 'ziwei' as const,
         createdAt: r.createdAt,
@@ -60,12 +57,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (!type || type === 'qimen') {
-      const qimenRecords = await prisma.qimenRecord.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-      records.push(...qimenRecords.map((r) => ({
+      const qimenRecords = await queryAll(
+        'SELECT * FROM QimenRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        userId, limit
+      );
+      records.push(...(qimenRecords as any[]).map((r: any) => ({
         id: r.id,
         type: 'qimen' as const,
         createdAt: r.createdAt,
@@ -78,12 +74,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (!type || type === 'meihua') {
-      const meihuaRecords = await prisma.meihuaRecord.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-      records.push(...meihuaRecords.map((r) => ({
+      const meihuaRecords = await queryAll(
+        'SELECT * FROM MeihuaRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        userId, limit
+      );
+      records.push(...(meihuaRecords as any[]).map((r: any) => ({
         id: r.id,
         type: 'meihua' as const,
         createdAt: r.createdAt,
@@ -100,7 +95,6 @@ export async function GET(req: NextRequest) {
       })));
     }
 
-    // 按时间排序
     records.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({ records: records.slice(0, limit) });

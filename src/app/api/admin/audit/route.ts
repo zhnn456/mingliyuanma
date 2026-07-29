@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
 import { queryAuditLogs, cleanOldAuditLogs } from '@/lib/audit';
 import { requireAdmin } from '@/lib/auth-server';
 

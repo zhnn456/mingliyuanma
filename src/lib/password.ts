@@ -1,72 +1,108 @@
 /**
- * 密码工具 - 零依赖版本
- * 使用纯 JavaScript 实现，兼容 Cloudflare Workers、Node.js 等所有运行环境
- * 
- * 安全说明：
- * - 使用自定义 HMAC-like 迭代哈希 + 随机盐值
- * - 迭代次数 100000 次（平衡安全性和性能）
- * - 双哈希混合 + 盐值注入防止彩虹表攻击
+ * 密码工具 — Cloudflare Workers 兼容版
+ * 使用 Web Crypto SubtleCrypto 的 PBKDF2-SHA256
+ * CF Workers 原生支持 SubtleCrypto，零依赖
  */
 
-const HASH_ITERATIONS = 100000;
+const ITERATIONS = 100000;
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 32;
 
-/**
- * 生成密码哈希
- */
 export async function hashPassword(password: string): Promise<string> {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let salt = '';
-  for (let i = 0; i < 16; i++) {
-    salt += chars[Math.floor(Math.random() * chars.length)];
-  }
-  
-  // 多次迭代哈希
-  let hash = salt + ':' + password;
-  for (let i = 0; i < HASH_ITERATIONS; i++) {
-    hash = simpleHash(hash + salt + String(i));
-  }
-  
-  return salt + '$' + hash;
+  const salt = new Uint8Array(SALT_LENGTH);
+  crypto.getRandomValues(salt);
+
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+
+  const key = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: KEY_LENGTH * 8 },
+    false,
+    ['encrypt']
+  );
+
+  const keyBytes = new Uint8Array(await key.export());
+  const saltB64 = arrayBufferToBase64(salt);
+  const keyB64 = arrayBufferToBase64(keyBytes);
+
+  return `pbkdf2_${ITERATIONS}$${saltB64}$${keyB64}`;
 }
 
-/**
- * 验证密码
- */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
     const parts = stored.split('$');
-    if (parts.length < 2) return false;
-    const salt = parts[0];
-    
-    let hash = salt + ':' + password;
-    for (let i = 0; i < HASH_ITERATIONS; i++) {
-      hash = simpleHash(hash + salt + String(i));
+    if (parts.length !== 3) return false;
+
+    const [algoPart, saltB64, keyB64] = parts;
+    const iterations = parseInt(algoPart.split('_')[1] || '100000', 10);
+
+    const salt = base64ToArrayBuffer(saltB64);
+    const expectedKey = base64ToArrayBuffer(keyB64);
+
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: expectedKey.byteLength * 8 },
+      false,
+      ['encrypt']
+    );
+
+    const actualKey = new Uint8Array(await key.export());
+    const expected = new Uint8Array(expectedKey);
+
+    if (actualKey.length !== expected.length) return false;
+
+    let diff = 0;
+    for (let i = 0; i < actualKey.length; i++) {
+      diff |= actualKey[i] ^ expected[i];
     }
-    
-    return stored === salt + '$' + hash;
+    return diff === 0;
   } catch {
     return false;
   }
 }
 
-/**
- * 简单哈希函数（纯 JS，无依赖）
- * 基于 DJB2 算法 + 双哈希混合
- */
-function simpleHash(str: string): string {
-  let hash1 = 5381;
-  let hash2 = 27183;
-  let hash3 = 12345;
-  for (let i = 0; i < str.length; i++) {
-    const c = str.charCodeAt(i);
-    hash1 = ((hash1 << 5) + hash1) + c;
-    hash2 = ((hash2 << 5) + hash2) ^ c;
-    hash3 = ((hash3 << 5) - hash3) + c;
-    // 模拟整数溢出
-    hash1 = hash1 >>> 0;
-    hash2 = hash2 >>> 0;
-    hash3 = hash3 >>> 0;
+function arrayBufferToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
-  return (hash1 >>> 0).toString(36) + (hash2 >>> 0).toString(36) + (hash3 >>> 0).toString(36);
+  return btoa(binary);
 }
 
+function base64ToArrayBuffer(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}

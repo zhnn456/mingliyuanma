@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { execute } from '@/lib/d1';
 import { calculateByNumbers, calculateByTime, calculateByText, calculateByCoin, calculateByRandom, calculateByDate } from '@/lib/algorithms/meihua';
 import { generateMeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { checkUsageLimit } from '@/lib/rate-limit';
@@ -64,20 +64,24 @@ export async function POST(req: NextRequest) {
 
     // 如果用户已登录，保存记录
     if (session) {
-      await prisma.meihuaRecord.create({
-        data: {
-          userId: (session.user as any).id,
-          method: method || 'random',
-          input: JSON.stringify(body),
-          upperGua: result.upperGua.name,
-          lowerGua: result.lowerGua.name,
-          dongYao: result.dongYao,
-          benGua: result.benGua.name,
-          huGua: result.huGua.name,
-          bianGua: result.bianGua.name,
-          tiYong: JSON.stringify(result.tiYong),
-        },
-      });
+      const recordId = `mhr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      await execute(
+        `INSERT INTO MeihuaRecord (id, userId, method, input, upperGua, lowerGua, dongYao, benGua, huGua, bianGua, tiYong, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        recordId,
+        (session.user as any).id,
+        method || 'random',
+        JSON.stringify(body),
+        result.upperGua.name,
+        result.lowerGua.name,
+        result.dongYao,
+        result.benGua.name,
+        result.huGua.name,
+        result.bianGua.name,
+        JSON.stringify(result.tiYong),
+        now
+      );
     }
 
     // 生成深度解读

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { prisma } from '@/lib/db/prisma';
+import { queryFirst } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,9 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await queryFirst('SELECT * FROM User WHERE email = ?', session.user.email);
 
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
@@ -22,41 +20,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '请指定类型' }, { status: 400 });
     }
 
-    /**
-     * 尝试从 interpretation 字段返回完整结果，
-     * 如果没有则使用字段拼接（兼容旧数据）
-     */
+    const userId = (user as any).id;
 
     if (type === 'bazi') {
-      const record = await prisma.baziRecord.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      const record = await queryFirst(
+        'SELECT * FROM BaziRecord WHERE userId = ? ORDER BY createdAt DESC',
+        userId
+      );
       if (!record) return NextResponse.json({ record: null });
 
-      // 优先使用完整保存的 interpretation
-      if (record.interpretation) {
-        const parsed = JSON.parse(record.interpretation);
+      if ((record as any).interpretation) {
+        const parsed = JSON.parse((record as any).interpretation);
         return NextResponse.json({ record: parsed });
       }
 
-      // 兼容旧数据
       return NextResponse.json({
         record: {
           result: {
             fourPillars: {
-              year: { gan: record.yearGan, zhi: record.yearZhi },
-              month: { gan: record.monthGan, zhi: record.monthZhi },
-              day: { gan: record.dayGan, zhi: record.dayZhi },
-              hour: { gan: record.hourGan, zhi: record.hourZhi },
+              year: { gan: (record as any).yearGan, zhi: (record as any).yearZhi },
+              month: { gan: (record as any).monthGan, zhi: (record as any).monthZhi },
+              day: { gan: (record as any).dayGan, zhi: (record as any).dayZhi },
+              hour: { gan: (record as any).hourGan, zhi: (record as any).hourZhi },
             },
-            wuxing: record.wuxing ? JSON.parse(record.wuxing) : {},
-            dayun: record.dayun ? JSON.parse(record.dayun) : [],
+            wuxing: (record as any).wuxing ? JSON.parse((record as any).wuxing) : {},
+            dayun: (record as any).dayun ? JSON.parse((record as any).dayun) : [],
             shishen: {},
             nayin: {},
             canggan: {},
             shengxiao: '',
-            gender: record.gender,
+            gender: (record as any).gender,
           },
           xiYongShen: null,
         },
@@ -64,65 +57,61 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'ziwei') {
-      const record = await prisma.ziweiRecord.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      const record = await queryFirst(
+        'SELECT * FROM ZiweiRecord WHERE userId = ? ORDER BY createdAt DESC',
+        userId
+      );
       if (!record) return NextResponse.json({ record: null });
 
-      // 优先使用完整保存的 interpretation
-      if (record.interpretation) {
-        const parsed = JSON.parse(record.interpretation);
+      if ((record as any).interpretation) {
+        const parsed = JSON.parse((record as any).interpretation);
         return NextResponse.json({ record: parsed });
       }
 
-      // 兼容旧数据
       return NextResponse.json({
         record: {
           result: {
             basic: {
-              gender: record.gender,
-              solarDate: record.birthDate,
-              lunarDate: record.birthDate,
+              gender: (record as any).gender,
+              solarDate: (record as any).birthDate,
+              lunarDate: (record as any).birthDate,
               chineseDate: '',
               zodiac: '',
               sign: '',
-              fiveElementsClass: record.mingGong || '',
+              fiveElementsClass: (record as any).mingGong || '',
               soul: '',
               body: '',
               earthlyBranchOfSoulPalace: '',
               earthlyBranchOfBodyPalace: '',
             },
-            palaces: record.palaceData ? JSON.parse(record.palaceData) : [],
+            palaces: (record as any).palaceData ? JSON.parse((record as any).palaceData) : [],
           },
         },
       });
     }
 
     if (type === 'qimen') {
-      const record = await prisma.qimenRecord.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      const record = await queryFirst(
+        'SELECT * FROM QimenRecord WHERE userId = ? ORDER BY createdAt DESC',
+        userId
+      );
       if (!record) return NextResponse.json({ record: null });
 
-      // 优先使用完整保存的 interpretation
-      if (record.interpretation) {
-        const parsed = JSON.parse(record.interpretation);
+      if ((record as any).interpretation) {
+        const parsed = JSON.parse((record as any).interpretation);
         return NextResponse.json({ record: parsed });
       }
 
-      // 兼容旧数据
       return NextResponse.json({
         record: {
           result: {
-            timeInfo: { solarDate: record.queryTime, lunarDate: '', chineseYear: '', chineseMonth: '', chineseDay: '', chineseTime: '', timeName: '', solarTerm: '', xunShou: '', voidness: [] },
+            timeInfo: { solarDate: (record as any).queryTime, lunarDate: '', chineseYear: '', chineseMonth: '', chineseDay: '', chineseTime: '', timeName: '', solarTerm: '', xunShou: '', voidness: [] },
             fourPillars: { year: { stem: '', branch: '' }, month: { stem: '', branch: '' }, day: { stem: '', branch: '' }, hour: { stem: '', branch: '' } },
-            ju: { type: record.dunType, number: record.juNumber },
+            ju: { type: (record as any).dunType, number: (record as any).juNumber },
             yuan: '',
             zhiFu: { star: '', position: 0 },
             zhiShi: { gate: '', position: 0 },
-            palaces: record.tianPan ? JSON.parse(record.tianPan) : [],
+            palaces: (record as any).tianPan ? JSON.parse((record as any).tianPan) : [],
             specialPatterns: {},
           },
         },
@@ -130,30 +119,28 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'meihua') {
-      const record = await prisma.meihuaRecord.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      const record = await queryFirst(
+        'SELECT * FROM MeihuaRecord WHERE userId = ? ORDER BY createdAt DESC',
+        userId
+      );
       if (!record) return NextResponse.json({ record: null });
 
-      // 优先使用完整保存的 interpretation
-      if (record.interpretation) {
-        const parsed = JSON.parse(record.interpretation);
+      if ((record as any).interpretation) {
+        const parsed = JSON.parse((record as any).interpretation);
         return NextResponse.json({ record: parsed });
       }
 
-      // 兼容旧数据
       return NextResponse.json({
         record: {
           result: {
-            method: record.method,
-            upperGua: { name: record.upperGua, symbol: '', element: '', nature: '' },
-            lowerGua: { name: record.lowerGua, symbol: '', element: '', nature: '' },
-            dongYao: record.dongYao,
-            benGua: { name: record.benGua || '', meaning: '', lines: [] },
-            huGua: { name: record.huGua || '', meaning: '', lines: [] },
-            bianGua: { name: record.bianGua || '', meaning: '', lines: [] },
-            tiYong: record.tiYong ? JSON.parse(record.tiYong) : { ti: '', yong: '', relation: '' },
+            method: (record as any).method,
+            upperGua: { name: (record as any).upperGua, symbol: '', element: '', nature: '' },
+            lowerGua: { name: (record as any).lowerGua, symbol: '', element: '', nature: '' },
+            dongYao: (record as any).dongYao,
+            benGua: { name: (record as any).benGua || '', meaning: '', lines: [] },
+            huGua: { name: (record as any).huGua || '', meaning: '', lines: [] },
+            bianGua: { name: (record as any).bianGua || '', meaning: '', lines: [] },
+            tiYong: (record as any).tiYong ? JSON.parse((record as any).tiYong) : { ti: '', yong: '', relation: '' },
           },
         },
       });

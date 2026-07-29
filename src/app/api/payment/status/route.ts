@@ -1,41 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
-import { requireAuth } from '@/lib/auth-server';
+import { queryFirst } from '@/lib/d1';
+import { getSession } from '@/lib/auth-server';
 
-/**
- * 查询订单支付状态
- */
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAuth(req);
-    if (!allowed || !session) {
-      return NextResponse.json({ error: '请先登录' }, { status: 401 });
-    }
+    const session = await getSession(req);
+    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const orderNo = searchParams.get('orderNo');
+    if (!orderNo) return NextResponse.json({ error: '缺少订单号' }, { status: 400 });
 
-    if (!orderNo) {
-      return NextResponse.json({ error: '缺少订单号' }, { status: 400 });
-    }
+    const order = await queryFirst(
+      'SELECT * FROM "Order" WHERE orderNo = ?',
+      orderNo
+    ) as any;
 
-    const order = await prisma.order.findUnique({
-      where: { orderNo },
-    });
+    if (!order) return NextResponse.json({ error: '订单不存在' }, { status: 404 });
 
-    if (!order) {
-      return NextResponse.json({ error: '订单不存在' }, { status: 404 });
-    }
-
-    // 普通用户只能查看自己的订单
-    if (order.userId !== (session.user as any).id && (session.user as any).role !== 'admin') {
+    if (order.userId !== session.user.id && session.user.role !== 'admin') {
       return NextResponse.json({ error: '无权查看此订单' }, { status: 403 });
     }
 
-    // 单独查询支付记录
-    const payment = await prisma.payment.findUnique({
-      where: { orderId: order.id },
-    });
+    const payment = await queryFirst(
+      'SELECT * FROM Payment WHERE orderId = ?',
+      order.id
+    ) as any;
 
     return NextResponse.json({
       order: {
@@ -54,8 +44,8 @@ export async function GET(req: NextRequest) {
         } : null,
       },
     });
-  } catch (error) {
-    console.error('查询订单状态失败:', error);
+  } catch (error: any) {
+    console.error('查询订单状态失败:', error?.message);
     return NextResponse.json({ error: '查询失败' }, { status: 500 });
   }
 }

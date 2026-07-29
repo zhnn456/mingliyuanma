@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { prisma } from '@/lib/db/prisma';
+import { queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,13 +10,19 @@ export async function GET(req: NextRequest) {
     }
 
     const [categories, items, records] = await Promise.all([
-      prisma.offeringCategory.findMany({ orderBy: { sortOrder: 'asc' } }),
-      prisma.offeringItem.findMany({ orderBy: { sortOrder: 'asc' }, include: { category: true } }),
-      prisma.offeringRecord.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-        include: { user: { select: { email: true, name: true } }, item: true },
-      }),
+      queryAll('SELECT * FROM OfferingCategory ORDER BY sortOrder ASC'),
+      queryAll(
+        `SELECT oi.*, oc.name as categoryName FROM OfferingItem oi
+         LEFT JOIN OfferingCategory oc ON oi.categoryId = oc.id
+         ORDER BY oi.sortOrder ASC`
+      ),
+      queryAll(
+        `SELECT or.*, u.email as userEmail, u.name as userName, oi.name as itemName
+         FROM OfferingRecord or
+         LEFT JOIN User u ON or.userId = u.id
+         LEFT JOIN OfferingItem oi ON or.itemId = oi.id
+         ORDER BY or.createdAt DESC LIMIT 50`
+      ),
     ]);
 
     return NextResponse.json({ categories, items, records });
@@ -38,22 +44,29 @@ export async function POST(req: NextRequest) {
 
     if (action === 'addCategory') {
       const { name, icon, sortOrder } = body;
-      const category = await prisma.offeringCategory.create({ data: { name, icon, sortOrder: sortOrder || 0 } });
-      return NextResponse.json({ category });
+      const id = `ocat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      await execute(
+        'INSERT INTO OfferingCategory (id, name, icon, sortOrder, createdAt) VALUES (?, ?, ?, ?, ?)',
+        id, name, icon, sortOrder || 0, new Date().toISOString()
+      );
+      return NextResponse.json({ category: { id, name, icon, sortOrder: sortOrder || 0 } });
     }
 
     if (action === 'addItem') {
       const { categoryId, name, description, priceSingle, priceMonth, priceYear, image, sortOrder } = body;
-      const item = await prisma.offeringItem.create({
-        data: { categoryId, name, description, priceSingle, priceMonth, priceYear, image, sortOrder: sortOrder || 0 },
-      });
-      return NextResponse.json({ item });
+      const id = `oitem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      await execute(
+        `INSERT INTO OfferingItem (id, categoryId, name, description, priceSingle, priceMonth, priceYear, image, sortOrder, isActive, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        id, categoryId, name, description, priceSingle, priceMonth, priceYear, image, sortOrder || 0, new Date().toISOString()
+      );
+      return NextResponse.json({ item: { id, categoryId, name, description, priceSingle, priceMonth, priceYear, image, sortOrder: sortOrder || 0, isActive: 1 } });
     }
 
     if (action === 'toggleItem') {
       const { itemId, isActive } = body;
-      const item = await prisma.offeringItem.update({ where: { id: itemId }, data: { isActive } });
-      return NextResponse.json({ item });
+      await execute('UPDATE OfferingItem SET isActive = ? WHERE id = ?', isActive ? 1 : 0, itemId);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: '无效操作' }, { status: 400 });
