@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,7 +11,11 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name || '');
   const [saved, setSaved] = useState(false);
 
-  if (!user) { router.push('/login'); return null; }
+  useEffect(() => {
+    if (!user) router.replace('/login');
+  }, [user, router]);
+
+  if (!user) return null;
 
   const handleSave = async () => {
     // 简单实现：更新本地显示

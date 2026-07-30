@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!allowed || !session) return NextResponse.json({ error: '未登录' }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get('page') || '1');
-  const balance = await getUserPoints(session.user.id);
-  const ledger = await listPointsLedger(session.user.id, page, 20);
+  const balance = await getUserPoints(session.sub);
+  const ledger = await listPointsLedger(session.sub, page, 20);
   return NextResponse.json({ balance, ...ledger });
 }

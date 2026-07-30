@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无效的报告类型' }, { status: 400 });
     }
 
-    const userId = session?.user?.id;
+    const userId = session?.sub;
 
     // 检查访问权限
     const access = await checkReportAccess(userId, type, recordId);

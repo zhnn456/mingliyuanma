@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const ticket = await queryFirst('SELECT * FROM Ticket WHERE id = ?', id) as any;
   if (!ticket) return NextResponse.json({ error: '工单不存在' }, { status: 404 });
-  if (ticket.userId !== session.user.id && session.user.role !== 'admin')
+  if (ticket.userId !== session.sub && session.role !== 'admin')
     return NextResponse.json({ error: '无权访问' }, { status: 403 });
 
   const messages = await queryAll('SELECT * FROM TicketMessage WHERE ticketId = ? ORDER BY createdAt ASC', id);
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const ticket = await queryFirst('SELECT * FROM Ticket WHERE id = ?', id) as any;
   if (!ticket) return NextResponse.json({ error: '工单不存在' }, { status: 404 });
-  if (ticket.userId !== session.user.id && session.user.role !== 'admin')
+  if (ticket.userId !== session.sub && session.role !== 'admin')
     return NextResponse.json({ error: '无权访问' }, { status: 403 });
 
   const { content } = await req.json();
@@ -31,9 +31,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const msgId = `tkm_${Date.now()}`;
   const now = new Date().toISOString();
-  const isStaff = session.user.role === 'admin' ? 1 : 0;
+  const isStaff = session.role === 'admin' ? 1 : 0;
   await execute('INSERT INTO TicketMessage (id, ticketId, userId, content, isStaff, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-    msgId, id, session.user.id, content, isStaff, now);
+    msgId, id, session.sub, content, isStaff, now);
   await execute('UPDATE Ticket SET status = ?, updatedAt = ? WHERE id = ?', ticket.status === 'closed' ? 'open' : ticket.status, now, id);
 
   return NextResponse.json({ message: '发送成功' });

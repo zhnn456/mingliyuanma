@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-client';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,13 +17,31 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const result = await signIn(email, password);
+    try {
+      const result = await signIn(email, password);
 
-    if (result.error) {
-      setError(result.error);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        const userData = result.user;
+        if (!userData) {
+          setError('登录响应异常，请重试');
+          setLoading(false);
+          return;
+        }
+        // 使用完整页面导航确保 cookie 生效后能正确恢复状态
+        if (userData.role === 'admin') {
+          window.location.href = '/admin';
+        } else if (userData.role === 'agent') {
+          window.location.href = '/agent';
+        } else {
+          window.location.href = '/profile';
+        }
+      }
+    } catch {
+      setError('网络错误，请重试');
       setLoading(false);
-    } else {
-      router.push('/profile');
     }
   };
 

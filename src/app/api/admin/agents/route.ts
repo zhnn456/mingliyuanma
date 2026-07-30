@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const action = body.action;
-    const adminId = (session as any)?.user?.id;
+    const adminId = session.sub;
 
     if (action === 'create') {
       const { companyName, contactName, contactPhone, domain, brandName, licenseExpiry, maxUsers } = body;
@@ -232,7 +232,7 @@ export async function PUT(req: NextRequest) {
     await execute(`UPDATE Agent SET ${sets.join(', ')} WHERE id = ?`, ...params);
 
     await auditLog({
-      userId: (session as any)?.user?.id,
+      userId: session.sub,
       action: 'admin_update_user',
       details: { agentId, updated: Object.keys(updateData) },
       status: 'success',
@@ -243,5 +243,40 @@ export async function PUT(req: NextRequest) {
   } catch (error) {
     console.error('更新代理商失败:', error);
     return NextResponse.json({ error: '更新失败' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { allowed, session } = await requireAdmin(req);
+    if (!allowed) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: '缺少代理商ID' }, { status: 400 });
+    }
+
+    const agent = await queryFirst('SELECT * FROM Agent WHERE id = ?', id);
+    if (!agent) {
+      return NextResponse.json({ error: '代理商不存在' }, { status: 404 });
+    }
+
+    await execute("DELETE FROM AgentLicense WHERE agentId = ?", id);
+    await execute("DELETE FROM Agent WHERE id = ?", id);
+
+    await auditLog({
+      userId: session.sub,
+      action: 'admin_delete_agent',
+      details: { agentId: id, brandName: agent.brandName },
+      status: 'success',
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('删除代理商失败:', error);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
   }
 }

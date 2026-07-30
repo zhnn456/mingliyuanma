@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 import { queryFirst } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
-    if (!session?.user?.email) {
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const user = await queryFirst('SELECT * FROM User WHERE email = ?', session.user.email);
+    const user = await queryFirst('SELECT * FROM User WHERE id = ?', session.sub);
 
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });

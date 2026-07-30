@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
     const orders = await queryAll(
       `SELECT id, orderNo, amount, status, type, createdAt FROM "Order" WHERE userId = ? ORDER BY createdAt DESC LIMIT 50`,
-      session.user.id
+      session.sub
     );
     return NextResponse.json({ orders });
   } catch (error) {

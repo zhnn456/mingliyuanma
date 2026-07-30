@@ -207,7 +207,8 @@ CREATE TABLE IF NOT EXISTS "OfferingSupply" (
     "category" TEXT NOT NULL DEFAULT 'general',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "stock" INTEGER NOT NULL DEFAULT 0
 );
 
 -- CreateTable
@@ -336,3 +337,20 @@ CREATE INDEX IF NOT EXISTS "DivinationRule_category_ruleType_agentId_idx" ON "Di
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "DivinationRule_category_ruleType_ruleKey_subKey_agentId_key" ON "DivinationRule"("category", "ruleType", "ruleKey", "subKey", "agentId");
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "UpdateLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "version" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT '改进',
+    "content" TEXT NOT NULL,
+    "isCurrent" BOOLEAN NOT NULL DEFAULT false,
+    "isLatest" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT,
+    CONSTRAINT UpdateLog_version_key UNIQUE ("version")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "UpdateLog_createdAt_idx" ON "UpdateLog"("createdAt");

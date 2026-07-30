@@ -17,8 +17,33 @@ interface RateEntry {
 
 const rateLimitMap = new Map<string, RateEntry>();
 
-function getSecretKey(): string {
-  return process.env.NEXTAUTH_SECRET || 'mingli-dev-secret-key-change-in-production';
+let _cachedSecret: string | null = null;
+
+async function getSecretKey(): Promise<string> {
+  if (_cachedSecret) return _cachedSecret;
+  
+  // 优先从环境变量获取
+  try {
+    if (process.env?.NEXTAUTH_SECRET) {
+      _cachedSecret = process.env.NEXTAUTH_SECRET;
+      return _cachedSecret;
+    }
+  } catch {}
+  
+  // 尝试从 Cloudflare context 获取
+  try {
+    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+    const ctx = await getCloudflareContext({ async: true });
+    const cfSecret = (ctx.env as any)?.NEXTAUTH_SECRET;
+    if (cfSecret && typeof cfSecret === 'string') {
+      _cachedSecret = cfSecret;
+      return _cachedSecret;
+    }
+  } catch {}
+  
+  // 直接使用与 wrangler-deploy.toml 中一致的密钥
+  _cachedSecret = 'mingli-secret-key-2026-production';
+  return _cachedSecret;
 }
 
 async function verifyAndParseToken(token: string): Promise<any> {
@@ -28,13 +53,14 @@ async function verifyAndParseToken(token: string): Promise<any> {
     const payload = token.slice(0, lastDot);
     const sig = token.slice(lastDot + 1);
 
+    const secret = await getSecretKey();
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode(getSecretKey()),
+      encoder.encode(secret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['verify']
+      ['sign']
     );
     const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
     const expectedHex = Array.from(new Uint8Array(expectedSig))
@@ -72,7 +98,7 @@ export async function middleware(req: NextRequest) {
     if (!match) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
-    const token = decodeURIComponent(match[1]);
+    const token = match[1];
     const payload = await verifyAndParseToken(token);
     if (!payload || payload.role !== 'admin') {
       return NextResponse.redirect(new URL('/login', req.url));

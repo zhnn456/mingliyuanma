@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO MeihuaRecord (id, userId, method, input, upperGua, lowerGua, dongYao, benGua, huGua, bianGua, tiYong, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         recordId,
-        (session.user as any).id,
+        session.sub,
         method || 'random',
         JSON.stringify(body),
         result.upperGua.name,

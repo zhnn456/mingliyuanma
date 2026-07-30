@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO QimenRecord (id, userId, queryTime, dunType, juNumber, tianPan, diPan, renPan, shenPan, interpretation, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         recordId,
-        (session.user as any).id,
+        session.sub,
         queryTime,
         result.ju?.type || '',
         result.ju?.number || 0,

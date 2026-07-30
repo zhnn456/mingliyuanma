@@ -1,15 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-client';
+import { useAuth, getPendingUser } from '@/lib/auth-client';
+import UpdateNotification from '@/components/UpdateNotification';
 
 const menuItems = [
   { href: '/agent', label: '数据概览', icon: '📊', exact: true },
+  { href: '/agent/dashboard', label: '收益看板', icon: '💰' },
+  { href: '/agent/agent-orders', label: '我的订单', icon: '🧾' },
+  { href: '/agent/commissions', label: '分润明细', icon: '📈' },
+  { href: '/agent/agent-settlements', label: '结算中心', icon: '🏦' },
   { href: '/agent/customers', label: '客户管理', icon: '👥' },
-  { href: '/agent/orders', label: '订单查看', icon: '🧾' },
   { href: '/agent/settings', label: '代理设置', icon: '⚙️' },
+  { href: '/agent/updates', label: '系统更新', icon: '🔄' },
 ];
 
 export default function AgentLayoutClient({ children }: { children: React.ReactNode }) {
@@ -17,9 +22,41 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasNewVersion, setHasNewVersion] = useState(false);
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch('/api/agent/updates');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.latestVersion && data.currentVersion) {
+          setHasNewVersion(data.latestVersion !== data.currentVersion);
+        }
+      } catch {}
+    };
+    checkVersion();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const effectiveUser = user || getPendingUser();
+      if (!effectiveUser) {
+        router.replace('/login');
+      } else if (effectiveUser.role === 'admin') {
+        router.replace('/admin');
+      } else if (effectiveUser.role !== 'agent') {
+        router.replace('/');
+      }
+    }
+  }, [loading, user, router]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full" /></div>;
-  if (!user || !['admin', 'agent'].includes(user.role)) { router.push('/login'); return null; }
+
+  const effectiveUser = user || getPendingUser();
+  if (!effectiveUser || effectiveUser.role !== 'agent') return null;
+
+  const currentMenu = menuItems.find(m => m.exact ? pathname === m.href : pathname.startsWith(m.href));
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -38,7 +75,13 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
                 (item.exact ? pathname === item.href : pathname.startsWith(item.href))
                   ? 'bg-blue-700/20 text-blue-300 font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}>
-              <span>{item.icon}</span><span>{item.label}</span>
+              <span className="relative">
+                {item.icon}
+                {item.href === '/agent/updates' && hasNewVersion && (
+                  <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </nav>
@@ -47,14 +90,24 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
         </div>
       </aside>
       <div className="flex-1 flex flex-col min-h-screen">
+        <UpdateNotification />
         <header className="bg-white border-b px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-700">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <h1 className="text-lg font-bold text-gray-900">{menuItems.find(m => m.exact ? pathname === m.href : pathname.startsWith(m.href))?.label || '代理商后台'}</h1>
+            <h1 className="text-lg font-bold text-gray-900">{currentMenu?.label || '代理商后台'}</h1>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-600"><span>{user.email}</span><span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">代理商</span></div>
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <Link href="/agent/updates" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors" title="系统更新">
+              <span className="text-lg">🔔</span>
+              {hasNewVersion && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </Link>
+            <span>{effectiveUser.email}</span>
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">代理商</span>
+          </div>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>

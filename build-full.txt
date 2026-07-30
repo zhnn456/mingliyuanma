@@ -1,0 +1,31 @@
+﻿   ▲ Next.js 15.5.21
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 16.5s
+   Linting and checking validity of types ...
+
+./src/app/knowledge/page.tsx
+85:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+292:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+635:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/100) ...
+   Generating static pages (25/100) 
+node.exe : ReferenceError: location is not defined
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ReferenceError: location is not defined:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    at j (F:\mingliyuanma\.next\server\app\(member)\profile\settings\page.js:2:7831)
+ReferenceError: location is not defined
+    at j (F:\mingliyuanma\.next\server\app\(member)\profile\security\page.js:2:8288)
+   Generating static pages (50/100) 
+   Generating static pages (75/100) 
+ ✓ Generating static pages (100/100)
+   Finalizing page optimization ...
+   Collecting build traces ...

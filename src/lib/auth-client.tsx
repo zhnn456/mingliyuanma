@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -13,8 +13,9 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string; user?: User }>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,53 +23,61 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signIn: async () => ({}),
   signOut: async () => {},
+  refreshUser: async () => null,
 });
 
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-/** 从 cookie 中读取并解码 token（客户端本地，不调 API） */
-function decodeTokenFromCookie(): User | null {
-  try {
-    const match = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
-    if (!match) return null;
-    const token = decodeURIComponent(match[1]);
-    const binary = atob(token);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const data = JSON.parse(new TextDecoder().decode(bytes));
-    if (data.exp && data.exp < Date.now()) return null;
-    return { id: data.sub, email: data.email, name: data.name, role: data.role, memberLevel: data.memberLevel };
-  } catch {
-    return null;
-  }
+// 模块级变量，用于在 React 状态更新前临时存储用户数据
+let _pendingUser: User | null = null;
+
+// 供外部检查当前是否有已登录但状态未更新的用户
+export function getPendingUser(): User | null {
+  return _pendingUser;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => _pendingUser);
   const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
 
-  // 初始化时从 cookie 解码用户信息
-  useEffect(() => {
-    const u = decodeTokenFromCookie();
-    setUser(u);
-    setLoading(false);
-  }, []);
-
-  // 监听 cookie 变化（登录/登出跨标签同步）
-  useEffect(() => {
-    let lastCookie = document.cookie;
-    const timer = setInterval(() => {
-      if (document.cookie !== lastCookie) {
-        lastCookie = document.cookie;
-        setUser(decodeTokenFromCookie());
+  // 从服务端获取用户信息（仅首次）
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          // 只有当没有 pendingUser 或当前 user 为 null 时才更新
+          // 避免覆盖刚登录设置的用户状态
+          if (!_pendingUser || !user) {
+            setUser(data.user);
+          }
+          return data.user as User;
+        }
       }
-    }, 2000);
-    return () => clearInterval(timer);
-  }, []);
+      // 只有当没有 pendingUser 时才清除用户状态
+      if (!_pendingUser) {
+        setUser(null);
+      }
+      return null;
+    } catch {
+      if (!_pendingUser) {
+        setUser(null);
+      }
+      return null;
+    }
+  }, [user]);
 
-  const signIn = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    fetchUser().finally(() => setLoading(false));
+  }, [fetchUser]);
+
+  const signIn = useCallback(async (email: string, password: string): Promise<{ error?: string; user?: User }> => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -76,9 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) return { error: data.error || '登录失败' };
-      setUser(data.user);
-      return {};
+      if (!res.ok) {
+        return { error: data.error || '登录失败' };
+      }
+      // 直接设置用户状态（同步更新）
+      const userData = data.user as User;
+      _pendingUser = userData;
+      setUser(userData);
+      // 标记已初始化，防止 fetchUser 覆盖登录状态
+      initialized.current = true;
+      setLoading(false);
+      return { user: userData };
     } catch {
       return { error: '网络错误，请重试' };
     }
@@ -88,12 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
-    document.cookie = 'token=; Path=/; Max-Age=0';
+    _pendingUser = null;
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, refreshUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

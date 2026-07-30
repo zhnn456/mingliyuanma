@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -14,7 +14,11 @@ export default function SecurityPage() {
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (!user) { router.push('/login'); return null; }
+  useEffect(() => {
+    if (!user) router.replace('/login');
+  }, [user, router]);
+
+  if (!user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

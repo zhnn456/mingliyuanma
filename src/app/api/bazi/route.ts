@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO BaziRecord (id, userId, gender, birthDate, birthTime, isLunar, yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, hourGan, hourZhi, wuxing, dayun, interpretation, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         recordId,
-        (session.user as any).id,
+        session.sub,
         gender || 'male',
         `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
         hour !== null ? `${String(hour).padStart(2, '0')}:00` : '未知',

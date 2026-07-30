@@ -4,38 +4,52 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
-const CATEGORIES = [
-  { id: 'cat_buddha', name: '佛像', icon: '🙏', desc: '供奉诸佛，祈求平安' },
-  { id: 'cat_bodhi', name: '菩萨', icon: '🪷', desc: '供奉菩萨，广结善缘' },
-  { id: 'cat_caishen', name: '财神', icon: '💰', desc: '供奉财神，招财进宝' },
-  { id: 'cat_ancestor', name: '祖先', icon: '🏛️', desc: '供奉祖先，慎终追远' },
-  { id: 'cat_deity', name: '神灵', icon: '✨', desc: '供奉神灵，护佑平安' },
-];
+type Supply = {
+  id: string;
+  name: string;
+  icon: string;
+  price: number;
+  description: string;
+  stock: number;
+};
 
-const ITEMS = [
-  { name: '清香', price: 100, icon: '🕯️' },
-  { name: '鲜花', price: 200, icon: '🌸' },
-  { name: '水果', price: 300, icon: '🍎' },
-  { name: '素食', price: 500, icon: '🥬' },
-  { name: '供灯', price: 1000, icon: '🏮' },
-  { name: '宝鼎', price: 2000, icon: '🏺' },
-];
+type Category = {
+  value: string;
+  label: string;
+  icon: string;
+  color: string;
+  supplies: Supply[];
+};
 
 export default function OfferingPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<'offer' | 'records' | 'leaderboard'>('offer');
-  const [selected, setSelected] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCat, setSelectedCat] = useState('');
+  const [selectedSupplyId, setSelectedSupplyId] = useState('');
   const [qty, setQty] = useState(1);
   const [dedication, setDedication] = useState('');
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [msg, setMsg] = useState('');
   const [records, setRecords] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [square, setSquare] = useState<any[]>([]);
   const [squareStats, setSquareStats] = useState({ totalOfferings: 0, totalUsers: 0, totalLingzhu: 0 });
+
+  // 加载供品分类数据
+  useEffect(() => {
+    fetch('/api/offerings').then(r => r.json()).then(d => {
+      if (d.categories && Array.isArray(d.categories)) {
+        setCategories(d.categories);
+        if (d.categories.length > 0) {
+          setSelectedCat(d.categories[0].value);
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   // 加载供奉广场
   useEffect(() => {
@@ -44,7 +58,6 @@ export default function OfferingPage() {
       setSquareStats(d.stats || { totalOfferings: 0, totalUsers: 0, totalLingzhu: 0 });
     }).catch(() => {});
   }, []);
-  const [msg, setMsg] = useState('');
 
   // 加载灵珠余额
   useEffect(() => {
@@ -68,24 +81,26 @@ export default function OfferingPage() {
     try { const r = await fetch('/api/offering?type=leaderboard'); if (r.ok) setLeaderboard((await r.json()).leaderboard || []); } catch {} finally { setDataLoading(false); }
   };
 
+  const currentCategory = categories.find(c => c.value === selectedCat);
+  const supplies = currentCategory?.supplies || [];
+  const selectedSupply = supplies.find(s => s.id === selectedSupplyId);
+
   const handleSubmit = async () => {
-    if (!selected) { alert('请选择供品'); return; }
-    const item = ITEMS.find(i => i.name === selected);
-    if (!item) return;
-    const cost = item.price * qty;
+    if (!selectedSupply) { alert('请选择供品'); return; }
+    const cost = selectedSupply.price * qty;
     if (balance < cost) { alert(`灵珠不足！需要${cost}灵珠，当前${balance}灵珠`); window.location.href = '/profile/recharge'; return; }
 
     setLoading(true); setMsg(''); setSuccess('');
     try {
       const res = await fetch('/api/offering/pay', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemName: selected, quantity: qty, dedication }),
+        body: JSON.stringify({ supplyId: selectedSupply.id, supplyName: selectedSupply.name, quantity: qty, dedication }),
       });
       const d = await res.json();
       if (res.ok) {
         setBalance(d.balance);
         setSuccess(`✅ 供奉成功！功德无量 🙏`);
-        setSelected(''); setQty(1); setDedication('');
+        setSelectedSupplyId(''); setQty(1); setDedication('');
         loadRecords();
       } else {
         setMsg(d.error || '供奉失败');
@@ -195,34 +210,43 @@ export default function OfferingPage() {
           <>
             {/* 供奉分类 */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-              {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCat(cat.id)}
-                  className={`card text-center p-4 hover:shadow-md transition-all cursor-pointer border border-stone-200 ${selectedCat === cat.id ? 'ring-2 ring-amber-600 shadow-md bg-amber-50/50' : 'bg-white'}`}>
+              {categories.map(cat => (
+                <button key={cat.value} onClick={() => { setSelectedCat(cat.value); setSelectedSupplyId(''); }}
+                  className={`card text-center p-4 hover:shadow-md transition-all cursor-pointer border border-stone-200 ${selectedCat === cat.value ? 'ring-2 ring-amber-600 shadow-md bg-amber-50/50' : 'bg-white'}`}>
                   <div className="text-4xl mb-2">{cat.icon}</div>
-                  <h3 className="text-sm font-bold text-stone-800">{cat.name}</h3>
-                  <p className="text-xs text-stone-500 mt-1">{cat.desc}</p>
+                  <h3 className="text-sm font-bold text-stone-800">{cat.label}</h3>
+                  <p className="text-xs text-stone-500 mt-1">{cat.supplies.length} 种供品</p>
                 </button>
               ))}
             </div>
 
             {/* 供品选择 — 选择分类后显示 */}
-            {selectedCat && (<>
+            {selectedCat && supplies.length > 0 && (<>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                {ITEMS.map(item => (
-                  <button key={item.name} onClick={() => setSelected(item.name)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${selected === item.name ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-stone-200 hover:border-stone-300 bg-white'}`}>
+                {supplies.map(item => (
+                  <button key={item.id} onClick={() => setSelectedSupplyId(item.id)}
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${selectedSupplyId === item.id ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-stone-200 hover:border-stone-300 bg-white'}`}>
                     <div className="text-3xl mb-2">{item.icon}</div>
                     <div className="font-medium text-stone-800 text-sm">{item.name}</div>
                     <div className="text-sm text-amber-700 font-bold mt-1">{item.price} 💎</div>
+                    {item.description && <div className="text-xs text-stone-400 mt-1 line-clamp-2">{item.description}</div>}
                   </button>
                 ))}
               </div>
 
               {/* 供奉表单 */}
-              {selected && (
+              {selectedSupply && (
                 <div className="bg-white rounded-xl border border-stone-200 p-6 mb-6 shadow-sm">
                   <h2 className="font-bold text-stone-800 mb-4">供奉信息</h2>
                   <div className="space-y-4">
+                    <div className="bg-amber-50 rounded-lg p-3 border border-amber-100 flex items-center gap-3">
+                      <span className="text-3xl">{selectedSupply.icon}</span>
+                      <div>
+                        <div className="font-bold text-stone-800">{selectedSupply.name}</div>
+                        <div className="text-xs text-stone-500">{selectedSupply.description}</div>
+                      </div>
+                      <div className="ml-auto text-lg font-bold text-amber-700">{selectedSupply.price} 💎</div>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-stone-700 mb-2">数量</label>
                       <div className="flex items-center gap-3">
@@ -239,7 +263,7 @@ export default function OfferingPage() {
                     <div className="bg-stone-50 rounded-lg p-4 border border-stone-100">
                       <div className="flex justify-between items-center">
                         <span className="text-stone-600">供奉费用</span>
-                        <span className="text-xl font-bold text-amber-700">{((ITEMS.find(i => i.name === selected)?.price || 0) * qty)} 💎</span>
+                        <span className="text-xl font-bold text-amber-700">{selectedSupply.price * qty} 💎</span>
                       </div>
                       <div className="flex justify-between items-center text-sm mt-1">
                         <span className="text-stone-500">当前灵珠</span>
@@ -255,17 +279,22 @@ export default function OfferingPage() {
                 </div>
               )}
             </>)}
-            
+
+            {/* 加载中提示 */}
+            {categories.length === 0 && (
+              <div className="text-center py-12 text-stone-400 text-sm">加载供品数据中...</div>
+            )}
+
             {/* 供奉说明 */}
-            {selectedCat && (
+            {selectedCat && supplies.length > 0 && (
               <div className="bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 rounded-xl p-6 border border-stone-200">
                 <h3 className="font-bold text-stone-800 text-sm mb-2">🙏 关于供奉</h3>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  供奉是一种表达虔诚与敬意的方式，通过供奉可以积累功德、祈福平安。 
+                  供奉是一种表达虔诚与敬意的方式，通过供奉可以积累功德、祈福平安。
                   心诚则灵，每一份供奉都是善念的传递。
                 </p>
                 <p className="text-xs text-stone-400 mt-3">
-                  ⚠️ 免责声明：供奉行为仅为传统文化表达，不代表真实生活事件。 
+                  ⚠️ 免责声明：供奉行为仅为传统文化表达，不代表真实生活事件。
                   所有供奉均为虚拟功德，请理性看待，勿过度依赖。
                 </p>
               </div>

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 import { queryFirst, queryAll } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '未登录' }, { status: 401 });
-    const userId = session.user.id;
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '未登录' }, { status: 401 });
+    const userId = session.sub;
 
     const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
     const balance = row?.balance || 0;

@@ -29,7 +29,7 @@ export default function AgentDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const isAgent = ['admin', 'agent'].includes(session?.role || '');
+  const isAgent = session?.role === 'agent';
 
   useEffect(() => {
     if (isAgent) loadOverview();
@@ -114,11 +114,6 @@ export default function AgentDashboardPage() {
                 {stats.agent.domain && ` · ${stats.agent.domain}`}
               </p>
             )}
-          </div>
-          <div className="flex gap-2">
-            <Link href="/admin" className="px-4 py-2 text-sm bg-white border rounded-lg text-gray-600 hover:bg-gray-50">
-              平台管理
-            </Link>
           </div>
         </div>
 

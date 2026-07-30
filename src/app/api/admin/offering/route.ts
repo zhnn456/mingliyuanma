@@ -5,7 +5,7 @@ import { queryAll, execute } from '@/lib/d1';
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAdmin(req);
-    if (!session || (session.user as any)?.role !== 'admin') {
+    if (!session || session.role !== 'admin') {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { allowed, session } = await requireAdmin(req);
-    if (!session || (session.user as any)?.role !== 'admin') {
+    if (!session || session.role !== 'admin') {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 

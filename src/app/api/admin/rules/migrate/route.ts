@@ -34,7 +34,7 @@ import { MEIHUA_QUESTION_TYPES } from '@/lib/interpretation/meihua-detailed';
 // 安全检查：仅管理员可执行迁移
 async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
-  if (!session || session?.user?.role !== 'admin') {
+  if (!session || session?.role !== 'admin') {
     return null;
   }
   return session;

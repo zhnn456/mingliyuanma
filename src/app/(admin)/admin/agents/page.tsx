@@ -1,115 +1,463 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
+interface Agent {
+  id: string;
+  userId: string;
+  companyName: string;
+  contactName: string;
+  contactPhone: string;
+  domain: string | null;
+  brandName: string;
+  logo: string | null;
+  siteConfig: string | null;
+  licenseKey: string;
+  licenseExpiry: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+  user?: {
+    email: string;
+    name: string | null;
+    memberLevel: string;
+    createdAt: string;
+  };
+  _count?: {
+    customers: number;
+  };
+}
+
+const STATUS_OPTIONS = [
+  { key: '', label: '全部状态' },
+  { key: 'active', label: '启用中' },
+  { key: 'inactive', label: '已禁用' },
+];
 
 export default function AdminAgentsPage() {
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [detail, setDetail] = useState<any>(null);
+  const [keyword, setKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Agent | null>(null);
+  const [detailAgent, setDetailAgent] = useState<Agent | null>(null);
+  const [showCreds, setShowCreds] = useState<{ email: string; password: string } | null>(null);
+
+  const [form, setForm] = useState({
+    brandName: '',
+    contactName: '',
+    contactPhone: '',
+    email: '',
+    domain: '',
+    isActive: true,
+    licenseExpiry: '',
+  });
 
   const fetchAgents = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/agent-stats');
-      if (res.ok) { const d = await res.json(); setAgents(d.agents || []); }
-    } catch {} finally { setLoading(false); }
+      const res = await fetch('/api/admin/agents');
+      if (res.ok) {
+        const d = await res.json();
+        setAgents(d.agents || []);
+      }
+    } catch {} finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchAgents(); }, []);
 
+  const filtered = useMemo(() => {
+    let list = agents;
+    if (statusFilter === 'active') list = list.filter((a) => a.isActive);
+    if (statusFilter === 'inactive') list = list.filter((a) => !a.isActive);
+    if (searchKeyword) {
+      const kw = searchKeyword.toLowerCase();
+      list = list.filter(
+        (a) =>
+          (a.brandName || '').toLowerCase().includes(kw) ||
+          (a.contactName || '').toLowerCase().includes(kw) ||
+          (a.user?.email || '').toLowerCase().includes(kw) ||
+          (a.domain || '').toLowerCase().includes(kw)
+      );
+    }
+    return list;
+  }, [agents, searchKeyword, statusFilter]);
+
+  const stats = useMemo(() => ({
+    total: agents.length,
+    active: agents.filter((a) => a.isActive).length,
+    inactive: agents.filter((a) => !a.isActive).length,
+    customers: agents.reduce((s, a) => s + (a._count?.customers || 0), 0),
+  }), [agents]);
+
+  const onSearch = () => { setSearchKeyword(keyword); };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ brandName: '', contactName: '', contactPhone: '', email: '', domain: '', isActive: true, licenseExpiry: '' });
+    setShowModal(true);
+  };
+
+  const openEdit = (a: Agent) => {
+    setEditing(a);
+    setForm({
+      brandName: a.brandName || '',
+      contactName: a.contactName || '',
+      contactPhone: a.contactPhone || '',
+      email: a.user?.email || '',
+      domain: a.domain || '',
+      isActive: a.isActive,
+      licenseExpiry: a.licenseExpiry ? a.licenseExpiry.slice(0, 10) : '',
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async () => {
+    if (editing) {
+      const res = await fetch('/api/admin/agents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: editing.id,
+          brandName: form.brandName,
+          contactName: form.contactName,
+          contactPhone: form.contactPhone,
+          domain: form.domain || null,
+          licenseExpiry: form.licenseExpiry || null,
+        }),
+      });
+      if (res.ok) { setShowModal(false); fetchAgents(); }
+      else { const e = await res.json(); alert(e.error || '更新失败'); }
+    } else {
+      if (!form.contactName || !form.contactPhone) { alert('联系人姓名和电话为必填'); return; }
+      if (!form.email) { alert('请提供代理商登录邮箱'); return; }
+      const res = await fetch('/api/admin/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          brandName: form.brandName,
+          companyName: form.brandName,
+          contactName: form.contactName,
+          contactPhone: form.contactPhone,
+          domain: form.domain || null,
+          email: form.email,
+          licenseExpiry: form.licenseExpiry || null,
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setShowCreds(d.credentials || null);
+        setShowModal(false);
+        fetchAgents();
+      } else { const e = await res.json(); alert(e.error || '创建失败'); }
+    }
+  };
+
+  const handleToggle = async (a: Agent) => {
+    const action = a.isActive ? '禁用' : '启用';
+    if (!confirm(`确定要${action}代理商「${a.brandName}」？`)) return;
+    const res = await fetch('/api/admin/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle', agentId: a.id, isActive: !a.isActive }),
+    });
+    if (res.ok) fetchAgents();
+    else { const e = await res.json(); alert(e.error || '操作失败'); }
+  };
+
+  const handleDelete = async (a: Agent) => {
+    if (!confirm(`确定要删除代理商「${a.brandName}」？此操作不可恢复！`)) return;
+    try {
+      const res = await fetch(`/api/admin/agents?id=${a.id}`, { method: 'DELETE' });
+      if (res.ok) fetchAgents();
+      else {
+        const e = await res.json();
+        alert(e.error || '删除失败');
+      }
+    } catch {
+      alert('删除失败，请确认后端接口是否支持');
+    }
+  };
+
+  const fmtDate = (s: string | null | undefined) =>
+    s ? new Date(s).toLocaleDateString('zh-CN') : '-';
+  const fmtDateTime = (s: string | null | undefined) =>
+    s ? new Date(s).toLocaleString('zh-CN') : '-';
+
+  const parseSiteConfig = (sc: string | null): Record<string, any> | null => {
+    if (!sc) return null;
+    try { return JSON.parse(sc); } catch { return null; }
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div><h2 className="text-lg font-bold text-gray-900">代理商数据监管</h2><p className="text-sm text-gray-500">共 {agents.length} 个代理商，监控其经营数据</p></div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">代理商管理</h1>
+          <p className="text-sm text-slate-500 mt-1">管理代理商账号、状态与授权</p>
+        </div>
+        <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+          + 创建代理商
+        </button>
       </div>
 
-      {/* 汇总卡片 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="text-xs text-gray-500">代理商总数</div>
-          <div className="text-xl font-bold text-gray-900">{agents.length}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="text-sm text-slate-500">总代理商数</div>
+          <div className="text-2xl font-bold mt-1 text-slate-900">{stats.total}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="text-xs text-gray-500">总客户数</div>
-          <div className="text-xl font-bold text-gray-900">
-            {agents.reduce((s: number, a: any) => s + (a.stats?.customerCount || 0), 0)}
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="text-sm text-slate-500">启用中</div>
+          <div className="text-2xl font-bold mt-1 text-green-600">{stats.active}</div>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="text-xs text-gray-500">总交易额</div>
-          <div className="text-xl font-bold text-green-600">
-            ¥{agents.reduce((s: number, a: any) => s + (a.stats?.totalRevenue || 0), 0).toFixed(2)}
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="text-sm text-slate-500">已禁用</div>
+          <div className="text-2xl font-bold mt-1 text-red-500">{stats.inactive}</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="text-sm text-slate-500">总客户数</div>
+          <div className="text-2xl font-bold mt-1 text-purple-600">{stats.customers}</div>
         </div>
       </div>
 
-      {/* 代理商列表 */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="bg-gray-50 border-b text-left">
-            <th className="px-4 py-3 text-gray-500 font-medium">品牌</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">联系人</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">邮箱</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">客户数</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">订单数</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">交易额</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
-            <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
-          </tr></thead>
-          <tbody>
-            {agents.map((a: any) => (
-              <tr key={a.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{a.brandName}</td>
-                <td className="px-4 py-3 text-gray-600">{a.contactName || '-'}</td>
-                <td className="px-4 py-3 text-xs">{a.userEmail || '-'}</td>
-                <td className="px-4 py-3 font-bold">{a.stats?.customerCount || 0}</td>
-                <td className="px-4 py-3">{a.stats?.totalOrders || 0}</td>
-                <td className="px-4 py-3 font-bold text-green-600">¥{(a.stats?.totalRevenue || 0).toFixed(2)}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded ${a.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {a.isActive ? '启用' : '禁用'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button onClick={() => setDetail(a)} className="text-xs text-blue-600 hover:text-blue-800">详情</button>
-                </td>
-              </tr>
+      <div className="bg-white rounded-xl shadow-sm border">
+        <div className="flex flex-wrap items-center gap-3 p-4 border-b">
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+            placeholder="搜索品牌/联系人/邮箱/域名"
+            className="px-3 py-2 border rounded-lg text-sm flex-1 min-w-[200px]"
+          />
+          <button onClick={onSearch} className="px-4 py-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200">搜索</button>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border rounded-lg text-sm bg-white"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.key} value={s.key}>{s.label}</option>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b text-left">
+                <th className="px-4 py-3 text-gray-500 font-medium">品牌名称</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">联系人</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">邮箱</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">域名</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">客户数</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">暂无数据</td></tr>
+              ) : filtered.map((a) => (
+                <tr key={a.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    <div className="flex items-center gap-2">
+                      {a.logo ? (
+                        <img src={a.logo} alt="" className="w-6 h-6 rounded object-cover" />
+                      ) : (
+                        <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center text-xs text-slate-500">
+                          {(a.brandName || '?').charAt(0)}
+                        </div>
+                      )}
+                      {a.brandName || '-'}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    <div>{a.contactName || '-'}</div>
+                    <div className="text-xs text-gray-400">{a.contactPhone || ''}</div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{a.user?.email || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{a.domain || '-'}</td>
+                  <td className="px-4 py-3 text-gray-900 font-medium">{a._count?.customers || 0}</td>
+                  <td className="px-4 py-3">
+                    {a.isActive ? (
+                      <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">启用</span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">已禁用</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <button onClick={() => setDetailAgent(a)} className="text-slate-600 hover:text-slate-900">详情</button>
+                      <button onClick={() => openEdit(a)} className="text-blue-600 hover:text-blue-800">编辑</button>
+                      <button onClick={() => handleToggle(a)} className={a.isActive ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}>
+                        {a.isActive ? '禁用' : '启用'}
+                      </button>
+                      <button onClick={() => handleDelete(a)} className="text-red-500 hover:text-red-700">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between p-4 border-t">
+          <span className="text-sm text-gray-500">共 {filtered.length} 条记录</span>
+          <button onClick={fetchAgents} className="text-sm text-slate-500 hover:text-slate-700">🔄 刷新</button>
+        </div>
       </div>
 
-      {detail && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setDetail(null)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-gray-900 mb-4">{detail.brandName} - 经营数据</h3>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">{detail.stats?.customerCount || 0}</div>
-                <div className="text-xs text-gray-500">客户数</div>
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">{editing ? '编辑代理商' : '创建代理商'}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">品牌名称 / 公司名</label>
+                <input value={form.brandName} onChange={(e) => setForm({ ...form, brandName: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="请输入品牌或公司名称" />
               </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">{detail.stats?.totalOrders || 0}</div>
-                <div className="text-xs text-gray-500">订单数</div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">¥{(detail.stats?.totalRevenue || 0).toFixed(2)}</div>
-                <div className="text-xs text-gray-500">交易额</div>
-              </div>
-            </div>
-            <div className="space-y-2 text-sm">
-              {[
-                ['公司', detail.brandName], ['联系人', detail.contactName], ['邮箱', detail.userEmail],
-                ['授权码', detail.licenseKey], ['到期时间', detail.licenseExpiry ? new Date(detail.licenseExpiry).toLocaleDateString('zh-CN') : '-'],
-                ['状态', detail.isActive ? '启用' : '禁用'], ['创建时间', detail.createdAt ? new Date(detail.createdAt).toLocaleString('zh-CN') : '-'],
-              ].map(([label, value]) => (
-                <div key={label as string} className="flex justify-between py-2 border-b">
-                  <span className="text-gray-500">{label}</span>
-                  <span className="font-medium text-gray-900">{value || '-'}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">联系人姓名 *</label>
+                  <input value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="必填" />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">联系电话 *</label>
+                  <input value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="必填" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  登录邮箱 {!editing && '*'}
+                </label>
+                <input
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  placeholder="代理商登录账号"
+                  disabled={!!editing}
+                />
+                {editing && <p className="text-xs text-gray-400 mt-1">编辑模式下不可修改邮箱</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">绑定域名</label>
+                <input value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="如 agent.example.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">授权到期时间</label>
+                <input type="date" value={form.licenseExpiry} onChange={(e) => setForm({ ...form, licenseExpiry: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" />
+              </div>
             </div>
-            <button onClick={() => setDetail(null)} className="w-full mt-4 px-4 py-2 border rounded-lg text-sm">关闭</button>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
+              <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                {editing ? '保存' : '创建'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailAgent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="px-6 py-4 border-b flex items-center justify-between sticky top-0 bg-white">
+              <h3 className="font-bold text-gray-900 text-lg">{detailAgent.brandName || '代理商详情'}</h3>
+              <button onClick={() => setDetailAgent(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+            </div>
+            <div className="px-6 py-4 space-y-5">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">基础信息</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">联系人：</span><span className="text-gray-900">{detailAgent.contactName || '-'}</span></div>
+                  <div><span className="text-gray-500">联系电话：</span><span className="text-gray-900">{detailAgent.contactPhone || '-'}</span></div>
+                  <div><span className="text-gray-500">邮箱：</span><span className="text-gray-900">{detailAgent.user?.email || '-'}</span></div>
+                  <div><span className="text-gray-500">会员等级：</span><span className="text-gray-900">{detailAgent.user?.memberLevel || '-'}</span></div>
+                  <div><span className="text-gray-500">域名：</span><span className="text-gray-900">{detailAgent.domain || '-'}</span></div>
+                  <div><span className="text-gray-500">状态：</span>
+                    {detailAgent.isActive ? (
+                      <span className="text-green-600 font-medium">启用</span>
+                    ) : (
+                      <span className="text-red-500 font-medium">已禁用</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">授权信息</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">授权码：</span>
+                    <span className="text-gray-900 font-mono text-xs break-all">{detailAgent.licenseKey || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">到期时间：</span>
+                    <span className="text-gray-900">{fmtDate(detailAgent.licenseExpiry)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">配置信息</h4>
+                {(() => {
+                  const cfg = parseSiteConfig(detailAgent.siteConfig);
+                  if (!cfg) return <div className="text-gray-400 text-sm">无配置信息</div>;
+                  return (
+                    <pre className="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 overflow-x-auto">{JSON.stringify(cfg, null, 2)}</pre>
+                  );
+                })()}
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">账号信息</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">代理商ID：</span><span className="text-gray-900 font-mono text-xs">{detailAgent.id}</span></div>
+                  <div><span className="text-gray-500">用户ID：</span><span className="text-gray-900 font-mono text-xs">{detailAgent.userId}</span></div>
+                  <div><span className="text-gray-500">客户数：</span><span className="text-gray-900 font-medium">{detailAgent._count?.customers || 0}</span></div>
+                  <div><span className="text-gray-500">创建时间：</span><span className="text-gray-900">{fmtDateTime(detailAgent.createdAt)}</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+              <button onClick={() => { openEdit(detailAgent); setDetailAgent(null); }} className="px-4 py-2 border rounded-lg text-sm hover:bg-white">编辑</button>
+              <button onClick={() => handleToggle(detailAgent)} className={`px-4 py-2 rounded-lg text-sm text-white ${detailAgent.isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'}`}>
+                {detailAgent.isActive ? '禁用' : '启用'}
+              </button>
+              <button onClick={() => { handleDelete(detailAgent); setDetailAgent(null); }} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">删除</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreds && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-bold text-gray-900 text-lg mb-4">代理商创建成功</h3>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-800 font-medium mb-2">请将以下信息提供给代理商：</p>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-gray-500">登录邮箱：</span>
+                  <span className="font-mono text-gray-900">{showCreds.email}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">初始密码：</span>
+                  <span className="font-mono text-gray-900">{showCreds.password}</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">密码仅在此次显示，请妥善保存。</p>
+            <button onClick={() => setShowCreds(null)} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              我已保存
+            </button>
           </div>
         </div>
       )}

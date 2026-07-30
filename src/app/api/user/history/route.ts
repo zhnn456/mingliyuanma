@@ -5,11 +5,11 @@ import { queryFirst, queryAll } from '@/lib/d1';
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAuth(req);
-    if (!allowed || !session?.user?.id) {
+    if (!allowed || !session?.sub) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const user = await queryFirst('SELECT * FROM User WHERE id = ?', session.user.id);
+    const user = await queryFirst('SELECT * FROM User WHERE id = ?', session.sub);
 
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });

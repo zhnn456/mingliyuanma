@@ -11,40 +11,88 @@ const plans = [
     level: 'free',
     price: 0,
     period: '',
-    features: ['每日1次基础排盘', '基础八字排盘', '五行分析', '大运排列'],
-    highlight: false,
+    number: '01',
+    badge: 'FREE',
+    tag: '免费体验',
+    desc: '适合初次体验命理排盘的用户',
     icon: '⚪',
     color: 'gray',
+    highlight: false,
+    featureGroups: [
+      {
+        title: '基础功能',
+        items: ['每日1次基础排盘', '基础八字排盘', '五行分析', '大运排列'],
+      },
+    ],
   },
   {
     name: '月卡会员',
     level: 'monthly',
     price: 29.9,
     period: '/月',
-    features: ['无限次排盘', '基础命理解读', '四大命理模块', '历史记录保存', '优先客服支持'],
-    highlight: false,
+    number: '02',
+    badge: 'PLUS',
+    tag: '灵活订阅',
+    desc: '适合短期高频使用命理服务的用户',
     icon: '◐',
     color: 'blue',
+    highlight: false,
+    featureGroups: [
+      {
+        title: '排盘与解读',
+        items: ['无限次排盘', '基础命理解读', '四大命理模块'],
+      },
+      {
+        title: '增值服务',
+        items: ['历史记录保存', '优先客服支持'],
+      },
+    ],
   },
   {
     name: '年卡会员',
     level: 'yearly',
     price: 199,
     period: '/年',
-    features: ['无限次排盘', '详细命理解读', '四大命理模块', '历史记录保存', '导出PDF报告', '专属运势分析', '优先新功能体验'],
-    highlight: true,
+    number: '03',
+    badge: 'PRO',
+    tag: '超值推荐',
+    desc: '适合长期需要命理分析服务的用户',
     icon: '★',
     color: 'red',
+    highlight: true,
+    featureGroups: [
+      {
+        title: '排盘与解读',
+        items: ['无限次排盘', '详细命理解读', '四大命理模块'],
+      },
+      {
+        title: '增值服务',
+        items: ['历史记录保存', '导出PDF报告', '专属运势分析', '优先新功能体验'],
+      },
+    ],
   },
   {
     name: '终身会员',
     level: 'lifetime',
     price: 599,
     period: '/永久',
-    features: ['所有年卡权益', '终身免费更新', '一对一咨询', '专属命理课程', '优先新功能体验', '线下活动资格'],
-    highlight: false,
+    number: '04',
+    badge: 'ULTRA',
+    tag: '尊贵终身',
+    desc: '适合命理爱好者与专业从业者',
     icon: '◈',
     color: 'gold',
+    highlight: false,
+    featureGroups: [
+      {
+        title: '全部权益',
+        items: ['所有年卡权益', '终身免费更新', '一对一咨询', '专属命理课程'],
+      },
+      {
+        title: '尊享特权',
+        items: ['优先新功能体验', '线下活动资格'],
+      },
+    ],
   },
 ];
 
@@ -107,17 +155,39 @@ export default function MembershipPage() {
           {plans.map((plan) => (
             <div
               key={plan.level}
-              className={`card relative p-6 ${plan.highlight ? 'ring-2 ring-red-600 shadow-xl' : ''} ${
+              className={`card relative flex flex-col p-6 ${plan.highlight ? 'ring-2 ring-red-600 shadow-xl' : ''} ${
                 plan.highlight ? 'bg-gradient-to-b from-red-50/50 to-white' : ''
               }`}
             >
+              {/* 序号与标签 */}
+              <div className="flex items-center justify-between mb-4">
+                <span className={`text-xs font-bold tracking-widest ${
+                  plan.color === 'gold' ? 'text-gold' :
+                  plan.color === 'red' ? 'text-red-700' :
+                  plan.color === 'blue' ? 'text-blue-600' :
+                  'text-gray-400'
+                }`}>
+                  {plan.number} / {plan.badge}
+                </span>
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                  plan.color === 'gold' ? 'bg-gold/10 text-gold' :
+                  plan.color === 'red' ? 'bg-red-50 text-red-700' :
+                  plan.color === 'blue' ? 'bg-blue-50 text-blue-600' :
+                  'bg-gray-100 text-gray-500'
+                }`}>
+                  {plan.tag}
+                </span>
+              </div>
+
+              {/* 推荐标记 */}
               {plan.highlight && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-700 to-red-900 text-white text-xs px-4 py-1 rounded-full shadow-md font-medium">
                   ★ 推荐
                 </div>
               )}
 
-              <div className="text-center mb-6">
+              {/* 图标与名称 */}
+              <div className="text-center mb-4">
                 <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center text-2xl mb-3 ${
                   plan.color === 'gold' ? 'bg-gold/10 text-gold' :
                   plan.color === 'red' ? 'bg-red-50 text-red-700' :
@@ -127,27 +197,41 @@ export default function MembershipPage() {
                   {plan.icon}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 font-kai">{plan.name}</h3>
-                <div className="mt-3">
+                <p className="text-xs text-gray-500 mt-1">{plan.desc}</p>
+              </div>
+
+              {/* 价格 */}
+              <div className="text-center mb-5">
+                <div className="flex items-baseline justify-center gap-1">
                   <span className={`text-4xl font-bold ${plan.highlight ? 'chinese-red' : 'text-gray-900'}`}>
                     {plan.price === 0 ? '免费' : `¥${plan.price}`}
                   </span>
-                  {plan.period && <span className="text-gray-500 text-sm ml-1">{plan.period}</span>}
+                  {plan.period && <span className="text-gray-500 text-sm">{plan.period}</span>}
                 </div>
               </div>
 
               <div className="divider-gold mb-4" />
 
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start text-sm text-gray-600">
-                    <svg className={`w-4 h-4 mr-2 flex-shrink-0 mt-0.5 ${plan.highlight ? 'text-red-600' : 'text-green-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {feature}
-                  </li>
+              {/* 功能分组列表 */}
+              <div className="flex-1 mb-6">
+                {plan.featureGroups.map((group, gi) => (
+                  <div key={gi} className={gi > 0 ? 'mt-4' : ''}>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{group.title}</h4>
+                    <ul className="space-y-2">
+                      {group.items.map((feature, i) => (
+                        <li key={i} className="flex items-start text-sm text-gray-600">
+                          <svg className={`w-4 h-4 mr-2 flex-shrink-0 mt-0.5 ${plan.highlight ? 'text-red-600' : 'text-green-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
 
+              {/* 操作按钮 */}
               {plan.price > 0 ? (
                 session ? (
                   <button

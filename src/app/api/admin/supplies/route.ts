@@ -1,0 +1,350 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-server';
+import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
+
+function generateId() {
+  return `sup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const SEED_SUPPLIES: Array<{
+  name: string; icon: string; category: string; price: number;
+  description: string; sortOrder: number; stock: number;
+}> = [
+  { name: '释迦牟尼佛', icon: '🪷', category: 'buddha', price: 188, description: '释迦牟尼佛供奉，祈福平安', sortOrder: 1, stock: 100 },
+  { name: '阿弥陀佛', icon: '🪷', category: 'buddha', price: 188, description: '阿弥陀佛供奉，往生极乐', sortOrder: 2, stock: 100 },
+  { name: '药师佛', icon: '🪷', category: 'buddha', price: 188, description: '药师佛供奉，消灾解难', sortOrder: 3, stock: 100 },
+  { name: '观音菩萨', icon: '🧘', category: 'buddha', price: 168, description: '观音菩萨供奉，救苦救难', sortOrder: 4, stock: 200 },
+  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，超度亡魂', sortOrder: 5, stock: 200 },
+  { name: '弥勒佛', icon: '😊', category: 'buddha', price: 158, description: '弥勒佛供奉，笑口常开', sortOrder: 6, stock: 150 },
+  { name: '土地公', icon: '🏠', category: 'deity', price: 88, description: '土地公供奉，守护家园', sortOrder: 1, stock: 300 },
+  { name: '城隍爷', icon: '⚖️', category: 'deity', price: 128, description: '城隍爷供奉，护佑一方', sortOrder: 2, stock: 200 },
+  { name: '妈祖', icon: '🌊', category: 'deity', price: 168, description: '妈祖供奉，海上平安', sortOrder: 3, stock: 200 },
+  { name: '关帝', icon: '⚔️', category: 'deity', price: 168, description: '关帝供奉，忠义千秋', sortOrder: 4, stock: 250 },
+  { name: '文昌帝君', icon: '📚', category: 'deity', price: 128, description: '文昌帝君供奉，学业有成', sortOrder: 5, stock: 200 },
+  { name: '香炉', icon: '🕯️', category: 'ritual', price: 28, description: '精品铜香炉，供奉法器', sortOrder: 1, stock: 500 },
+  { name: '烛台', icon: '🕯️', category: 'ritual', price: 18, description: '传统烛台，供灯法器', sortOrder: 2, stock: 500 },
+  { name: '供盘', icon: '🍽️', category: 'ritual', price: 15, description: '供果盘，盛装供品', sortOrder: 3, stock: 500 },
+  { name: '木鱼', icon: '🪵', category: 'ritual', price: 38, description: '精品木鱼，修行法器', sortOrder: 4, stock: 300 },
+  { name: '念珠', icon: '📿', category: 'ritual', price: 48, description: '檀木念珠，持咒修行', sortOrder: 5, stock: 400 },
+  { name: '鲜花', icon: '💐', category: 'offering', price: 9.9, description: '新鲜供花，清香供奉', sortOrder: 1, stock: 1000 },
+  { name: '水果', icon: '🍎', category: 'offering', price: 15, description: '时令供果，敬献三宝', sortOrder: 2, stock: 800 },
+  { name: '糕点', icon: '🍰', category: 'offering', price: 12, description: '传统糕点，供奉佳品', sortOrder: 3, stock: 600 },
+  { name: '茶水', icon: '🍵', category: 'offering', price: 6, description: '好茶供奉，清净自在', sortOrder: 4, stock: 1000 },
+  { name: '香烛', icon: '🕯️', category: 'offering', price: 8, description: '天然香烛，供奉燃香', sortOrder: 5, stock: 1000 },
+  { name: '超度牌位', icon: '🪧', category: 'deliverance', price: 88, description: '超度牌位，亡灵安息', sortOrder: 1, stock: 200 },
+  { name: '往生莲花', icon: '🪷', category: 'deliverance', price: 38, description: '往生莲花，接引往生', sortOrder: 2, stock: 300 },
+  { name: '金元宝', icon: '💰', category: 'deliverance', price: 5, description: '金元宝供奉，冥资供养', sortOrder: 3, stock: 2000 },
+];
+
+const DEFAULT_CATEGORIES = [
+  { value: 'buddha', label: '佛像类', icon: '🪷', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'deity', label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'ritual', label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { value: 'offering', label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+  { value: 'deliverance', label: '超度类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+];
+
+async function ensureOfferingSupplyTable() {
+  // Drop old table if schema is wrong (first-time fix)
+  try {
+    const check = await queryAll("PRAGMA table_info('OfferingSupply')") as any[];
+    const colNames = check.map(c => c.name);
+    // If isActive exists as BOOLEAN type, drop and recreate
+    if (colNames.includes('isActive') && colNames.length > 0) {
+      const isActiveCol = check.find(c => c.name === 'isActive');
+      if (isActiveCol && isActiveCol.type && isActiveCol.type.toUpperCase().includes('BOOL')) {
+        await execute('DROP TABLE IF EXISTS OfferingSupply');
+      }
+    }
+  } catch {}
+
+  await execute(`CREATE TABLE IF NOT EXISTS "OfferingSupply" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "icon" TEXT,
+    "image" TEXT,
+    "price" REAL NOT NULL,
+    "description" TEXT,
+    "category" TEXT NOT NULL DEFAULT 'general',
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TEXT NOT NULL DEFAULT (datetime('now')),
+    "stock" INTEGER NOT NULL DEFAULT 0
+  )`);
+
+  const cols = await queryAll("PRAGMA table_info('OfferingSupply')") as any[];
+  const colNames = cols.map(c => c.name);
+  const alters: Array<[string, string]> = [
+    ['stock', 'INTEGER NOT NULL DEFAULT 0'],
+  ];
+  for (const [col, def] of alters) {
+    if (!colNames.includes(col)) {
+      try { await execute(`ALTER TABLE "OfferingSupply" ADD COLUMN "${col}" ${def}`); } catch {}
+    }
+  }
+}
+
+async function seedDefaultSupplies(force = false) {
+  await ensureOfferingSupplyTable();
+
+  if (!force) {
+    const countRow = await queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply') as any;
+    if (countRow?.cnt && countRow.cnt > 0) return;
+  }
+
+  const now = new Date().toISOString();
+  let inserted = 0;
+  let errors: string[] = [];
+
+  for (let i = 0; i < SEED_SUPPLIES.length; i++) {
+    const s = SEED_SUPPLIES[i];
+    try {
+      await execute(
+        `INSERT INTO OfferingSupply (id, name, icon, image, price, description, category, sortOrder, isActive, createdAt, stock)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `sup_seed_${Date.now()}_${i}`,
+        s.name,
+        s.icon || null,
+        null,
+        s.price,
+        s.description,
+        s.category,
+        s.sortOrder,
+        1,
+        now,
+        s.stock
+      );
+      inserted++;
+    } catch (err: any) {
+      errors.push(`${s.name}: ${err?.message || String(err)}`);
+      console.error(`Seed supply error (${s.name}):`, err?.message || err);
+    }
+  }
+  console.log(`Seed supplies done: ${inserted} inserted, ${errors.length} errors`);
+  if (errors.length > 0) console.error('Seed errors:', errors);
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await seedDefaultSupplies();
+
+    const { searchParams } = new URL(req.url);
+    const forceSeed = searchParams.get('forceSeed') === '1';
+    if (forceSeed) {
+      await seedDefaultSupplies(true);
+    }
+
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const pageSize = Math.max(1, parseInt(searchParams.get('pageSize') || '20'));
+    const keyword = (searchParams.get('keyword') || '').trim();
+    const category = searchParams.get('category') || '';
+    const offset = (page - 1) * pageSize;
+
+    const where: string[] = [];
+    const params: any[] = [];
+    if (keyword) {
+      where.push('(name LIKE ? OR description LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (category) {
+      where.push('category = ?');
+      params.push(category);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const rows = await queryAll(
+      `SELECT * FROM OfferingSupply ${whereSql} ORDER BY sortOrder ASC, createdAt DESC LIMIT ? OFFSET ?`,
+      ...params, pageSize, offset
+    );
+
+    const countRow = await queryFirst(
+      `SELECT COUNT(*) as total FROM OfferingSupply ${whereSql}`,
+      ...params
+    ) as any;
+
+    const total = countRow?.total || 0;
+
+    const [totalRow, activeRow, inactiveRow, categoryRow, categoryStats] = await Promise.all([
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply') as any,
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply WHERE isActive = 1') as any,
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply WHERE isActive = 0') as any,
+      queryFirst('SELECT COUNT(DISTINCT category) as cnt FROM OfferingSupply') as any,
+      (queryAll('SELECT category, COUNT(*) as cnt, SUM(stock) as totalStock FROM OfferingSupply GROUP BY category ORDER BY cnt DESC') as unknown) as any[],
+    ]);
+
+    const categoryMap: Record<string, { label: string; icon: string; color: string; count: number; totalStock: number }> = {};
+    for (const cat of DEFAULT_CATEGORIES) {
+      const found = categoryStats.find((c: any) => c.category === cat.value);
+      categoryMap[cat.value] = {
+        label: cat.label,
+        icon: cat.icon,
+        color: cat.color,
+        count: found?.cnt || 0,
+        totalStock: found?.totalStock || 0,
+      };
+    }
+
+    return NextResponse.json({
+      data: rows,
+      total,
+      page,
+      pageSize,
+      stats: {
+        total: totalRow?.cnt || 0,
+        active: activeRow?.cnt || 0,
+        inactive: inactiveRow?.cnt || 0,
+        categories: categoryRow?.cnt || 0,
+      },
+      categoryGroups: categoryMap,
+      categoryOptions: DEFAULT_CATEGORIES,
+    });
+  } catch (error) {
+    console.error('获取供品列表失败:', error);
+    return NextResponse.json({ error: '获取失败' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    const body = await req.json();
+
+    if (body.action === 'seed') {
+      // Force reseed with detailed result
+      await seedDefaultSupplies(true);
+      const countRow = await queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply') as any;
+      return NextResponse.json({
+        success: true,
+        totalCount: countRow?.cnt || 0,
+        message: '供品数据已重新播种',
+      });
+    }
+
+    await ensureOfferingSupplyTable();
+    const { name, icon, image, price, description, category, sortOrder, isActive, stock } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: '名称为必填项' }, { status: 400 });
+    }
+
+    const id = generateId();
+    const now = new Date().toISOString();
+    await execute(
+      `INSERT INTO OfferingSupply (id, name, icon, image, price, description, category, sortOrder, isActive, createdAt, stock)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, name, icon || null, image || null,
+      Number(price) || 0, description || null,
+      category || 'general', Number(sortOrder) || 0,
+      isActive === false ? 0 : 1, now,
+      Number(stock) || 0
+    );
+
+    return NextResponse.json({
+      supply: {
+        id, name, icon, image,
+        price: Number(price) || 0,
+        description,
+        category: category || 'general',
+        sortOrder: Number(sortOrder) || 0,
+        isActive: isActive === false ? 0 : 1,
+        stock: Number(stock) || 0,
+        createdAt: now,
+      },
+    });
+  } catch (error) {
+    console.error('创建供品失败:', error);
+    return NextResponse.json({ error: '创建失败' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await ensureOfferingSupplyTable();
+
+    const body = await req.json();
+    const { id, ...updates } = body;
+    if (!id) return NextResponse.json({ error: '缺少供品 ID' }, { status: 400 });
+
+    const existing = await queryFirst('SELECT * FROM OfferingSupply WHERE id = ?', id);
+    if (!existing) return NextResponse.json({ error: '供品不存在' }, { status: 404 });
+
+    const fields: string[] = [];
+    const params: any[] = [];
+    const fieldMap: Record<string, string> = {
+      name: 'name',
+      icon: 'icon',
+      image: 'image',
+      price: 'price',
+      description: 'description',
+      category: 'category',
+      sortOrder: 'sortOrder',
+      stock: 'stock',
+    };
+    for (const [k, col] of Object.entries(fieldMap)) {
+      if (updates[k] !== undefined) {
+        fields.push(`${col} = ?`);
+        params.push(updates[k]);
+      }
+    }
+    if (updates.isActive !== undefined) {
+      fields.push('isActive = ?');
+      params.push(updates.isActive ? 1 : 0);
+    }
+
+    if (fields.length === 0) {
+      return NextResponse.json({ error: '没有需要更新的字段' }, { status: 400 });
+    }
+
+    params.push(id);
+    await execute(`UPDATE OfferingSupply SET ${fields.join(', ')} WHERE id = ?`, ...params);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('更新供品失败:', error);
+    return NextResponse.json({ error: '更新失败' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get('ids') || '';
+    const singleId = searchParams.get('id');
+
+    const ids = idsParam
+      ? idsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : singleId
+        ? [singleId]
+        : [];
+
+    if (ids.length === 0) {
+      return NextResponse.json({ error: '缺少供品 ID' }, { status: 400 });
+    }
+
+    if (ids.length === 1) {
+      await execute('DELETE FROM OfferingSupply WHERE id = ?', ids[0]);
+    } else {
+      const statements = ids.map((id) => ({
+        sql: 'DELETE FROM OfferingSupply WHERE id = ?',
+        params: [id],
+      }));
+      await batch(statements);
+    }
+
+    return NextResponse.json({ success: true, count: ids.length });
+  } catch (error) {
+    console.error('删除供品失败:', error);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
+  }
+}

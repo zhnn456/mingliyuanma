@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
-    const userId = session.user.id;
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    const userId = session.sub;
 
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
-    const userId = session.user.id;
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    const userId = session.sub;
 
     const today = new Date().toISOString().split('T')[0];
     const signed = !!(await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${today}`));

@@ -5,7 +5,7 @@ import { clearRuleCache } from '@/lib/rules/engine';
 
 async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
-  if (!session || (session.user as any)?.role !== 'admin') {
+  if (!session || session.role !== 'admin') {
     return null;
   }
   return session;

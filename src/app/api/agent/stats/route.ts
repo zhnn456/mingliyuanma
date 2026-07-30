@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.sub;
 
     const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
 

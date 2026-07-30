@@ -1,11 +1,11 @@
-import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
+import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, getUserStats } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
-    if (!session || session?.user?.role !== 'admin') {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
-    if (!session || session?.user?.role !== 'admin') {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 

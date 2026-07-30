@@ -6,6 +6,25 @@ export async function GET(req: NextRequest) {
   try {
     const type = req.nextUrl.searchParams.get('type');
 
+    if (type === 'supplies') {
+      const supplies = await queryAll(
+        'SELECT * FROM OfferingSupply WHERE isActive = 1 ORDER BY category ASC, sortOrder ASC'
+      ) as any[];
+
+      const categories = await queryAll(
+        'SELECT * FROM OfferingCategory WHERE isActive = 1 ORDER BY sortOrder ASC'
+      ) as any[];
+
+      const grouped: Record<string, any[]> = {};
+      for (const supply of supplies) {
+        const cat = supply.category || 'general';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(supply);
+      }
+
+      return NextResponse.json({ supplies: grouped, categories });
+    }
+
     if (type === 'leaderboard') {
       const top = await queryAll(
         'SELECT userId, SUM(amount) as totalAmount, COUNT(*) as count FROM OfferingRecord GROUP BY userId ORDER BY totalAmount DESC LIMIT 20'
@@ -39,14 +58,14 @@ export async function GET(req: NextRequest) {
         const later = new Date(Date.now() + 7 * 86400000).toISOString();
         const records = await queryAll(
           "SELECT * FROM OfferingRecord WHERE userId = ? AND status = 'active' AND endDate IS NOT NULL AND endDate <= ? ORDER BY endDate ASC",
-          session.user.id, later
+          session.sub, later
         );
         return NextResponse.json({ records });
       }
 
       const records = await queryAll(
         'SELECT * FROM OfferingRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT 50',
-        session.user.id
+        session.sub
       );
       return NextResponse.json({ records });
     }

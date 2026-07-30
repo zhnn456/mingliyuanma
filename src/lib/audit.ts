@@ -11,7 +11,7 @@ export type AuditAction =
   | 'order_create' | 'order_pay' | 'order_refund'
   | 'member_upgrade' | 'member_expire'
   | 'admin_update_user' | 'admin_update_order' | 'admin_update_config'
-  | 'admin_toggle_agent' | 'admin_create_agent'
+  | 'admin_toggle_agent' | 'admin_create_agent' | 'admin_delete_agent' | 'admin_update_agent'
   | 'agent_login' | 'agent_update_customer'
   | 'pdf_generate' | 'pdf_download'
   | 'offering_create'

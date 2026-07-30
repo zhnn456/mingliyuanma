@@ -16,7 +16,7 @@ function safeParseJSON(str: string | null | undefined): any {
 
 async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
-  if (!session || session?.user?.role !== 'admin') {
+  if (!session || session?.role !== 'admin') {
     return null;
   }
   return session;

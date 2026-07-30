@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 import { execute } from '@/lib/d1';
 
 const PACKAGES = [
@@ -11,9 +11,9 @@ const PACKAGES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
-    const userId = session.user.id;
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    const userId = session.sub;
 
     const body = await req.json();
     const { packageId } = body;
@@ -22,10 +22,11 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString();
     const orderId = `ord_${Date.now()}`;
+    const orderNo = `RC${Date.now()}`;
 
     await execute(
-      'INSERT INTO OrderRecord (id, userId, type, itemId, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      orderId, userId, 'recharge', pkg.id, pkg.amount, 'pending', now
+      'INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      orderId, orderNo, userId, 'recharge', pkg.id, pkg.amount, 'pending', now
     );
 
     return NextResponse.json({ orderId, amount: pkg.amount, points: pkg.points, message: '订单创建成功，请扫码支付' });

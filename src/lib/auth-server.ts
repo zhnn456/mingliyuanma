@@ -6,20 +6,85 @@
  */
 import { NextRequest } from 'next/server';
 
-const TOKEN_TTL = 86_400_000;
+const TOKEN_TTL = 86_400_000; // 24小时
+const FALLBACK_SECRET = 'mingli-secret-key-2026-production';
 
-function getSecretKey(): string {
-  const secret = process.env.NEXTAUTH_SECRET || 'mingli-dev-secret-key-change-in-production';
-  if (secret === 'mingli-dev-secret-key-change-in-production') {
-    console.warn('[auth-server] ⚠️ 使用了开发密钥！生产环境必须设置 NEXTAUTH_SECRET');
-  }
-  return secret;
+// 缓存密钥，但如果为空则不缓存，允许重试
+let _cachedSecret: string | null = null;
+let _cachedSecretPromise: Promise<string> | null = null;
+
+/** 获取密钥，支持 Cloudflare Workers 和 Node.js 环境 */
+async function getSecretKey(): Promise<string> {
+  if (_cachedSecret) return _cachedSecret;
+  if (_cachedSecretPromise) return _cachedSecretPromise;
+  
+  _cachedSecretPromise = (async () => {
+    try {
+      if (process.env?.NEXTAUTH_SECRET) {
+        _cachedSecret = process.env.NEXTAUTH_SECRET;
+        return _cachedSecret;
+      }
+      
+      try {
+        const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+        const ctx = await getCloudflareContext({ async: true });
+        const cfSecret = (ctx.env as any)?.NEXTAUTH_SECRET;
+        if (cfSecret && typeof cfSecret === 'string') {
+          _cachedSecret = cfSecret;
+          return _cachedSecret;
+        }
+      } catch {}
+      
+      console.warn('[auth] ⚠️ 使用回退密钥！生产环境必须设置 NEXTAUTH_SECRET');
+      _cachedSecret = FALLBACK_SECRET;
+      return _cachedSecret;
+    } finally {
+      _cachedSecretPromise = null;
+    }
+  })();
+  
+  return _cachedSecretPromise;
 }
 
+/** Base64URL 编码（URL 安全，无 padding） */
+function base64UrlEncode(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  // btoa 得到标准 base64，转为 base64url
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, ''); // 移除 padding
+}
+
+/** Base64URL 解码 */
+function base64UrlDecode(b64url: string): string {
+  // base64url 转标准 base64
+  let base64 = b64url
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  // 添加 padding
+  const padding = base64.length % 4;
+  if (padding === 2) base64 += '==';
+  else if (padding === 3) base64 += '=';
+  else if (padding === 1) throw new Error('Invalid base64url string');
+  
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/** 签名 Token */
 export async function signToken(payload: Record<string, any>): Promise<string> {
-  const secret = getSecretKey();
+  const secret = await getSecretKey();
   const data = { ...payload, iat: Date.now(), exp: Date.now() + TOKEN_TTL };
-  const encodedPayload = btoa(JSON.stringify(data));
+  const encodedPayload = base64UrlEncode(JSON.stringify(data));
 
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -37,54 +102,87 @@ export async function signToken(payload: Record<string, any>): Promise<string> {
   return `${encodedPayload}.${sigHex}`;
 }
 
+/** 验证并解析 Token */
 export async function verifyAndParseToken(token: string): Promise<any> {
   try {
     const lastDot = token.lastIndexOf('.');
-    if (lastDot === -1) return null;
+    if (lastDot === -1) {
+      console.warn('[auth] Token 格式错误: 缺少分隔符');
+      return null;
+    }
+    
     const payload = token.slice(0, lastDot);
     const sig = token.slice(lastDot + 1);
 
-    const secret = getSecretKey();
+    if (!payload || !sig) {
+      console.warn('[auth] Token 缺少 payload 或签名');
+      return null;
+    }
+
+    const secret = await getSecretKey();
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw',
       encoder.encode(secret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['verify']
+      ['sign', 'verify']
     );
+    
+    // 计算期望签名
     const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
     const expectedHex = Array.from(new Uint8Array(expectedSig))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-    if (sig !== expectedHex) return null;
+    // 使用常量时间比较（防止时序攻击）
+    if (!constantTimeEqual(sig, expectedHex)) {
+      console.warn('[auth] Token 签名验证失败');
+      return null;
+    }
 
-    const binary = atob(payload);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const data = JSON.parse(new TextDecoder().decode(bytes));
+    const jsonStr = base64UrlDecode(payload);
+    const data = JSON.parse(jsonStr);
 
-    if (data.exp && data.exp < Date.now()) return null;
+    // 检查过期
+    if (data.exp && data.exp < Date.now()) {
+      console.warn('[auth] Token 已过期');
+      return null;
+    }
+    
     return data;
-  } catch {
+  } catch (err: any) {
+    console.error('[auth] Token 解析异常:', err?.message);
     return null;
   }
 }
 
+/** 常量时间比较（防止时序攻击） */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/** 从请求中获取 Session */
 export async function getSession(req: NextRequest) {
   const cookie = req.headers.get('cookie') || '';
   const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
   if (!match) return null;
-  const token = decodeURIComponent(match[1]);
+  const token = match[1];
   return verifyAndParseToken(token);
 }
 
+/** 要求已登录 */
 export async function requireAuth(req: NextRequest) {
   const session = await getSession(req);
   return { allowed: !!session, session };
 }
 
+/** 要求管理员权限 */
 export async function requireAdmin(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return { allowed: false, session: null };
@@ -92,9 +190,10 @@ export async function requireAdmin(req: NextRequest) {
   return { allowed: true, session };
 }
 
+/** 要求代理商权限（管理员也可访问） */
 export async function requireAgent(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return { allowed: false, session: null };
-  if (!['admin', 'agent'].includes(session.role)) return { allowed: false, session: null };
-  return { allowed: true, session };
+  if (session.role === 'agent' || session.role === 'admin') return { allowed: true, session };
+  return { allowed: false, session: null };
 }

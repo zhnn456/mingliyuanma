@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const { allowed, session } = await requireAuth(req);
   if (!allowed || !session) return NextResponse.json({ error: '未登录' }, { status: 401 });
 
-  const tickets = await queryAll('SELECT * FROM Ticket WHERE userId = ? ORDER BY createdAt DESC', session.user.id);
+  const tickets = await queryAll('SELECT * FROM Ticket WHERE userId = ? ORDER BY createdAt DESC', session.sub);
   // 查各工单的最新消息
   const ticketsWithMsg = await Promise.all(tickets.map(async (t: any) => {
     const lastMsg = await queryAll('SELECT content, createdAt FROM TicketMessage WHERE ticketId = ? ORDER BY createdAt DESC LIMIT 1', (t as any).id);
@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
 
   await execute('INSERT INTO Ticket (id, userId, title, category, status, priority, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    ticketId, session.user.id, title, category || 'other', 'open', 'normal', now, now);
+    ticketId, session.sub, title, category || 'other', 'open', 'normal', now, now);
   await execute('INSERT INTO TicketMessage (id, ticketId, userId, content, isStaff, createdAt) VALUES (?, ?, ?, ?, 0, ?)',
-    msgId, ticketId, session.user.id, content, now);
+    msgId, ticketId, session.sub, content, now);
 
   return NextResponse.json({ ticketId });
 }

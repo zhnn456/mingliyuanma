@@ -68,47 +68,37 @@ export function Header() {
           </nav>
 
           {/* User Menu */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2">
             {user ? (
-              <div className="flex items-center space-x-3">
-                {['admin', 'agent'].includes(user.role) && (
+              <div className="flex items-center space-x-2">
+                {/* 根据角色动态跳转 */}
+                <div className="relative group">
                   <Link
-                    href="/agent"
-                    className="px-4 py-2 text-sm text-gold-dark hover:text-gold rounded-lg transition-colors border border-gold/30 hover:border-gold/50 hover:bg-gold/5"
+                    href={user.role === 'admin' ? '/admin' : user.role === 'agent' ? '/agent' : '/profile'}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-red-700 hover:bg-red-50/50 rounded-lg transition-colors"
                   >
-                    代理商
+                    <span className="w-8 h-8 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center text-xs font-bold text-red-700 border border-red-200 shadow-sm">
+                      {(user.name || '?')[0]}
+                    </span>
+                    <span className="font-medium text-gray-700">
+                      {user.role === 'admin' ? '管理员' : user.role === 'agent' ? '代理商' : (user.name || '我的账户')}
+                    </span>
                   </Link>
-                )}
-                {user.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="px-4 py-2 text-sm text-gray-600 hover:text-red-700 rounded-lg transition-colors hover:bg-red-50/50"
-                  >
-                    管理
-                  </Link>
-                )}
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:text-red-700 hover:bg-red-50/50 rounded-lg transition-colors"
-                >
-                  <span className="w-9 h-9 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center text-sm font-bold text-red-700 border border-red-200 shadow-sm">
-                    {(user.name || '?')[0]}
-                  </span>
-                  <span className="font-medium">{user.name || '个人中心'}</span>
-                </Link>
+                </div>
                 <button
                   onClick={() => signOut()}
-                  className="text-sm text-gray-400 hover:text-red-700 px-3 py-2 transition-colors rounded-lg hover:bg-red-50/30"
+                  className="text-sm text-gray-400 hover:text-red-700 px-2 py-2 transition-colors rounded-lg hover:bg-red-50/30"
+                  title="退出登录"
                 >
                   退出
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
-                <Link href="/login" className="px-5 py-2.5 text-sm text-gray-600 hover:text-red-700 hover:bg-red-50/40 rounded-lg transition-colors font-medium">
+              <div className="flex items-center space-x-2">
+                <Link href="/login" className="px-4 py-2 text-sm text-gray-600 hover:text-red-700 hover:bg-red-50/40 rounded-lg transition-colors font-medium">
                   登录
                 </Link>
-                <Link href="/register" className="btn-primary !py-2.5 !px-6">
+                <Link href="/register" className="btn-primary !py-2 !px-5 text-sm">
                   注册
                 </Link>
               </div>
@@ -152,16 +142,17 @@ export function Header() {
               <div className="divider-gold my-3" />
               {user ? (
                 <>
+                  {/* 根据角色动态跳转 */}
                   <Link
-                    href="/profile"
+                    href={user.role === 'admin' ? '/admin' : user.role === 'agent' ? '/agent' : '/profile'}
                     className="px-4 py-3 text-sm text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    个人中心
+                    {user.role === 'admin' ? '管理后台' : user.role === 'agent' ? '代理商后台' : '个人中心'}
                   </Link>
                   <button
                     onClick={() => signOut()}
-                    className="px-4 py-3 text-sm text-left text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    className="px-4 py-3 text-sm text-left text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors w-full"
                   >
                     退出登录
                   </button>

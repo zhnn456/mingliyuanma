@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const finalAmount = parseFloat((amount - discount).toFixed(2));
     const orderNo = generateOrderNo();
-    const userId = session.user.id;
+    const userId = session.sub;
 
     const orderId = `ord_${Date.now()}`;
     const now = new Date().toISOString();

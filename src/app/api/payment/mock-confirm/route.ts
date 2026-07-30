@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute, batch } from '@/lib/d1';
-import { getSession } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 import { MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 
@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '此接口仅在开发环境可用' }, { status: 403 });
     }
 
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const body = await req.json();
     const { orderNo } = body;
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const order = await queryFirst('SELECT * FROM "Order" WHERE orderNo = ?', orderNo) as any;
     if (!order) return NextResponse.json({ error: '订单不存在' }, { status: 404 });
-    if (order.userId !== session.user.id) return NextResponse.json({ error: '无权操作此订单' }, { status: 403 });
+    if (order.userId !== session.sub) return NextResponse.json({ error: '无权操作此订单' }, { status: 403 });
     if (order.status === 'paid') return NextResponse.json({ message: '订单已支付' });
 
     const transactionId = `mock_tx_${Date.now()}`;

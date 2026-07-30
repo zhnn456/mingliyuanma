@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     // 查最近的一条八字记录来获取日干
     const bazi = await queryFirst(
       'SELECT dayGan, dayZhi FROM BaziRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT 1',
-      session.user.id
+      session.sub
     ) as any;
 
     if (!bazi) {
@@ -38,14 +38,14 @@ export async function GET(req: NextRequest) {
     }
 
     // 查今天是否已有运势记录
-    let fortune = await queryFirst('SELECT * FROM Fortune WHERE userId = ? AND date = ? AND type = ?', session.user.id, today, type) as any;
+    let fortune = await queryFirst('SELECT * FROM Fortune WHERE userId = ? AND date = ? AND type = ?', session.sub, today, type) as any;
 
     if (!fortune) {
       const content = JSON.stringify(generateDailyFortune(bazi.dayGan, bazi.dayZhi));
       const id = `fort_${Date.now()}`;
       await execute('INSERT INTO Fortune (id, userId, date, type, content, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-        id, session.user.id, today, type, content, new Date().toISOString());
-      fortune = { id, userId: session.user.id, date: today, type, content, createdAt: new Date().toISOString() };
+        id, session.sub, today, type, content, new Date().toISOString());
+      fortune = { id, userId: session.sub, date: today, type, content, createdAt: new Date().toISOString() };
     }
 
     return NextResponse.json({

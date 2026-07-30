@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst } from '@/lib/d1';
-import { getSession } from '@/lib/auth-server';
+import { requireAuth } from '@/lib/auth-server';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession(req);
-    if (!session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    const { allowed, session } = await requireAuth(req);
+    if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const orderNo = searchParams.get('orderNo');
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     if (!order) return NextResponse.json({ error: '订单不存在' }, { status: 404 });
 
-    if (order.userId !== session.user.id && session.user.role !== 'admin') {
+    if (order.userId !== session.sub && session.role !== 'admin') {
       return NextResponse.json({ error: '无权查看此订单' }, { status: 403 });
     }
 

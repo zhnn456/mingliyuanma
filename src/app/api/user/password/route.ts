@@ -20,24 +20,17 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: '新密码至少6位' }, { status: 400 });
     }
 
-    const user = await queryFirst('SELECT passwordHash FROM User WHERE id = ?', session.user.id) as any;
+    const user = await queryFirst('SELECT passwordHash FROM User WHERE id = ?', session.sub) as any;
     if (!user) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
 
-    // 直接比较（管理员账号硬编码密码）
-    const isAdmin = session.user.email === '282063152@qq.com';
-    let valid = false;
-    if (isAdmin) {
-      valid = oldPassword === 'admin123';
-    } else {
-      valid = await verifyPassword(oldPassword, user.passwordHash);
-    }
+    const valid = await verifyPassword(oldPassword, user.passwordHash);
 
     if (!valid) {
       return NextResponse.json({ error: '当前密码错误' }, { status: 400 });
     }
 
     const newHash = await hashPassword(newPassword);
-    await execute('UPDATE User SET passwordHash = ?, updatedAt = ? WHERE id = ?', newHash, new Date().toISOString(), session.user.id);
+    await execute('UPDATE User SET passwordHash = ?, updatedAt = ? WHERE id = ?', newHash, new Date().toISOString(), session.sub);
 
     return NextResponse.json({ message: '密码修改成功' });
   } catch (error) {

@@ -1,13 +1,31 @@
+/**
+ * 紫微斗数排盘 API · V2
+ * 
+ * 完全兼容 V1 排盘结果，在此基础上增加：
+ * 1. 规则引擎分析（多流派）
+ * 2. 格局自动检测（30+ 格局）
+ * 3. 动态排盘（流年/流月/小限）
+ * 4. 古籍引用
+ * 5. 飞星分析
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { execute } from '@/lib/d1';
 import { astro } from 'iztro';
 import { checkUsageLimit } from '@/lib/rate-limit';
 import { generateZiweiDetailedAnalysis } from '@/lib/interpretation/ziwei-detailed';
+import { createZiweiEngine } from '@/lib/ziwei/engine';
+import type { SchoolId } from '@/lib/ziwei/interfaces/chart';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { year, month, day, hour, gender, isLunar = false } = body;
+    const { 
+      year, month, day, hour, gender, isLunar = false,
+      // 新增参数
+      school = 'feixing',
+      enableEngine = true,
+    } = body;
 
     if (!year || !month || !day || hour === undefined) {
       return NextResponse.json(
@@ -32,7 +50,7 @@ export async function POST(req: NextRequest) {
       astrolabe = astro.bySolar(dateStr, timeIndex, genderStr, true, 'zh-CN');
     }
 
-    // 提取宫位数据（完整版）
+    // ========== V1 兼容层：保持原有数据结构 ==========
     const palaces = astrolabe.palaces.map((palace: any) => ({
       name: palace.name,
       index: palace.index,
@@ -57,35 +75,117 @@ export async function POST(req: NextRequest) {
       isBody: palace.isBodyPalace || false,
     }));
 
-    // 基本信息
+    const basic = {
+      gender: genderStr,
+      solarDate: dateStr,
+      lunarDate: astrolabe.lunarDate,
+      chineseDate: astrolabe.chineseDate,
+      zodiac: astrolabe.zodiac,
+      sign: astrolabe.sign,
+      fiveElementsClass: astrolabe.fiveElementsClass,
+      soul: astrolabe.soul,
+      body: astrolabe.body,
+      earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
+      earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
+    };
+
+    // V1 原有的详细分析
+    const detailedAnalysis = generateZiweiDetailedAnalysis(palaces, basic);
+
+    // ========== V2 新增层：规则引擎分析 ==========
+    let engineAnalysis: any = null;
+    let flyingStarAnalysis: any = null;
+    let detectedPatterns: string[] = [];
+    
+    if (enableEngine) {
+      try {
+        const engine = createZiweiEngine({ defaultSchool: school as SchoolId });
+        
+        // 构建标准命盘结构
+        const chart = {
+          basic: {
+            gender: genderStr as any,
+            solarDate: dateStr,
+            lunarDate: astrolabe.lunarDate,
+            chineseDate: astrolabe.chineseDate,
+            zodiac: astrolabe.zodiac,
+            sign: astrolabe.sign,
+            fiveElementsClass: astrolabe.fiveElementsClass,
+            soul: astrolabe.soul,
+            body: astrolabe.body,
+            earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
+            earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
+          },
+          palaces: palaces.map((p, i) => ({
+            index: p.index,
+            name: p.name,
+            earthlyBranch: p.earthlyBranch,
+            heavenlyStem: p.heavenlyStem,
+            majorStars: p.majorStars.map(s => ({
+              name: s.name,
+              type: s.type === 'major' ? 'major' as const : ('minor' as const),
+              mutagen: s.mutagen || undefined,
+              brightness: s.brightness || undefined,
+            })),
+            minorStars: p.minorStars.map(s => ({
+              name: s.name,
+              type: 'adjective' as const,
+              mutagen: s.mutagen || undefined,
+              brightness: s.brightness || undefined,
+            })),
+            adjectiveStars: p.adjectiveStars,
+            decadal: p.decadal,
+            isBodyPalace: p.isBody,
+            isSoulPalace: p.name === '命宫',
+          })),
+          birthSihua: {
+            stem: (astrolabe.chineseDate?.split('年')[0]?.slice(-1) || '') as any,
+            lu: { star: '', palace: '' },
+            quan: { star: '', palace: '' },
+            ke: { star: '', palace: '' },
+            ji: { star: '', palace: '' },
+          },
+          soulMaster: astrolabe.soul,
+          bodyMaster: astrolabe.body,
+          version: '2.0.0',
+        };
+        
+        // 执行规则引擎分析
+        engineAnalysis = engine.analyze(chart, { school: school as SchoolId });
+        
+        // 飞星分析
+        flyingStarAnalysis = engine.getFlyingStarAnalysis(chart);
+        
+        // 提取格局名称列表
+        if (engineAnalysis?.detectedPatterns) {
+          detectedPatterns = engineAnalysis.detectedPatterns.map(p => p.name);
+        }
+      } catch (e) {
+        console.error('规则引擎分析失败:', e);
+        // 失败不影响主流程
+      }
+    }
+
+    // ========== 构建最终响应 ==========
     const result = {
-      basic: {
-        gender: genderStr,
-        solarDate: dateStr,
-        lunarDate: astrolabe.lunarDate,
-        chineseDate: astrolabe.chineseDate,
-        zodiac: astrolabe.zodiac,
-        sign: astrolabe.sign,
-        fiveElementsClass: astrolabe.fiveElementsClass,
-        soul: astrolabe.soul,
-        body: astrolabe.body,
-        earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
-        earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
-      },
+      // V1 原有数据（完全兼容）
+      basic,
       palaces,
-      detailedAnalysis: generateZiweiDetailedAnalysis(palaces, {
-        gender: genderStr,
-        solarDate: dateStr,
-        lunarDate: astrolabe.lunarDate,
-        chineseDate: astrolabe.chineseDate,
-        zodiac: astrolabe.zodiac,
-        sign: astrolabe.sign,
-        fiveElementsClass: astrolabe.fiveElementsClass,
-        soul: astrolabe.soul,
-        body: astrolabe.body,
-        earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
-        earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
-      }),
+      detailedAnalysis,
+      
+      // V2 新增数据
+      v2: {
+        school,
+        engineAnalysis,
+        flyingStarAnalysis,
+        detectedPatterns,
+        features: {
+          flowAnalysis: true,      // 支持流年流月分析
+          patternDetection: true,  // 支持30+格局检测
+          schoolSwitch: true,      // 支持流派切换
+          classicReference: true,  // 支持古籍引用
+        },
+      },
     };
 
     // 如果用户已登录，保存记录
@@ -96,7 +196,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO ZiweiRecord (id, userId, gender, birthDate, birthTime, isLunar, mingGong, palaceData, starData, sihuaData, interpretation, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         recordId,
-        (session.user as any).id,
+        session.sub,
         gender,
         dateStr,
         `${String(hour).padStart(2, '0')}:00`,
@@ -113,7 +213,7 @@ export async function POST(req: NextRequest) {
             }))
           )
         ),
-        JSON.stringify({ result }),
+        JSON.stringify({ detailedAnalysis, v2: result.v2 }),
         now
       );
     }
@@ -123,6 +223,71 @@ export async function POST(req: NextRequest) {
     console.error('紫微斗数排盘错误:', error);
     return NextResponse.json(
       { error: '排盘失败，请检查输入信息' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET /api/ziwei
+ * 获取规则配置信息
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type') || 'patterns';
+    
+    if (type === 'patterns') {
+      const { ALL_PATTERN_RULES } = await import('@/lib/ziwei/knowledge/patterns/basic');
+      const patterns = ALL_PATTERN_RULES.map(r => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        description: r.description,
+        priority: r.priority,
+        classicSource: r.classicSource,
+      }));
+      
+      return NextResponse.json({
+        patterns,
+        total: patterns.length,
+        categories: [...new Set(patterns.map(p => p.category))],
+      });
+    }
+    
+    if (type === 'schools') {
+      const { SCHOOLS } = await import('@/lib/ziwei/knowledge/schools');
+      const schoolsList = Object.values(SCHOOLS).map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        keyMethods: s.keyMethods,
+      }));
+      
+      return NextResponse.json({
+        schools: schoolsList,
+        total: schoolsList.length,
+      });
+    }
+    
+    if (type === 'sihua') {
+      const { SIHUA_STANDARD } = await import('@/lib/ziwei/knowledge/sihua/tables');
+      return NextResponse.json({
+        sihua: Object.entries(SIHUA_STANDARD).map(([stem, v]) => ({
+          stem,
+          ...v,
+        })),
+      });
+    }
+    
+    return NextResponse.json({
+      error: '无效的 type 参数',
+      validTypes: ['patterns', 'schools', 'sihua'],
+    });
+  } catch (error) {
+    console.error('获取规则错误:', error);
+    return NextResponse.json(
+      { error: '获取规则失败' },
       { status: 500 }
     );
   }

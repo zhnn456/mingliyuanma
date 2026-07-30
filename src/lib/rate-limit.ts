@@ -47,7 +47,7 @@ export async function checkUsageLimit(moduleName: string, customLimits?: LimitCo
   try {
     const user = await queryFirst(
       'SELECT id, memberLevel, memberExpiry, dailyUsage, lastUsageDate FROM User WHERE id = ?',
-      session.user.id
+      session.sub
     ) as any;
 
     if (!user) {

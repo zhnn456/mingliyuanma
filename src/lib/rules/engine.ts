@@ -318,7 +318,7 @@ export async function upsertRule(data: RuleData): Promise<any> {
       priority: data.priority || 0,
       agentId: data.agentId || null,
       isActive: data.isActive ?? true,
-    },
+    } as any,
     update: {
       content,
       classicSource: data.classicSource || null,

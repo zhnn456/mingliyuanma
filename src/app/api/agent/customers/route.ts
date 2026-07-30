@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.sub;
     const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', userId);
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
-    const agentUserId = (session.user as any).id;
+    const agentUserId = session.sub;
     const agent = await queryFirst('SELECT * FROM Agent WHERE userId = ?', agentUserId);
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
