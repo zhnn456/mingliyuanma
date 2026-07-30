@@ -1,8 +1,7 @@
-name: Deploy to Cloudflare Workers
+name: Deploy to Cloudflare Workers (disabled - using CF Workers Builds)
 
 on:
-  push:
-    branches: [main]
+  # 禁用自动触发，改用 Cloudflare Workers Builds 直接连接 GitHub
   workflow_dispatch:
 
 permissions:
