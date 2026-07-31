@@ -96,8 +96,11 @@ export default function QimenChart({ result, selectedPosition, onSelectPosition 
   const getPalaceRect = (index: number) => {
     const col = index % 3;
     const row = Math.floor(index / 3);
-    const x = col * (PALACE_SIZE + GAP) - SVG_SIZE / 2 + (SVG_SIZE - (3 * PALACE_SIZE + 2 * GAP)) / 2;
-    const y = row * (PALACE_SIZE + GAP) - SVG_SIZE / 2 + (SVG_SIZE - (3 * PALACE_SIZE + 2 * GAP)) / 2;
+    const totalWidth = 3 * PALACE_SIZE + 2 * GAP;
+    const offsetX = (SVG_SIZE - totalWidth) / 2;
+    const offsetY = (SVG_SIZE - totalWidth) / 2;
+    const x = offsetX + col * (PALACE_SIZE + GAP);
+    const y = offsetY + row * (PALACE_SIZE + GAP);
     return { x, y, w: PALACE_SIZE, h: PALACE_SIZE };
   };
 
