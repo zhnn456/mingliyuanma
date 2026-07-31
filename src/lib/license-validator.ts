@@ -17,7 +17,7 @@ const DEGRADE_AFTER = 72 * 60 * 60 * 1000; // 72 小时后只读
 
 let _cachedPayload: LicensePayload | null = null;
 let _lastVerifiedAt: number = 0;
-let _cachePromise: Promise<{ payload: LicensePayload | null; valid: boolean; reason?: string }> | null = null;
+let _cachePromise: Promise<LicenseVerification> | null = null;
 
 export interface LicenseVerification {
   valid: boolean;
@@ -68,11 +68,12 @@ async function doVerifyLicense(): Promise<LicenseVerification> {
       version: CURRENT_VERSION,
     });
 
-    const res = await fetch(`${url}?${params}`, {
+    const initOptions: any = {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      cf: { cacheTtl: 0 } as any,
-    });
+      cf: { cacheTtl: 0 },
+    };
+    const res = await fetch(`${url}?${params}`, initOptions);
 
     if (res.ok) {
       const data = await res.json();

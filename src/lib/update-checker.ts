@@ -46,10 +46,11 @@ export async function checkForUpdates(force = false): Promise<UpdateInfo> {
       domain: CURRENT_DOMAIN,
     });
 
-    const res = await fetch(`${CENTER_API}/api/version/check?${params}`, {
+    const initOptions: any = {
       method: 'GET',
-      cf: { cacheTtl: 0 } as any,
-    });
+      cf: { cacheTtl: 0 },
+    };
+    const res = await fetch(`${CENTER_API}/api/version/check?${params}`, initOptions);
 
     if (res.ok) {
       const data = await res.json();

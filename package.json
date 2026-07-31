@@ -1,6 +1,6 @@
 {
   "name": "mingli-source",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "build:worker": "npm run generate:knowledge && npx opennextjs-cloudflare build",
+    "build:worker": "node scripts/version-inject.js && npm run generate:knowledge && npx opennextjs-cloudflare build",
     "preview:worker": "npx wrangler dev",
     "deploy:worker": "npm run generate:knowledge && npm run build:worker && cross-env OPEN_NEXT_DEPLOY=true wrangler deploy",
     "db:migrate:d1": "npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql",

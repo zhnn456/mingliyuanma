@@ -94,7 +94,7 @@ async function hmacVerify(data: string, signature: string, secret: string): Prom
   return result === 0;
 }
 
-export function generateAgentLicense(payload: Omit<LicensePayload, 'version' | 'issuedAt'>): SignedLicense {
+export async function generateAgentLicense(payload: Omit<LicensePayload, 'version' | 'issuedAt'>): Promise<SignedLicense> {
   const fullPayload: LicensePayload = {
     agentId: payload.agentId,
     features: payload.features.filter(f => ENABLED_FEATURES.includes(f)),
@@ -108,27 +108,24 @@ export function generateAgentLicense(payload: Omit<LicensePayload, 'version' | '
   };
 
   const payloadStr = JSON.stringify(fullPayload);
-  const signature = hmacSignSync(payloadStr);
+  const signature = await hmacSignSync(payloadStr);
   const raw = `LIC.${base64UrlEncode(payloadStr)}.${signature}`;
 
   return { payload: fullPayload, signature, raw };
 }
 
-function hmacSignSync(data: string): string {
-  return crypto.subtle
-    .importKey(
-      'raw',
-      new TextEncoder().encode(CENTER_SECRET_KEY),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
-    .then((key) => crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)))
-    .then((sig) =>
-      Array.from(new Uint8Array(sig))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('')
-    );
+async function hmacSignSync(data: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(CENTER_SECRET_KEY),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export async function generateAgentLicenseAsync(

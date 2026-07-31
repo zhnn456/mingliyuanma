@@ -116,10 +116,11 @@ export async function middleware(req: NextRequest) {
 
     try {
       const params = new URLSearchParams({ license: licenseKey, domain });
-      const res = await fetch(`${centerApi}/api/license/verify?${params}`, {
+      const initOptions: any = {
         method: 'GET',
-        cf: { cacheTtl: 300 } as any,
-      });
+        cf: { cacheTtl: 300 },
+      };
+      const res = await fetch(`${centerApi}/api/license/verify?${params}`, initOptions);
       if (!res.ok) {
         // 远程验证失败，检查是否在宽限期内
         const cached = req.headers.get('x-license-verified');

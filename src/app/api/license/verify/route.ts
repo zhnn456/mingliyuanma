@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
 
   // 2. 查询数据库中的授权状态
   let dbStatus = 'active';
+  let agentLicense: any = null;
   try {
-    const agentLicense = await queryFirst(
+    agentLicense = await queryFirst(
       'SELECT status, features, maxUsers, expiryAt FROM AgentLicense WHERE licenseKey = ?',
       license
     ) as any;
