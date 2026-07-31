@@ -1,0 +1,20 @@
+name = "mingli-yuanma"
+main = "deploy-worker.js"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "deploy-assets"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yuanmamingli"
+database_id = "8eb80fad-28f3-4711-b9d0-4f1fb861b6e0"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "758d9485ac404f58bdb29aa249e5a1c8"
+
+[vars]
+NEXTAUTH_URL = "https://bazi6.cc.cd"

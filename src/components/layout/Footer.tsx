@@ -16,7 +16,7 @@ export function Footer() {
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
       <div className="absolute inset-0 bg-hero-pattern opacity-[0.03]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center shadow-md">
@@ -45,9 +45,27 @@ export function Footer() {
               ))}
             </ul>
           </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4 text-sm tracking-wide">法律信息</h4>
+            <ul className="space-y-3">
+              {[{ href: '/terms', label: '服务条款' }, { href: '/privacy', label: '隐私政策' }, { href: '/copyright', label: '版权声明' }].map(item => (
+                <li key={item.href}><Link href={item.href} className="text-gray-400 hover:text-gold text-sm transition-colors">{item.label}</Link></li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <div className="border-t border-gray-800 mt-12 pt-10 text-center">
+        <div className="border-t border-gray-800 mt-12 pt-10 text-center space-y-3">
           <p className="text-gray-500 text-sm">© 2026 命理网 · 传承经典，启迪智慧</p>
+          <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+            <Link href="/about" className="hover:text-gray-400 transition-colors">关于我们</Link>
+            <span>|</span>
+            <Link href="/terms" className="hover:text-gray-400 transition-colors">服务条款</Link>
+            <span>|</span>
+            <Link href="/privacy" className="hover:text-gray-400 transition-colors">隐私政策</Link>
+            <span>|</span>
+            <Link href="/copyright" className="hover:text-gray-400 transition-colors">版权声明</Link>
+          </div>
+          <p className="text-xs text-gray-700 pt-2">本站部分算法逻辑参考 GitHub 开源项目 · 命理分析仅供娱乐参考</p>
         </div>
       </div>
     </footer>

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-client';
 import { generateZiweiInterpretation, PALACE_MEANING, MAIN_STAR_INTERPRETATION } from '@/lib/interpretation/ziwei';
 import { PaipanForm } from '@/components/PaipanForm';
 import { useToast } from '@/components/Toast';
+import ZiweiChart, { ViewMode, TimeMode } from '@/components/ZiweiChart';
 
 interface Star {
   name: string;
@@ -218,6 +219,8 @@ export default function ZiweiPage() {
   const [selectedPalaceIdx, setSelectedPalaceIdx] = useState<number | null>(null);
   const [showInterpretation, setShowInterpretation] = useState(true);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('sanhe');
+  const [timeMode, setTimeMode] = useState<TimeMode>('base');
 
   useEffect(() => {
     if (session && !initialLoaded) {
@@ -327,244 +330,200 @@ export default function ZiweiPage() {
               </button>
             </div>
 
-            {/* 命盘基本信息 */}
+            {/* 命盘基本信息 - 古卷风格 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: '农历', value: result.basic.lunarDate, color: '' },
                 { label: '四柱八字', value: result.basic.chineseDate, color: '' },
-                { label: '五行局', value: result.basic.fiveElementsClass, color: 'chinese-red' },
+                { label: '五行局', value: result.basic.fiveElementsClass, color: 'text-[#9B2C2C]' },
                 { label: '生肖', value: result.basic.zodiac, color: '' },
-                { label: '命主', value: result.basic.soul || '--', color: 'text-blue-700' },
-                { label: '身主', value: result.basic.body || '--', color: 'text-purple-700' },
+                { label: '命主', value: result.basic.soul || '--', color: 'text-amber-700' },
+                { label: '身主', value: result.basic.body || '--', color: 'text-indigo-700' },
                 { label: '命宫', value: result.basic.earthlyBranchOfSoulPalace || '--', color: 'text-yellow-700' },
-                { label: '身宫', value: result.basic.earthlyBranchOfBodyPalace || '--', color: 'text-green-700' },
+                { label: '身宫', value: result.basic.earthlyBranchOfBodyPalace || '--', color: 'text-emerald-700' },
               ].map((item) => (
-                <div key={item.label} className="card !p-3 text-center">
-                  <div className="text-xs text-gray-500 mb-1">{item.label}</div>
-                  <div className={`font-bold ${item.color || 'text-gray-900'}`}>{item.value}</div>
+                <div key={item.label} className="card !p-3 text-center bg-gradient-to-br from-[#FDF6E3] to-[#F5E6C8] border-amber-200/60">
+                  <div className="text-xs text-amber-800/70 mb-1 tracking-wider">{item.label}</div>
+                  <div className={`font-bold ${item.color || 'text-slate-900'}`}>{item.value}</div>
                 </div>
               ))}
             </div>
 
             {/* 星曜组合提示 */}
             {combinations.length > 0 && (
-              <div className="card !p-4 border-l-4 border-l-red-500">
-                <div className="text-sm font-bold text-gray-800 mb-2">⭐ 命盘格局</div>
-                <div className="space-y-1">
-                  {combinations.map((c, i) => (
-                    <div key={i} className="text-sm text-gray-700">{c}</div>
-                  ))}
+              <div className="relative card !p-4 border-l-4 border-l-[#9B2C2C] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-50/50 to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="text-sm font-bold text-[#7B1F1F] mb-2 flex items-center gap-2">
+                    <span className="w-5 h-5 bg-[#9B2C2C] text-white rounded flex items-center justify-center text-[10px]">★</span>
+                    命盘格局
+                  </div>
+                  <div className="space-y-1">
+                    {combinations.map((c, i) => (
+                      <div key={i} className="text-sm text-slate-700">{c}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* 十二宫命盘 - 4x4 网格 */}
-            <div className="card !p-0 overflow-hidden">
-              <div className="bg-gradient-to-r from-red-800 to-red-900 text-white px-4 py-3">
-                <h2 className="font-bold text-lg" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>十二宫命盘</h2>
-                <p className="text-xs text-red-200 mt-0.5">点击宫位查看详情 · 红色高亮为三方四正</p>
-              </div>
-              <div className="grid grid-cols-4 gap-0" style={{ gridTemplateRows: 'repeat(4, minmax(0, 1fr))' }}>
-                {/* 中宫信息区 — 显式定位在中间2x2区域 */}
-                <div className="bg-gradient-to-br from-red-800 to-red-900 text-white flex items-center justify-center p-3 min-h-[150px] border border-red-700"
-                  style={{ gridRow: '2 / 4', gridColumn: '2 / 4' }}>
-                  <div className="text-center">
-                    <div className="font-bold text-lg" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>紫微斗数</div>
-                    <div className="text-xs mt-1 opacity-80 font-mono">{result.basic.chineseDate}</div>
-                    <div className="divider-gold !my-2 !bg-white/20 !h-px" />
-                    <div className="text-xs opacity-90">{result.basic.fiveElementsClass}</div>
-                    <div className="text-xs mt-1 flex items-center justify-center gap-3">
-                      <span>命主 <strong className="text-gold-300">{result.basic.soul || '--'}</strong></span>
-                      <span>身主 <strong className="text-blue-300">{result.basic.body || '--'}</strong></span>
-                    </div>
-                    <div className="text-xs mt-1 opacity-60">{result.basic.gender === '男' ? '乾造' : '坤造'} · {result.basic.zodiac}年</div>
-                    <div className="w-7 h-7 mx-auto mt-2 border border-white/30 rounded-full flex items-center justify-center text-[10px] opacity-50">☯</div>
-                  </div>
-                </div>
+            {/* 三视图切换 + 时间轴导航 - 朱砂红+金箔设计 */}
+            <div className="relative rounded-xl overflow-hidden shadow-xl border border-amber-800/30">
+              {/* 背景层 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#7B1F1F] via-[#9B2C2C] to-[#7B1F1F]" />
+              {/* 金色装饰线 */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#C9A962] to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#C9A962]/70 to-transparent" />
+              {/* 暗纹 */}
+              <div className="absolute inset-0 opacity-[0.06]" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0v40M0 20h40' stroke='%23fff' stroke-width='0.3'/%3E%3C/svg%3E")`,
+              }} />
 
-                {/* 十二宫位 */}
-                {Array.from({ length: 12 }).map((_, branchIdx) => {
-                  const pos = GRID_POSITIONS[branchIdx];
-                  if (!pos) return null;
-
-                  const palace = result.palaces.find(p => p.index === branchIdx);
-                  if (!palace) return null;
-
-                  const isSelected = selectedPalaceIdx === branchIdx;
-                  const isSanfang = sanfangPalaces.includes(branchIdx);
-                  const decadalRange = palace.decadal?.range;
-                  const isLife = palace.name === '命宫';
-
-                  // CSS Grid 显式定位（1-based）
-                  const gridRow = pos.row + 1;
-                  const gridCol = pos.col + 1;
-
-                  return (
-                    <div
-                      key={branchIdx}
-                      onClick={() => setSelectedPalaceIdx(isSelected ? null : branchIdx)}
-                      style={{ gridRow, gridColumn: gridCol }}
-                      className={`p-1.5 min-h-[140px] border cursor-pointer transition-all duration-200 flex flex-col ${
-                        isSelected
-                          ? 'bg-red-100 border-red-500 ring-2 ring-red-400 z-10'
-                          : isSanfang
-                          ? 'bg-yellow-50 border-yellow-400'
-                          : isLife
-                          ? 'bg-gold-50/50 border-gold-300'
-                          : palace.isBody
-                          ? 'bg-blue-50/60 border-parchment-200'
-                          : 'bg-white border-parchment-200 hover:bg-parchment-50'
+              <div className="relative flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-white">
+                {/* 视图切换 */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-[#C9A962] mr-2 tracking-widest">视图</span>
+                  {([
+                    { key: 'feixing', label: '飞星盘', desc: '飞化路径' },
+                    { key: 'sanhe', label: '三合盘', desc: '三方四正' },
+                    { key: 'sihua', label: '四化盘', desc: '禄权科忌' },
+                  ] as const).map((v) => (
+                    <button
+                      key={v.key}
+                      onClick={() => setViewMode(v.key)}
+                      className={`relative px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                        viewMode === v.key
+                          ? 'bg-[#C9A962] text-[#7B1F1F] shadow-lg shadow-amber-900/30'
+                          : 'bg-[#5C1515]/50 hover:bg-[#6B1A1A] text-red-100 border border-[#C9A962]/20'
                       }`}
                     >
-                      {/* 宫位头: 宫干支 + 宫名 + 大限 */}
-                      <div className="flex items-center justify-between mb-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] text-gray-400 font-mono">
-                            {palace.heavenlyStem}{palace.earthlyBranch}
-                          </span>
-                          <span className={`font-bold text-xs ${isLife ? 'text-gold-700' : 'text-red-700'}`}>
-                            {palace.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          {palace.isBody && <span className="text-[9px] text-blue-600 bg-blue-100 px-1 rounded font-medium">身</span>}
-                          {decadalRange && (
-                            <span className="text-[8px] text-gray-400 bg-gray-100 px-1 rounded font-mono">
-                              {decadalRange[0]}-{decadalRange[1]}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 主星 - 带亮度 + 四化 */}
-                      <div className="flex flex-wrap gap-0.5 mb-0.5">
-                        {palace.majorStars.map((star, si) => (
-                          <span
-                            key={si}
-                            className={`inline-flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded ${
-                              star.mutagen
-                                ? MUTAGEN_STYLE[star.mutagen] || 'bg-gray-100 text-gray-700'
-                                : star.brightness && ['庙', '旺', '得'].includes(star.brightness)
-                                ? 'bg-red-50 text-red-700'
-                                : 'bg-gray-50 text-gray-600'
-                            }`}
-                          >
-                            {star.name}
-                            {star.brightness && (
-                              <span className={`text-[8px] ${BRIGHTNESS_STYLE[star.brightness] || 'text-gray-400'}`}>
-                                {star.brightness}
-                              </span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* 辅星 */}
-                      {palace.minorStars.length > 0 && (
-                        <div className="flex flex-wrap gap-0.5 mb-0.5">
-                          {palace.minorStars.map((star, si) => (
-                            <span key={si} className="text-[9px] text-gray-500 px-1 py-0.5 rounded bg-gray-50/50">
-                              {star.name}
-                            </span>
-                          ))}
-                        </div>
+                      {v.label}
+                      <span className="text-[10px] ml-1 opacity-60">{v.desc}</span>
+                      {viewMode === v.key && (
+                        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#FFD700]" />
                       )}
+                    </button>
+                  ))}
+                </div>
 
-                      {/* 杂曜 */}
-                      {palace.adjectiveStars && palace.adjectiveStars.length > 0 && (
-                        <div className="flex flex-wrap gap-0.5 flex-1">
-                          {palace.adjectiveStars.slice(0, 4).map((name, si) => (
-                            <span key={si} className="text-[8px] text-gray-400 px-1 rounded bg-white/50">
-                              {name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* 底部: 长生十二神 + 博士十二神 */}
-                      {(palace.changsheng12 || palace.boshi12) && (
-                        <div className="flex justify-between text-[7px] text-gray-400 mt-auto pt-0.5 border-t border-parchment-100">
-                          {palace.changsheng12 ? <span>{palace.changsheng12}</span> : <span />}
-                          {palace.boshi12 ? <span>{palace.boshi12}</span> : <span />}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {/* 时间轴 */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-[#C9A962] mr-2 tracking-widest">时间</span>
+                  {([
+                    { key: 'base', label: '本命' },
+                    { key: 'decadal', label: '大限' },
+                    { key: 'annual', label: '流年' },
+                    { key: 'monthly', label: '流月' },
+                  ] as const).map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setTimeMode(t.key)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                        timeMode === t.key
+                          ? 'bg-[#C9A962]/90 text-[#7B1F1F] font-bold shadow'
+                          : 'text-red-200 hover:bg-[#C9A962]/20 hover:text-[#FFD700]'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 选中宫位详情 */}
+            {/* 十二宫命盘 - 使用新组件 */}
+            <ZiweiChart
+              data={result}
+              viewMode={viewMode}
+              timeMode={timeMode}
+              selectedPalaceIdx={selectedPalaceIdx}
+              onSelectPalace={setSelectedPalaceIdx}
+            />
+
+            {/* 选中宫位详情 - 宣纸古卷设计 */}
             {selectedPalace && (
-              <div className="card border-l-4 border-l-red-500 animate-fade-in">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="card-title !mb-0">{selectedPalace.name}详解</h2>
+              <div className="relative card !p-0 overflow-hidden animate-fade-in rounded-xl border border-amber-800/30 shadow-xl">
+                {/* 顶部朱砂红条 */}
+                <div className="bg-gradient-to-r from-[#7B1F1F] via-[#9B2C2C] to-[#7B1F1F] px-5 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* 朱砂印章 */}
+                    <div className="w-8 h-8 bg-[#B22222] border border-[#C9A962] rounded flex items-center justify-center">
+                      <span className="text-[9px] text-[#FFD700]">{selectedPalace.name.slice(0, 2)}</span>
+                    </div>
+                    <h2 className="text-white font-bold text-lg tracking-wide" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+                      {selectedPalace.name}详解
+                    </h2>
+                  </div>
                   <button
                     onClick={() => setSelectedPalaceIdx(null)}
-                    className="text-xs text-gray-400 hover:text-red-700"
+                    className="text-red-200 hover:text-white text-sm transition-colors"
                   >
                     关闭 ✕
                   </button>
                 </div>
-                {PALACE_MEANING[selectedPalace.name] && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded font-medium">
-                      {PALACE_MEANING[selectedPalace.name].area}
-                    </span>
-                    <span className="text-xs text-gray-500">{PALACE_MEANING[selectedPalace.name].description}</span>
-                  </div>
-                )}
+                {/* 金色装饰线 */}
+                <div className="h-[2px] bg-gradient-to-r from-transparent via-[#C9A962] to-transparent" />
+
+                <div className="p-5 bg-gradient-to-br from-[#FDF6E3] via-[#F5E6C8] to-[#F5E6C8]">
+                  {PALACE_MEANING[selectedPalace.name] && (
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-amber-200/60">
+                      <span className="text-xs px-2.5 py-1 bg-[#9B2C2C] text-[#FFD700] rounded font-medium">
+                        {PALACE_MEANING[selectedPalace.name].area}
+                      </span>
+                      <span className="text-xs text-amber-800/80">{PALACE_MEANING[selectedPalace.name].description}</span>
+                    </div>
+                  )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 主星 */}
                   <div>
-                    <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-red-500 rounded-full" /> 主星（{selectedPalace.majorStars.length}颗）
+                    <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-[#9B2C2C] rounded-full" /> 主星 · {selectedPalace.majorStars.length}颗
                     </h4>
                     {selectedPalace.majorStars.length > 0 ? (
                       <div className="space-y-2">
                         {selectedPalace.majorStars.map((s, i) => {
                           const starInfo = MAIN_STAR_INTERPRETATION[Object.keys(MAIN_STAR_INTERPRETATION).find(k => s.name.includes(k)) || ''];
                           return (
-                            <div key={i} className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <div key={i} className="p-2.5 bg-white/70 rounded-lg border border-amber-200/60 shadow-sm">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`font-bold text-sm ${getStarColorClass(s.name)}`}>{s.name}</span>
-                                <span className="text-xs text-gray-400">{getStarLevel(s.name)}</span>
-                                {s.brightness && <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">{s.brightness}</span>}
+                                <span className="text-xs text-amber-700/60">{getStarLevel(s.name)}</span>
+                                {s.brightness && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-200">{s.brightness}</span>}
                                 {s.mutagen && (
-                                  <span className={`text-xs px-1 rounded ${
-                                    s.mutagen === '化禄' ? 'bg-green-100 text-green-700' :
+                                  <span className={`text-xs px-1.5 rounded font-medium ${
+                                    s.mutagen === '化禄' ? 'bg-emerald-100 text-emerald-700' :
                                     s.mutagen === '化权' ? 'bg-blue-100 text-blue-700' :
-                                    s.mutagen === '化科' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'
+                                    s.mutagen === '化科' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
                                   }`}>{s.mutagen}</span>
                                 )}
                               </div>
-                              {starInfo && <p className="text-xs text-gray-600 leading-relaxed">{starInfo.personality}</p>}
+                              {starInfo && <p className="text-xs text-slate-600 leading-relaxed">{starInfo.personality}</p>}
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400 italic">无主星坐守，借对宫星曜参断</p>
+                      <p className="text-sm text-amber-700/50 italic py-4">无主星坐守，借对宫星曜参断</p>
                     )}
                   </div>
 
                   {/* 辅星 */}
                   <div>
-                    <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full" /> 辅星（{selectedPalace.minorStars.length}颗）
+                    <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-700 rounded-full" /> 辅星 · {selectedPalace.minorStars.length}颗
                     </h4>
                     {selectedPalace.minorStars.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedPalace.minorStars.map((s, i) => (
-                          <span key={i} className={`text-xs px-2 py-1 rounded border ${getStarColorClass(s.name)} bg-white`}>
+                          <span key={i} className={`text-xs px-2.5 py-1 rounded border bg-white/70 ${getStarColorClass(s.name)}`}>
                             {s.name}
                             {s.mutagen && <span className="text-[10px] ml-0.5">({s.mutagen.replace('化', '')})</span>}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400 italic">无辅星</p>
+                      <p className="text-sm text-amber-700/50 italic py-4">无辅星</p>
                     )}
 
                     {/* 三方四正 */}
@@ -592,6 +551,7 @@ export default function ZiweiPage() {
                     </div>
                   ) : null;
                 })()}
+                </div>
               </div>
             )}
 

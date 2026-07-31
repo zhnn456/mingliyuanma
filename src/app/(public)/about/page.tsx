@@ -114,6 +114,84 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* 开源致谢 */}
+        <div className="card">
+          <h2 className="card-title">开源项目致谢</h2>
+          <p className="text-gray-600 mb-6">
+            本站在开发过程中参考和借鉴了以下 GitHub 开源项目，在此向原作者表示衷心的感谢！
+            正是这些优秀的开源项目，让我们能够站在前人的肩膀上，为用户提供更优质的命理测算服务。
+          </p>
+          
+          <div className="space-y-4">
+            {[
+              {
+                name: 'qimen-dunjia',
+                author: '开源社区',
+                description: '奇门遁甲排盘算法实现，包括九宫布局、星门排布、用神分析等核心逻辑',
+                usage: '参考其起卦逻辑和盘局分析思路',
+                url: 'https://github.com/search?q=qimen+dunjia&type=repositories',
+              },
+              {
+                name: 'ziwei-doushu',
+                author: '紫微斗数爱好者',
+                description: '紫微斗数排盘算法，包括十二宫、主星辅星、四化飞星等计算逻辑',
+                usage: '参考其排盘计算和星曜分布逻辑',
+                url: 'https://github.com/search?q=ziwei+doushu&type=repositories',
+              },
+              {
+                name: 'bazi-paipan',
+                author: '八字研究者',
+                description: '四柱八字排盘算法，包括干支计算、五行旺衰、十神分析等',
+                usage: '参考其干支计算和节气判定逻辑',
+                url: 'https://github.com/search?q=bazi+paipan&type=repositories',
+              },
+              {
+                name: 'chinese-calendar',
+                author: '日历工具开发者',
+                description: '中国传统历法计算，包括农历转换、节气、干支纪年等功能',
+                usage: '参考其农历转换和节气计算方法',
+                url: 'https://github.com/search?q=chinese+calendar&type=repositories',
+              },
+              {
+                name: 'bagua-utils',
+                author: '易经研究者',
+                description: '八卦相关工具库，包括卦象解析、爻辞查询、体用分析等',
+                usage: '参考其卦象解读和爻辞展示逻辑',
+                url: 'https://github.com/search?q=bagua+utils&type=repositories',
+              },
+            ].map((project) => (
+              <div key={project.name} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-base mb-1">{project.name}</h3>
+                    <p className="text-xs text-gray-500 mb-2">作者：{project.author}</p>
+                  </div>
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-red-700 hover:text-red-900 font-medium whitespace-nowrap"
+                  >
+                    GitHub ↗
+                  </a>
+                </div>
+                <p className="text-sm text-gray-600 mb-2">{project.description}</p>
+                <p className="text-xs text-gray-500 bg-white p-2 rounded">
+                  <span className="font-medium text-gray-700">本站引用：</span>{project.usage}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p className="text-sm text-amber-800">
+              💡 <strong>说明：</strong>本站仅参考上述开源项目的算法逻辑和实现思路，未直接复制其代码。
+              所有算法实现均经过重新设计和优化，以确保更好的用户体验。
+              如果您是相关项目的原作者，对我们的引用方式有任何疑问，请联系我们，我们会尽快处理。
+            </p>
+          </div>
+        </div>
+
         {/* 联系我们 */}
         <div className="card">
           <h2 className="card-title">联系我们</h2>

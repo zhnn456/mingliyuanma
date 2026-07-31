@@ -125,6 +125,11 @@ export async function middleware(req: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  if (!pathname.startsWith('/_next/static') && !pathname.startsWith('/_next/image')) {
+    response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    response.headers.set('CDN-Cache-Control', 'public, max-age=0, must-revalidate');
+  }
 
   return response;
 }
