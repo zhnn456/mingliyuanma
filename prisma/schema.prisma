@@ -27,7 +27,7 @@ model User {
   agentId       String?   // 如果是代理商用户，关联代理商
   
   // 关系
-  agent         Agent?    @relation(fields: [agentId], references: [id])
+  agent         Agent?    @relation
   orders        Order[]
   tickets       Ticket[]
   
