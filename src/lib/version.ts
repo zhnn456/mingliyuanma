@@ -3,7 +3,7 @@
  * 构建时会自动注入版本号
  */
 
-export const APP_VERSION = 'v4.0.0';
+export const APP_VERSION = '4.0.0';
 export const APP_NAME = '命理网';
 export const APP_CODENAME = '商源';
 

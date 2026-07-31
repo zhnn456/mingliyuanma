@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAgent, requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
-export const runtime = 'edge';
-
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAgent(req);

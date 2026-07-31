@@ -3,8 +3,6 @@ import { requireAgent, requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { getSettlementPeriod, formatPeriod } from '@/lib/commission-engine';
 
-export const runtime = 'edge';
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

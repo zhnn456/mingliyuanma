@@ -9,8 +9,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseLicense } from '@/lib/license-generator';
 
-export const runtime = 'edge';
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const license = searchParams.get('license') || process.env.APP_LICENSE_KEY || '';

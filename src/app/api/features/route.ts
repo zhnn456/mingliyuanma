@@ -6,8 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseLicense } from '@/lib/license-generator';
 
-export const runtime = 'edge';
-
 export async function GET(req: NextRequest) {
   const license = process.env.APP_LICENSE_KEY || '';
   const parsed = license ? parseLicense(license) : null;

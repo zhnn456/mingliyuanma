@@ -5,8 +5,6 @@ import { verifyLicenseSignature } from '@/lib/license-generator';
 import { calculateCommission, getLevelFromFeatures } from '@/lib/commission-engine';
 import { randomUUID } from 'crypto';
 
-export const runtime = 'edge';
-
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

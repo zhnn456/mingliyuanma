@@ -3,8 +3,6 @@ import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
 import { queryAll } from '@/lib/d1';
 
-export const runtime = 'edge';
-
 export async function POST(req: NextRequest) {
   try {
     const { allowed, session } = await requireAdmin(req);

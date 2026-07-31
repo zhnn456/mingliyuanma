@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyLicenseSignature } from '@/lib/license-generator';
 import { queryFirst, queryAll } from '@/lib/d1';
 
-export const runtime = 'edge';
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const license = searchParams.get('license') || '';
