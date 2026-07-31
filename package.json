@@ -14,7 +14,7 @@
     "prisma:studio": "prisma studio",
     "build:worker": "node scripts/version-inject.js && npm run generate:knowledge && npx opennextjs-cloudflare build",
     "preview:worker": "npx wrangler dev",
-    "deploy:worker": "npm run generate:knowledge && npm run build:worker && cross-env OPEN_NEXT_DEPLOY=true wrangler deploy",
+    "deploy:worker": "npm run generate:knowledge && npm run build:worker && cross-env OPEN_NEXT_DEPLOY=true wrangler deploy --config wrangler.toml",
     "db:migrate:d1": "npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql",
     "db:migrate:d1:local": "npx wrangler d1 execute yuanmamingli --local --file=prisma/migrations.sql",
     "generate:types": "npx prisma generate && node scripts/sync-types.js",
