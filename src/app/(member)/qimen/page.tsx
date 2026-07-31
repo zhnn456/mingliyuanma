@@ -441,15 +441,15 @@ export default function QimenPage() {
 
             {/* 选中宫位详解 */}
             {selectedPalace && (
-              <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border-l-4 border-l-red-500 border border-amber-200/50 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-red-900 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-red-600 rounded" />
+              <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border-l-4 border-l-red-500 border border-amber-200/50 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-xl font-bold text-red-900 flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-red-600 rounded" />
                     {selectedPalace.trigram}宫（{TRIGRAM_DIRECTION[selectedPalace.trigram] || '中'}）详解
                   </h3>
                   <button
                     onClick={() => setSelectedPosition(null)}
-                    className="text-gray-400 hover:text-red-700 text-sm"
+                    className="text-gray-400 hover:text-red-700 text-base"
                   >
                     关闭 ✕
                   </button>
@@ -457,65 +457,65 @@ export default function QimenPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 八神 */}
-                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <h4 className="font-bold text-purple-800 text-sm mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                  <div className="p-5 bg-purple-50 rounded-xl border border-purple-200">
+                    <h4 className="font-bold text-purple-800 text-base mb-3 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-purple-500 rounded-full" />
                       八神 · {selectedPalace.deity}
                     </h4>
-                    <p className="text-xs text-purple-700 leading-relaxed">
+                    <p className="text-sm text-purple-700 leading-relaxed">
                       {BASHEN_INTERPRETATION[selectedPalace.deity]?.meaning || '神盘守护，洞察先机'}
                     </p>
                   </div>
 
                   {/* 九星 */}
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <h4 className="font-bold text-blue-800 text-sm mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                  <div className="p-5 bg-blue-50 rounded-xl border border-blue-200">
+                    <h4 className="font-bold text-blue-800 text-base mb-3 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
                       九星 · {selectedPalace.star}
                     </h4>
-                    <p className="text-xs text-blue-700 leading-relaxed">
+                    <p className="text-sm text-blue-700 leading-relaxed">
                       {JIUXING_INTERPRETATION[selectedPalace.star]?.meaning || '星曜临宫，能量显现'}
                     </p>
                   </div>
 
                   {/* 八门 */}
-                  <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-                    <h4 className="font-bold text-green-800 text-sm mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  <div className="p-5 bg-green-50 rounded-xl border border-green-200">
+                    <h4 className="font-bold text-green-800 text-base mb-3 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-green-500 rounded-full" />
                       八门 · {selectedPalace.gate}
                     </h4>
                     {(() => {
                       const gateInfo = BAMEN_INTERPRETATION[selectedPalace.gate];
                       return gateInfo ? (
                         <>
-                          <span className={`text-xs px-2 py-0.5 rounded inline-block ${getGateLevel(selectedPalace.gate)} font-medium`}>
+                          <span className={`text-sm px-3 py-0.5 rounded inline-block ${getGateLevel(selectedPalace.gate)} font-medium`}>
                             {gateInfo.level}
                           </span>
-                          <p className="text-xs text-green-700 mt-2 leading-relaxed">{gateInfo.meaning}</p>
-                          <p className="text-xs text-green-600 mt-1">💡 建议：{gateInfo.advice}</p>
+                          <p className="text-sm text-green-700 mt-3 leading-relaxed">{gateInfo.meaning}</p>
+                          <p className="text-sm text-green-600 mt-2">💡 建议：{gateInfo.advice}</p>
                         </>
                       ) : (
-                        <p className="text-xs text-gray-500">门星信息暂缺</p>
+                        <p className="text-sm text-gray-500">门星信息暂缺</p>
                       );
                     })()}
                   </div>
 
                   {/* 天盘/地盘 */}
-                  <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-                    <h4 className="font-bold text-orange-800 text-sm mb-2 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                  <div className="p-5 bg-orange-50 rounded-xl border border-orange-200">
+                    <h4 className="font-bold text-orange-800 text-base mb-3 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-orange-500 rounded-full" />
                       天盘 / 地盘
                     </h4>
-                    <div className="flex items-center justify-center gap-4 my-2">
-                      <span className="text-2xl font-bold text-red-600" style={{ fontFamily: 'Noto Serif SC, serif' }}>
+                    <div className="flex items-center justify-center gap-5 my-3">
+                      <span className="text-3xl font-bold text-red-600" style={{ fontFamily: 'Noto Serif SC, serif' }}>
                         {selectedPalace.heavenlyStem}
                       </span>
-                      <span className="text-gray-400 text-xl">↓</span>
-                      <span className="text-2xl font-bold text-gray-600" style={{ fontFamily: 'Noto Serif SC, serif' }}>
+                      <span className="text-gray-400 text-2xl">↓</span>
+                      <span className="text-3xl font-bold text-gray-600" style={{ fontFamily: 'Noto Serif SC, serif' }}>
                         {selectedPalace.earthlyStem}
                       </span>
                     </div>
-                    <p className="text-xs text-orange-700 text-center">
+                    <p className="text-sm text-orange-700 text-center leading-relaxed">
                       天盘{selectedPalace.heavenlyStem}落{selectedPalace.trigram}宫<br />
                       地盘{selectedPalace.earthlyStem}守{selectedPalace.trigram}宫
                     </p>
@@ -525,8 +525,8 @@ export default function QimenPage() {
                       const pattern = TEN_STEM_PATTERNS[stemKey];
                       if (pattern) {
                         return (
-                          <div className="mt-2 p-2 bg-white/70 rounded-lg">
-                            <div className={`text-xs font-bold ${
+                          <div className="mt-3 p-3 bg-white/70 rounded-lg">
+                            <div className={`text-sm font-bold ${
                               pattern.level.includes('大吉') ? 'text-green-700' :
                               pattern.level.includes('吉') ? 'text-green-600' :
                               pattern.level.includes('大凶') ? 'text-red-700' :
@@ -534,7 +534,7 @@ export default function QimenPage() {
                             }`}>
                               {pattern.name}（{pattern.level}）
                             </div>
-                            <p className="text-xs text-gray-600 mt-0.5">{pattern.description}</p>
+                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{pattern.description}</p>
                           </div>
                         );
                       }
@@ -544,14 +544,14 @@ export default function QimenPage() {
                 </div>
 
                 {/* 吉凶格局 */}
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap gap-3">
                   {selectedPalace.auspiciousPatterns?.map((p, i) => (
-                    <span key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-lg text-xs font-medium border border-green-200">
+                    <span key={i} className="bg-green-100 text-green-800 px-4 py-1.5 rounded-lg text-sm font-medium border border-green-200">
                       ✨ 吉 {p.name}
                     </span>
                   ))}
                   {selectedPalace.inauspiciousPatterns?.map((p, i) => (
-                    <span key={i} className="bg-red-100 text-red-800 px-3 py-1 rounded-lg text-xs font-medium border border-red-200">
+                    <span key={i} className="bg-red-100 text-red-800 px-4 py-1.5 rounded-lg text-sm font-medium border border-red-200">
                       ⚠️ 凶 {p.name}
                     </span>
                   ))}
@@ -560,42 +560,42 @@ export default function QimenPage() {
             )}
 
             {/* 方位吉凶分析 */}
-            <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5">
-              <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                <span className="w-1 h-5 bg-red-600 rounded" />
+            <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-6">
+              <h3 className="text-xl font-bold text-red-900 mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-red-600 rounded" />
                 方位吉凶
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                  <h4 className="font-bold text-green-800 text-sm mb-3 flex items-center gap-1">
+                <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                  <h4 className="font-bold text-green-800 text-base mb-4 flex items-center gap-1">
                     <span>✅</span> 吉利方位
                   </h4>
                   {directionAnalysis.auspicious.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {directionAnalysis.auspicious.map((d, i) => (
-                        <span key={i} className="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-200">
+                        <span key={i} className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium border border-green-200">
                           {d}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-green-600">暂无特别吉利的方位</p>
+                    <p className="text-base text-green-600">暂无特别吉利的方位</p>
                   )}
                 </div>
-                <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200">
-                  <h4 className="font-bold text-red-800 text-sm mb-3 flex items-center gap-1">
+                <div className="p-5 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200">
+                  <h4 className="font-bold text-red-800 text-base mb-4 flex items-center gap-1">
                     <span>⚠️</span> 不利方位
                   </h4>
                   {directionAnalysis.inauspicious.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {directionAnalysis.inauspicious.map((d, i) => (
-                        <span key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-200">
+                        <span key={i} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
                           {d}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-red-600">暂无特别凶险的方位</p>
+                    <p className="text-base text-red-600">暂无特别凶险的方位</p>
                   )}
                 </div>
               </div>
@@ -603,26 +603,26 @@ export default function QimenPage() {
 
             {/* 格局分析 */}
             {result.specialPatterns && (
-              <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5">
-                <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                  <span className="w-1 h-5 bg-red-600 rounded" />
+              <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-6">
+                <h3 className="text-xl font-bold text-red-900 mb-5 flex items-center gap-2">
+                  <span className="w-1.5 h-6 bg-red-600 rounded" />
                   格局分析
                 </h3>
                 {result.specialPatterns.fuYinFanYin?.description && (
-                  <div className="mb-4 p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <h4 className="font-bold text-purple-800 text-sm mb-2">伏吟/反吟</h4>
+                  <div className="mb-5 p-5 bg-purple-50 rounded-xl border border-purple-200">
+                    <h4 className="font-bold text-purple-800 text-base mb-3">伏吟/反吟</h4>
                     {result.specialPatterns.fuYinFanYin.description.map((d, i) => (
-                      <p key={i} className="text-xs text-purple-700 leading-relaxed">{d}</p>
+                      <p key={i} className="text-sm text-purple-700 leading-relaxed mb-1">{d}</p>
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {result.specialPatterns.auspiciousPatterns && result.specialPatterns.auspiciousPatterns.length > 0 && (
-                    <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                      <h4 className="font-bold text-green-700 text-sm mb-2">🏆 吉格</h4>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                      <h4 className="font-bold text-green-700 text-base mb-3">🏆 吉格</h4>
+                      <div className="flex flex-wrap gap-3">
                         {result.specialPatterns.auspiciousPatterns.map((p, i) => (
-                          <span key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-lg text-xs font-medium border border-green-200">
+                          <span key={i} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium border border-green-200">
                             {p.name}
                           </span>
                         ))}
@@ -630,11 +630,11 @@ export default function QimenPage() {
                     </div>
                   )}
                   {result.specialPatterns.inauspiciousPatterns && result.specialPatterns.inauspiciousPatterns.length > 0 && (
-                    <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200">
-                      <h4 className="font-bold text-red-700 text-sm mb-2">⚠️ 凶格</h4>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="p-5 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200">
+                      <h4 className="font-bold text-red-700 text-base mb-3">⚠️ 凶格</h4>
+                      <div className="flex flex-wrap gap-3">
                         {result.specialPatterns.inauspiciousPatterns.map((p, i) => (
-                          <span key={i} className="bg-red-100 text-red-800 px-3 py-1 rounded-lg text-xs font-medium border border-red-200">
+                          <span key={i} className="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
                             {p.name}
                           </span>
                         ))}
@@ -650,38 +650,38 @@ export default function QimenPage() {
               <>
                 {/* 用神分析 - 根据问事类型 */}
                 {detailedAnalysis.yongshenAnalysis && (
-                  <div className="bg-gradient-to-br from-amber-50 via-white to-yellow-50 rounded-2xl shadow-lg border-2 border-amber-300/50 p-5">
-                    <h3 className="text-lg font-bold text-red-900 mb-3 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-red-600 rounded" />
+                  <div className="bg-gradient-to-br from-amber-50 via-white to-yellow-50 rounded-2xl shadow-lg border-2 border-amber-300/50 p-6">
+                    <h3 className="text-xl font-bold text-red-900 mb-4 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-red-600 rounded" />
                       用神分析 · {detailedAnalysis.yongshenAnalysis.yongshenName}
                       {currentQuestionType && (
-                        <span className="text-sm font-normal text-gray-500">（{currentQuestionType.label}）</span>
+                        <span className="text-base font-normal text-gray-500">（{currentQuestionType.label}）</span>
                       )}
                     </h3>
                     
-                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mb-4">
+                    <div className="text-base text-gray-700 leading-relaxed whitespace-pre-line mb-5">
                       {detailedAnalysis.yongshenAnalysis.analysis}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {detailedAnalysis.yongshenAnalysis.timing && (
-                        <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
-                          <div className="text-xs font-bold text-blue-700 mb-1">⏱️ 应期判断</div>
-                          <p className="text-xs text-blue-600 leading-relaxed">{detailedAnalysis.yongshenAnalysis.timing}</p>
+                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                          <div className="text-sm font-bold text-blue-700 mb-2">⏱️ 应期判断</div>
+                          <p className="text-sm text-blue-600 leading-relaxed">{detailedAnalysis.yongshenAnalysis.timing}</p>
                         </div>
                       )}
                       {detailedAnalysis.yongshenAnalysis.direction && (
-                        <div className="p-3 bg-green-50 rounded-xl border border-green-200">
-                          <div className="text-xs font-bold text-green-700 mb-1">📍 吉利方位</div>
-                          <p className="text-xs text-green-600">{detailedAnalysis.yongshenAnalysis.direction}</p>
+                        <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                          <div className="text-sm font-bold text-green-700 mb-2">📍 吉利方位</div>
+                          <p className="text-sm text-green-600">{detailedAnalysis.yongshenAnalysis.direction}</p>
                         </div>
                       )}
                     </div>
 
                     {detailedAnalysis.yongshenAnalysis.advice && (
-                      <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
-                        <div className="text-xs font-bold text-amber-700 mb-1">💡 针对性建议</div>
-                        <p className="text-xs text-amber-700 leading-relaxed">{detailedAnalysis.yongshenAnalysis.advice}</p>
+                      <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                        <div className="text-sm font-bold text-amber-700 mb-2">💡 针对性建议</div>
+                        <p className="text-sm text-amber-700 leading-relaxed">{detailedAnalysis.yongshenAnalysis.advice}</p>
                       </div>
                     )}
                   </div>
@@ -689,16 +689,16 @@ export default function QimenPage() {
 
                 {/* 格局深度分析 */}
                 {detailedAnalysis.patternDetails.length > 0 && (
-                  <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5">
-                    <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-red-600 rounded" />
+                  <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-6">
+                    <h3 className="text-xl font-bold text-red-900 mb-5 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-red-600 rounded" />
                       格局深度分析
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {detailedAnalysis.patternDetails.map((p, i) => (
                         <div
                           key={i}
-                          className={`p-4 rounded-xl border ${
+                          className={`p-5 rounded-xl border ${
                             p.level.includes('大吉') ? 'bg-green-50 border-green-300' :
                             p.level.includes('吉') ? 'bg-green-50/70 border-green-200' :
                             p.level.includes('大凶') ? 'bg-red-50 border-red-300' :
@@ -706,8 +706,8 @@ export default function QimenPage() {
                             'bg-gray-50 border-gray-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`font-bold text-sm ${
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className={`font-bold text-base ${
                               p.level.includes('大吉') ? 'text-green-700' :
                               p.level.includes('吉') ? 'text-green-600' :
                               p.level.includes('大凶') ? 'text-red-700' :
@@ -715,16 +715,16 @@ export default function QimenPage() {
                             }`}>
                               {p.name}
                             </span>
-                            <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-600 font-medium">
+                            <span className="text-sm px-2.5 py-0.5 rounded bg-white/60 text-gray-600 font-medium">
                               {p.level}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-600 mb-2">{p.condition}</p>
-                          <p className="text-xs text-gray-700 leading-relaxed">{p.influence}</p>
+                          <p className="text-sm text-gray-700 mb-2">{p.condition}</p>
+                          <p className="text-sm text-gray-700 leading-relaxed">{p.influence}</p>
                           {p.classicSource && (
-                            <p className="text-xs text-purple-600 italic mt-2">{p.classicSource}</p>
+                            <p className="text-sm text-purple-600 italic mt-3">{p.classicSource}</p>
                           )}
-                          <p className="text-xs text-gray-500 mt-2 font-medium">💡 建议：{p.advice}</p>
+                          <p className="text-sm text-gray-600 mt-3 font-medium">💡 建议：{p.advice}</p>
                         </div>
                       ))}
                     </div>
@@ -733,15 +733,15 @@ export default function QimenPage() {
 
                 {/* 综合断局 - 根据问事类型 */}
                 {detailedAnalysis.overallAnalysis && (
-                  <div className="bg-gradient-to-br from-red-50 via-white to-amber-50 rounded-2xl shadow-lg border-2 border-red-200 p-5">
-                    <h3 className="text-lg font-bold text-red-900 mb-3 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-red-600 rounded" />
+                  <div className="bg-gradient-to-br from-red-50 via-white to-amber-50 rounded-2xl shadow-lg border-2 border-red-200 p-6">
+                    <h3 className="text-xl font-bold text-red-900 mb-4 flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-red-600 rounded" />
                       综合断局
                       {currentQuestionType && (
-                        <span className="text-sm font-normal text-gray-500">· {currentQuestionType.label}专项分析</span>
+                        <span className="text-base font-normal text-gray-500">· {currentQuestionType.label}专项分析</span>
                       )}
                     </h3>
-                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                    <div className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
                       {detailedAnalysis.overallAnalysis}
                     </div>
                   </div>
