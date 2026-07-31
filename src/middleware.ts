@@ -1,6 +1,7 @@
 /**
- * Next.js 中间件
+ * Next.js 中间件 v4.0.0
  * - 管理后台路由保护（带 HMAC 签名验证）
+ * - 代理商授权验证（License 检查）
  * - IP 级别速率限制
  * - 安全响应头注入
  */
@@ -8,7 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW = 60_000;
-const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login'];
+const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license/verify', '/api/watermark', '/api/features'];
+const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 
 interface RateEntry {
   count: number;
@@ -103,6 +105,32 @@ export async function middleware(req: NextRequest) {
     if (!payload || payload.role !== 'admin') {
       return NextResponse.redirect(new URL('/login', req.url));
     }
+  }
+
+  // 代理商路由保护：检查 License（仅在非中央服务器环境）
+  const isAgentProtected = AGENT_PROTECTED_PATHS.some((p) => pathname.startsWith(p));
+  if (isAgentProtected && process.env.APP_LICENSE_KEY) {
+    const licenseKey = process.env.APP_LICENSE_KEY;
+    const centerApi = process.env.CENTER_API || '';
+    const domain = process.env.NEXTAUTH_URL || '';
+
+    try {
+      const params = new URLSearchParams({ license: licenseKey, domain });
+      const res = await fetch(`${centerApi}/api/license/verify?${params}`, {
+        method: 'GET',
+        cf: { cacheTtl: 300 } as any,
+      });
+      if (!res.ok) {
+        // 远程验证失败，检查是否在宽限期内
+        const cached = req.headers.get('x-license-verified');
+        if (!cached) {
+          // 宽限期外，限制功能
+          if (pathname.startsWith('/api/agent/orders') || pathname.startsWith('/api/agent/update')) {
+            return NextResponse.json({ error: '授权验证失败，请联系管理员' }, { status: 503 });
+          }
+        }
+      }
+    } catch {}
   }
 
   const forwarded = req.headers.get('x-forwarded-for');
