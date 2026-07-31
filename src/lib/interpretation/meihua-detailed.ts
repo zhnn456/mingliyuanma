@@ -26,16 +26,16 @@ export interface MeihuaQuestionType {
 }
 
 export const MEIHUA_QUESTION_TYPES: MeihuaQuestionType[] = [
-  { key: 'general', label: '综合运势', icon: '卦', description: '综合判断吉凶趋势', focusYong: '整体体用' },
-  { key: 'wealth', label: '求财', icon: '财', description: '看体用关系断财运，体克用有财，用生体有财', focusYong: '用卦为财' },
-  { key: 'career', label: '事业', icon: '业', description: '看体用旺衰断事业，体旺用弱可成', focusYong: '用卦为事业' },
-  { key: 'marriage', label: '婚姻', icon: '婚', description: '体为求测人，用为对方。用生体则对方有意', focusYong: '用卦为对方' },
-  { key: 'exam', label: '考试', icon: '考', description: '体旺用衰则考运佳，用生体有贵人助', focusYong: '用卦为考运' },
-  { key: 'health', label: '疾病', icon: '疾', description: '体为病人，用为病症。用克体则病重', focusYong: '用卦为病症' },
-  { key: 'travel', label: '出行', icon: '行', description: '体为出行人，用为目的地。用生体则出行顺利', focusYong: '用卦为目的地' },
-  { key: 'lawsuit', label: '官司', icon: '讼', description: '体为自己，用为对方。体克用则胜诉', focusYong: '用卦为对方' },
-  { key: 'lost', label: '失物', icon: '失', description: '体为失主，用为失物。用生体则物可寻回', focusYong: '用卦为失物' },
-  { key: 'weather', label: '天气', icon: '天', description: '看卦象五行断晴雨，离火为晴坎水为雨', focusYong: '卦象五行' },
+  { key: 'general', label: '综合运势', icon: '☯', description: '综合判断吉凶趋势，了解整体运势', focusYong: '整体体用' },
+  { key: 'wealth', label: '求财', icon: '💰', description: '看体用关系断财运，体克用有财，用生体有财', focusYong: '用卦为财' },
+  { key: 'career', label: '事业', icon: '💼', description: '看体用旺衰断事业，体旺用弱可成', focusYong: '用卦为事业' },
+  { key: 'marriage', label: '婚姻', icon: '❤️', description: '体为求测人，用为对方。用生体则对方有意', focusYong: '用卦为对方' },
+  { key: 'exam', label: '考试', icon: '📚', description: '体旺用衰则考运佳，用生体有贵人助', focusYong: '用卦为考运' },
+  { key: 'health', label: '疾病', icon: '🏥', description: '体为病人，用为病症。用克体则病重', focusYong: '用卦为病症' },
+  { key: 'travel', label: '出行', icon: '🧳', description: '体为出行人，用为目的地。用生体则出行顺利', focusYong: '用卦为目的地' },
+  { key: 'lawsuit', label: '官司', icon: '⚖', description: '体为自己，用为对方。体克用则胜诉', focusYong: '用卦为对方' },
+  { key: 'lost', label: '失物', icon: '🔍', description: '体为失主，用为失物。用生体则物可寻回', focusYong: '用卦为失物' },
+  { key: 'weather', label: '天气', icon: '☀', description: '看卦象五行断晴雨，离火为晴坎水为雨', focusYong: '卦象五行' },
 ];
 
 // ============================================================

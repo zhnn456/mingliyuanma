@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute } from '@/lib/d1';
-import { calculateByNumbers, calculateByTime, calculateByText, calculateByCoin, calculateByRandom, calculateByDate } from '@/lib/algorithms/meihua';
+import { calculateByNumbers, calculateByTime, calculateByText, calculateByCoin, calculateByRandom, calculateByDate, calculateByReport, calculateByDirection, calculateByColor, calculateBySound, calculateByName } from '@/lib/algorithms/meihua';
 import { generateMeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { checkUsageLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { method, num1, num2, num3, year, month, day, hour, text, flips, date, questionType } = body;
+    const { method, num1, num2, num3, year, month, day, hour, text, flips, date, questionType,
+      nums, upperDir, lowerDir, dongYao, upperColor, lowerColor, soundCount, duration, surname, givenName } = body;
 
     // 检查使用次数限制
     const { canUse, session, error } = await checkUsageLimit('meihua');
@@ -56,6 +57,41 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: '请提供日期' }, { status: 400 });
         }
         result = calculateByDate(date);
+        break;
+
+      case 'report':
+        if (!nums || !Array.isArray(nums) || nums.length === 0) {
+          return NextResponse.json({ error: '请报数字' }, { status: 400 });
+        }
+        result = calculateByReport(nums.map(Number));
+        break;
+
+      case 'direction':
+        if (!upperDir || !lowerDir) {
+          return NextResponse.json({ error: '请选择方位' }, { status: 400 });
+        }
+        result = calculateByDirection(upperDir, lowerDir, dongYao ? parseInt(dongYao) : undefined);
+        break;
+
+      case 'color':
+        if (!upperColor || !lowerColor) {
+          return NextResponse.json({ error: '请选择颜色' }, { status: 400 });
+        }
+        result = calculateByColor(upperColor, lowerColor);
+        break;
+
+      case 'sound':
+        if (!soundCount || !duration) {
+          return NextResponse.json({ error: '请提供声音次数和持续时间' }, { status: 400 });
+        }
+        result = calculateBySound(parseInt(soundCount), parseInt(duration));
+        break;
+
+      case 'name':
+        if (!surname || !givenName) {
+          return NextResponse.json({ error: '请输入姓名' }, { status: 400 });
+        }
+        result = calculateByName(surname, givenName);
         break;
 
       default:

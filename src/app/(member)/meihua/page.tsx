@@ -18,7 +18,19 @@ interface MeihuaResult {
   tiYong: { ti: string; yong: string; relation: string };
 }
 
-type MethodType = 'number' | 'time' | 'text' | 'coin' | 'random' | 'date';
+type MethodType = 'number' | 'time' | 'text' | 'coin' | 'random' | 'date' | 'report' | 'direction' | 'color' | 'sound' | 'name';
+
+// 八卦方位选项
+const BAGUA_NAMES = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
+const BAGUA_COLORS: Record<string, string> = {
+  '乾': '#D4AF37', '兑': '#C0C0C0', '离': '#DC143C', '震': '#228B22',
+  '巽': '#32CD32', '坎': '#000080', '艮': '#8B4513', '坤': '#F5DEB3'
+};
+
+// 颜色选项
+const COLOR_OPTIONS = [
+  '白色', '金色', '银色', '黑色', '蓝色', '红色', '紫色', '绿色', '青色', '黄色', '棕色', '褐色'
+];
 
 function HexagramLines({ lines, dongYao, label, size = 'normal' }: { lines: number[]; dongYao?: number; label: string; size?: 'normal' | 'large' }) {
   const h = size === 'large' ? 'h-2.5' : 'h-1.5';
@@ -67,6 +79,18 @@ export default function MeihuaPage() {
   const [detailedAnalysis, setDetailedAnalysis] = useState<MeihuaDetailedAnalysis | null>(null);
   const { addToast } = useToast();
   const [initialLoaded, setInitialLoaded] = useState(false);
+  
+  // 新增状态：报数、方位、颜色、声音、姓名起卦
+  const [reportNums, setReportNums] = useState<string[]>(['', '', '']);
+  const [upperDir, setUpperDir] = useState('乾');
+  const [lowerDir, setLowerDir] = useState('兑');
+  const [directionDongYao, setDirectionDongYao] = useState('');
+  const [upperColor, setUpperColor] = useState('红色');
+  const [lowerColor, setLowerColor] = useState('黄色');
+  const [soundCount, setSoundCount] = useState('3');
+  const [soundDuration, setSoundDuration] = useState('5');
+  const [surname, setSurname] = useState('');
+  const [givenName, setGivenName] = useState('');
 
   useEffect(() => {
     if (session && !initialLoaded) {
@@ -97,6 +121,26 @@ export default function MeihuaPage() {
       else if (method === 'text') { body.text = text; }
       else if (method === 'coin') { body.flips = flips; }
       else if (method === 'date') { body.date = date; }
+      else if (method === 'report') {
+        body.nums = reportNums.filter(n => n !== '').map(Number);
+      }
+      else if (method === 'direction') {
+        body.upperDir = upperDir;
+        body.lowerDir = lowerDir;
+        if (directionDongYao) body.dongYao = directionDongYao;
+      }
+      else if (method === 'color') {
+        body.upperColor = upperColor;
+        body.lowerColor = lowerColor;
+      }
+      else if (method === 'sound') {
+        body.soundCount = soundCount;
+        body.duration = soundDuration;
+      }
+      else if (method === 'name') {
+        body.surname = surname;
+        body.givenName = givenName;
+      }
 
       const response = await fetch('/api/meihua', {
         method: 'POST',
@@ -131,7 +175,22 @@ export default function MeihuaPage() {
   };
 
   const methodLabels: Record<MethodType, string> = {
-    number: '数字', time: '时间', text: '文字', coin: '硬币', random: '随机', date: '日期'
+    number: '数字', time: '时间', text: '文字', coin: '硬币', random: '随机', date: '日期',
+    report: '报数', direction: '方位', color: '颜色', sound: '声音', name: '姓名'
+  };
+
+  const methodDescriptions: Record<MethodType, string> = {
+    number: '输入三个数字，分别对应上卦、下卦和动爻',
+    time: '以当下年月日时起卦，适用于时效问题',
+    text: '输入文字，按笔画起卦',
+    coin: '模拟三枚硬币六次投掷',
+    random: '系统随机生成卦象',
+    date: '选择日期起卦',
+    report: '心中默念后报出数字（1-4个）',
+    direction: '选择方位对应八卦起卦',
+    color: '选择颜色对应五行起卦',
+    sound: '根据声音次数和时长起卦',
+    name: '根据姓名笔画起卦'
   };
 
   const handleRandomCoin = () => {
@@ -139,7 +198,7 @@ export default function MeihuaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 py-12">
       <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* 页面标题 */}
@@ -179,30 +238,65 @@ export default function MeihuaPage() {
             {/* 输入表单 */}
             <div className="form-card mb-8">
               <form onSubmit={handleSubmit} className="space-y-5">
-                {/* 起卦方式选择 */}
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  {(['number', 'time', 'text', 'coin', 'random', 'date'] as const).map((m) => (
-                    <button key={m} type="button" onClick={() => setMethod(m)}
-                      className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${method === m ? 'bg-gradient-to-br from-red-700 to-red-900 text-white shadow-md' : 'bg-parchment-100 text-gray-600 hover:bg-parchment-200'}`}>
-                      {methodLabels[m]}起卦
-                    </button>
-                  ))}
-                </div>
-
-                {/* 问题类型选择 */}
+                {/* 起卦方式选择 - 精美卡片式 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-center">测什么事？</label>
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    {MEIHUA_QUESTION_TYPES.map((q) => (
-                      <button key={q.key} type="button" onClick={() => setQuestionType(q.key)}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${questionType === q.key ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'}`}>
-                        {q.icon} {q.label}
+                  <label className="block text-base font-bold text-gray-800 mb-3 text-center">
+                    <span className="inline-block bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">选择起卦方式</span>
+                  </label>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {(['number', 'time', 'text', 'coin', 'report', 'direction', 'color', 'sound', 'name', 'random', 'date'] as const).map((m) => (
+                      <button key={m} type="button" onClick={() => setMethod(m)}
+                        className={`p-3 rounded-xl font-medium text-sm transition-all ${
+                          method === m 
+                            ? 'bg-gradient-to-br from-red-600 to-orange-600 text-white shadow-lg scale-105' 
+                            : 'bg-white text-gray-700 hover:bg-amber-50 border border-gray-200 hover:border-amber-300'
+                        }`}>
+                        <div className="text-lg mb-0.5">
+                          {m === 'number' ? '🔢' : m === 'time' ? '🕐' : m === 'text' ? '✏️' : 
+                           m === 'coin' ? '🪙' : m === 'report' ? '📣' : m === 'direction' ? '🧭' :
+                           m === 'color' ? '🎨' : m === 'sound' ? '🔊' : m === 'name' ? '👤' :
+                           m === 'random' ? '🎲' : '📅'}
+                        </div>
+                        <div className="font-bold">{methodLabels[m]}</div>
+                        <div className="text-xs opacity-75">起卦</div>
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    {MEIHUA_QUESTION_TYPES.find(q => q.key === questionType)?.description}
+                  <p className="text-xs text-gray-500 text-center mt-2 bg-amber-50 rounded-lg p-2">
+                    💡 {methodDescriptions[method]}
                   </p>
+                </div>
+
+                {/* 问题类型选择 - 精致卡片式设计 */}
+                <div>
+                  <label className="block text-base font-bold text-gray-800 mb-3 text-center">
+                    <span className="inline-block bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">测什么事？</span>
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {MEIHUA_QUESTION_TYPES.map((q) => (
+                      <button 
+                        key={q.key} 
+                        type="button" 
+                        onClick={() => setQuestionType(q.key)}
+                        className={`p-3 rounded-xl font-medium transition-all text-left ${
+                          questionType === q.key 
+                            ? 'bg-gradient-to-br from-amber-500 to-red-500 text-white shadow-lg scale-105' 
+                            : 'bg-white text-gray-700 hover:bg-amber-50 border-2 border-gray-200 hover:border-amber-300'
+                        }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-2xl font-bold ${questionType === q.key ? 'text-white' : 'text-amber-600'}`}>
+                            {q.icon}
+                          </span>
+                          <span className={`font-bold text-base ${questionType === q.key ? 'text-white' : 'text-gray-800'}`}>
+                            {q.label}
+                          </span>
+                        </div>
+                        <p className={`text-xs leading-snug ${questionType === q.key ? 'text-white/90' : 'text-gray-500'}`}>
+                          {q.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* 数字起卦 */}
@@ -221,6 +315,179 @@ export default function MeihuaPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">动爻数</label>
                       <input type="number" value={num3} onChange={(e) => setNum3(e.target.value)} placeholder="第三个数" min="1"
+                        className="form-input" required />
+                    </div>
+                  </div>
+                )}
+
+                {/* 报数起卦 */}
+                {method === 'report' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 text-center">
+                      心中默念所问之事，然后随意报1-4个数字<br/>
+                      <span className="text-xs text-gray-400">1数配时辰起卦，2数分上下卦，3数第三爻为动爻，4数以上分前后</span>
+                    </p>
+                    <div className="grid grid-cols-4 gap-3">
+                      {reportNums.map((n, i) => (
+                        <div key={i}>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">第{i + 1}个数</label>
+                          <input 
+                            type="number" 
+                            value={n} 
+                            onChange={(e) => {
+                              const newNums = [...reportNums];
+                              newNums[i] = e.target.value;
+                              setReportNums(newNums);
+                            }} 
+                            placeholder="0-99"
+                            className="form-input text-center"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 方位起卦 */}
+                {method === 'direction' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 text-center">
+                      选择物体所在方位（上卦）和主体所在方位（下卦）<br/>
+                      <span className="text-xs text-gray-400">例如：在南方(离)看西方(兑)的物体</span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">上卦（物体方位）</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {BAGUA_NAMES.map(name => (
+                            <button
+                              key={name}
+                              type="button"
+                              onClick={() => setUpperDir(name)}
+                              className={`p-2 rounded-lg text-center transition-all ${
+                                upperDir === name 
+                                  ? 'bg-red-600 text-white shadow-md' 
+                                  : 'bg-white border border-gray-200 hover:border-red-300'
+                              }`}
+                            >
+                              <div className="text-xl">{name === '乾' ? '☰' : name === '兑' ? '☱' : name === '离' ? '☲' : name === '震' ? '☳' : name === '巽' ? '☴' : name === '坎' ? '☵' : name === '艮' ? '☶' : '☷'}</div>
+                              <div className="text-xs font-medium">{name}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">下卦（主体方位）</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {BAGUA_NAMES.map(name => (
+                            <button
+                              key={name}
+                              type="button"
+                              onClick={() => setLowerDir(name)}
+                              className={`p-2 rounded-lg text-center transition-all ${
+                                lowerDir === name 
+                                  ? 'bg-green-600 text-white shadow-md' 
+                                  : 'bg-white border border-gray-200 hover:border-green-300'
+                              }`}
+                            >
+                              <div className="text-xl">{name === '乾' ? '☰' : name === '兑' ? '☱' : name === '离' ? '☲' : name === '震' ? '☳' : name === '巽' ? '☴' : name === '坎' ? '☵' : name === '艮' ? '☶' : '☷'}</div>
+                              <div className="text-xs font-medium">{name}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">动爻（可选，留空自动）</label>
+                      <input 
+                        type="number" 
+                        value={directionDongYao}
+                        onChange={(e) => setDirectionDongYao(e.target.value)}
+                        min="1" max="6"
+                        placeholder="1-6爻"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 颜色起卦 */}
+                {method === 'color' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 text-center">
+                      选择两种颜色分别作为上卦和下卦<br/>
+                      <span className="text-xs text-gray-400">颜色对应五行：白/金→乾(金)，黑/蓝→坎(水)，红/紫→离(火)，绿/青→震(木)，黄/棕→坤(土)</span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">上卦颜色</label>
+                        <div className="flex flex-wrap gap-2">
+                          {COLOR_OPTIONS.map(color => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => setUpperColor(color)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                upperColor === color 
+                                  ? 'bg-red-600 text-white' 
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {color}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">下卦颜色</label>
+                        <div className="flex flex-wrap gap-2">
+                          {COLOR_OPTIONS.map(color => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => setLowerColor(color)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                lowerColor === color 
+                                  ? 'bg-green-600 text-white' 
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {color}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 声音起卦 */}
+                {method === 'sound' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">声音次数（1-8次）</label>
+                      <input type="number" value={soundCount} onChange={(e) => setSoundCount(e.target.value)} min="1" max="8"
+                        className="form-input" required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">持续时间（秒）</label>
+                      <input type="number" value={soundDuration} onChange={(e) => setSoundDuration(e.target.value)} min="1" max="30"
+                        className="form-input" required />
+                    </div>
+                  </div>
+                )}
+
+                {/* 姓名起卦 */}
+                {method === 'name' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">姓氏</label>
+                      <input type="text" value={surname} onChange={(e) => setSurname(e.target.value)} placeholder="如：张"
+                        className="form-input" required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">名字</label>
+                      <input type="text" value={givenName} onChange={(e) => setGivenName(e.target.value)} placeholder="如：三"
                         className="form-input" required />
                     </div>
                   </div>

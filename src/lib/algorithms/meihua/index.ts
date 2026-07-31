@@ -1,19 +1,47 @@
 /**
  * 梅花易数核心算法
- * 支持数字起卦、时间起卦、文字起卦
+ * 支持数字起卦、时间起卦、文字起卦、报数起卦、方位起卦、颜色起卦、声音起卦等
  */
 
-// 八卦数据
+// 八卦数据 - 先天八卦
 export const BAGUA = [
-  { name: '乾', symbol: '☰', element: '金', nature: '天', lines: [1, 1, 1] },
-  { name: '兑', symbol: '☱', element: '金', nature: '泽', lines: [1, 1, 0] },
-  { name: '离', symbol: '☲', element: '火', nature: '火', lines: [1, 0, 1] },
-  { name: '震', symbol: '☳', element: '木', nature: '雷', lines: [1, 0, 0] },
-  { name: '巽', symbol: '☴', element: '木', nature: '风', lines: [0, 1, 1] },
-  { name: '坎', symbol: '☵', element: '水', nature: '水', lines: [0, 1, 0] },
-  { name: '艮', symbol: '☶', element: '土', nature: '山', lines: [0, 0, 1] },
-  { name: '坤', symbol: '☷', element: '土', nature: '地', lines: [0, 0, 0] },
+  { name: '乾', symbol: '☰', element: '金', nature: '天', lines: [1, 1, 1], num: 1 },
+  { name: '兑', symbol: '☱', element: '金', nature: '泽', lines: [1, 1, 0], num: 2 },
+  { name: '离', symbol: '☲', element: '火', nature: '火', lines: [1, 0, 1], num: 3 },
+  { name: '震', symbol: '☳', element: '木', nature: '雷', lines: [1, 0, 0], num: 4 },
+  { name: '巽', symbol: '☴', element: '木', nature: '风', lines: [0, 1, 1], num: 5 },
+  { name: '坎', symbol: '☵', element: '水', nature: '水', lines: [0, 1, 0], num: 6 },
+  { name: '艮', symbol: '☶', element: '土', nature: '山', lines: [0, 0, 1], num: 7 },
+  { name: '坤', symbol: '☷', element: '土', nature: '地', lines: [0, 0, 0], num: 8 },
 ];
+
+// 后天八卦方位对应
+export const BAGUA_DIRECTION: Record<string, { name: string; index: number }> = {
+  '乾': { name: '西北', index: 0 },
+  '兑': { name: '西', index: 1 },
+  '离': { name: '南', index: 2 },
+  '震': { name: '东', index: 3 },
+  '巽': { name: '东南', index: 4 },
+  '坎': { name: '北', index: 5 },
+  '艮': { name: '东北', index: 6 },
+  '坤': { name: '西南', index: 7 },
+};
+
+// 颜色对应五行和八卦
+export const COLOR_TO_BAGUA: Record<string, { element: string; baguaIndex: number }> = {
+  '白色': { element: '金', baguaIndex: 0 },  // 乾
+  '金色': { element: '金', baguaIndex: 0 },  // 乾
+  '银色': { element: '金', baguaIndex: 0 },  // 乾
+  '黑色': { element: '水', baguaIndex: 5 },  // 坎
+  '蓝色': { element: '水', baguaIndex: 5 },  // 坎
+  '红色': { element: '火', baguaIndex: 2 },  // 离
+  '紫色': { element: '火', baguaIndex: 2 },  // 离
+  '绿色': { element: '木', baguaIndex: 3 },  // 震
+  '青色': { element: '木', baguaIndex: 3 },  // 震
+  '黄色': { element: '土', baguaIndex: 7 },  // 坤
+  '棕色': { element: '土', baguaIndex: 7 },  // 坤
+  '褐色': { element: '土', baguaIndex: 7 },  // 坤
+};
 
 // 六十四卦数据 [上卦索引, 下卦索引]
 export const HEXAGRAMS: Record<string, { name: string; meaning: string }> = {
@@ -314,4 +342,112 @@ function getWuxingRelation(tiElement: string, yongElement: string): string {
   if (ke[yongElement] === tiElement) return '用克体（凶）';
   if (ke[tiElement] === yongElement) return '体克用（小吉）';
   return '比和（平）';
+}
+
+// ============================================================
+// 扩展起卦方式
+// ============================================================
+
+/**
+ * 报数起卦 - 1/2/3/4+数字
+ * @param nums 报的数字数组
+ */
+export function calculateByReport(nums: number[]): MeihuaResult {
+  const len = nums.length;
+  
+  if (len === 0) throw new Error('请至少报一个数字');
+  
+  if (len === 1) {
+    // 1数成卦：上卦为该数%8，下卦为时辰数%8
+    const now = new Date();
+    const hour = now.getHours();
+    const shichenIdx = Math.floor((hour + 1) / 2) % 12; // 时辰索引
+    const upperIdx = (nums[0] - 1) % 8;
+    const lowerIdx = shichenIdx % 8;
+    const dongYao = (nums[0] + shichenIdx) % 6 || 6;
+    return buildResult('report', upperIdx, lowerIdx, dongYao);
+  } else if (len === 2) {
+    // 2数成卦：第一个数为上卦，第二个数为下卦，两数和除以6为动爻
+    const upperIdx = (nums[0] - 1) % 8;
+    const lowerIdx = (nums[1] - 1) % 8;
+    const dongYao = (nums[0] + nums[1]) % 6 || 6;
+    return buildResult('report', upperIdx, lowerIdx, dongYao);
+  } else if (len === 3) {
+    // 3数成卦：第一个数为上卦，第二个数为下卦，第三个数为动爻
+    const upperIdx = (nums[0] - 1) % 8;
+    const lowerIdx = (nums[1] - 1) % 8;
+    const dongYao = nums[2] % 6 || 6;
+    return buildResult('report', upperIdx, lowerIdx, dongYao);
+  } else {
+    // 4数以上：分前后两部分
+    const mid = Math.floor(len / 2);
+    const upperSum = nums.slice(0, mid).reduce((a, b) => a + b, 0);
+    const lowerSum = nums.slice(mid).reduce((a, b) => a + b, 0);
+    const totalSum = nums.reduce((a, b) => a + b, 0);
+    const upperIdx = (upperSum - 1) % 8;
+    const lowerIdx = (lowerSum - 1) % 8;
+    const dongYao = totalSum % 6 || 6;
+    return buildResult('report', upperIdx, lowerIdx, dongYao);
+  }
+}
+
+/**
+ * 方位起卦
+ * @param upperDir 上卦方位（乾/兑/离/震/巽/坎/艮/坤）
+ * @param lowerDir 下卦方位
+ * @param dongYao 动爻（可选，默认随机）
+ */
+export function calculateByDirection(upperDir: string, lowerDir: string, dongYao?: number): MeihuaResult {
+  const upperIdx = BAGUA.findIndex(b => b.name === upperDir);
+  const lowerIdx = BAGUA.findIndex(b => b.name === lowerDir);
+  
+  if (upperIdx < 0) throw new Error(`无效的上卦方位：${upperDir}`);
+  if (lowerIdx < 0) throw new Error(`无效的下卦方位：${lowerDir}`);
+  
+  const yao = dongYao || (Math.floor(Math.random() * 6) + 1);
+  return buildResult('direction', upperIdx, lowerIdx, yao);
+}
+
+/**
+ * 颜色起卦
+ * @param upperColor 上卦颜色
+ * @param lowerColor 下卦颜色
+ */
+export function calculateByColor(upperColor: string, lowerColor: string): MeihuaResult {
+  const upperInfo = COLOR_TO_BAGUA[upperColor];
+  const lowerInfo = COLOR_TO_BAGUA[lowerColor];
+  
+  if (!upperInfo) throw new Error(`无效的上卦颜色：${upperColor}`);
+  if (!lowerInfo) throw new Error(`无效的下卦颜色：${lowerColor}`);
+  
+  const dongYao = Math.floor(Math.random() * 6) + 1;
+  return buildResult('color', upperInfo.baguaIndex, lowerInfo.baguaIndex, dongYao);
+}
+
+/**
+ * 声音起卦
+ * @param soundCount 声音次数（1-8）
+ * @param duration 持续时间（秒）用于动爻
+ */
+export function calculateBySound(soundCount: number, duration: number): MeihuaResult {
+  const upperIdx = (soundCount - 1) % 8;
+  const lowerIdx = (soundCount + 3) % 8; // 下卦与上卦关联
+  const dongYao = Math.min(Math.max(duration % 6, 1), 6);
+  return buildResult('sound', upperIdx, lowerIdx, dongYao);
+}
+
+/**
+ * 姓名起卦
+ * @param surname 姓氏
+ * @param givenName 名字
+ */
+export function calculateByName(surname: string, givenName: string): MeihuaResult {
+  const surnameSum = getStrokeCount(surname);
+  const givenNameSum = getStrokeCount(givenName);
+  
+  const upperIdx = (surnameSum - 1) % 8;
+  const lowerIdx = (givenNameSum - 1) % 8;
+  const dongYao = (surnameSum + givenNameSum) % 6 || 6;
+  
+  return buildResult('name', upperIdx, lowerIdx, dongYao);
 }
