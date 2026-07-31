@@ -209,42 +209,71 @@ function analyzeYongshen(
     yongshenPalace = palaces.find(p => p.heavenlyStem === dayStem) || null;
   }
 
+  // 特殊处理：婚姻用六合+乙庚
+  if (questionType === 'marriage') {
+    const liuHePalace = palaces.find(p => p.deity === '六合');
+    const yiPalace = palaces.find(p => p.heavenlyStem === '乙');
+    const gengPalace = palaces.find(p => p.heavenlyStem === '庚');
+    
+    if (liuHePalace) {
+      return analyzeMarriage(palaces, liuHePalace, yiPalace, gengPalace);
+    }
+  }
+
+  // 特殊处理：考试用天辅+丁奇
+  if (questionType === 'exam') {
+    const tianFuPalace = palaces.find(p => p.star === '天辅');
+    const dingPalace = palaces.find(p => p.heavenlyStem === '丁');
+    if (tianFuPalace) {
+      return analyzeExam(palaces, tianFuPalace, dingPalace);
+    }
+  }
+
+  // 特殊处理：求财用生门
+  if (questionType === 'wealth') {
+    const shengMenPalace = palaces.find(p => p.gate === '生门');
+    if (shengMenPalace) {
+      return analyzeWealth(palaces, shengMenPalace);
+    }
+  }
+
+  // 特殊处理：事业用开门+值符
+  if (questionType === 'career') {
+    const kaiMenPalace = palaces.find(p => p.gate === '开门');
+    const zhiFuPalace = palaces.find(p => p.isZhiFu);
+    if (kaiMenPalace) {
+      return analyzeCareer(palaces, kaiMenPalace, zhiFuPalace);
+    }
+  }
+
   // 特殊处理：疾病用天芮为病，天心为药
   if (questionType === 'health') {
     const bingXing = palaces.find(p => p.star === '天芮');
     const yaoXing = palaces.find(p => p.star === '天心');
-    if (bingXing && yaoXing) {
-      const bingPalace = getPalaceInfo(bingXing.trigram, bingXing.position);
-      const yaoPalace = getPalaceInfo(yaoXing.trigram, yaoXing.position);
-      const bingWx = bingPalace?.wuxing || '';
-      const yaoWx = yaoPalace?.wuxing || '';
-
-      let analysis = `病星天芮落${bingXing.trigram}宫（${bingPalace?.direction || ''}，${bingWx}），`;
-      analysis += `医药天心落${yaoXing.trigram}宫（${yaoPalace?.direction || ''}，${yaoWx}）。`;
-
-      // 五行生克判断
-      const wxRelation = getWuxingRelation(yaoWx, bingWx);
-      if (wxRelation === '生') {
-        analysis += `药星生病星，医药有效，病情可愈。宜往${yaoPalace?.direction || ''}求医。`;
-      } else if (wxRelation === '克') {
-        analysis += `药星克病星，医药有力，可治此病。宜往${yaoPalace?.direction || ''}求医。`;
-      } else if (wxRelation === '同') {
-        analysis += `药病同五行，需费些时日，但终可治愈。`;
-      } else {
-        analysis += `药星被病星克或泄，医药效果有限，需另寻名医。`;
-      }
-
-      return {
-        yongshenName,
-        yongshenPalace: bingXing,
-        analysis,
-        direction: yaoPalace?.direction || '',
-        timing: '',
-        advice: '宜往药星所在方位求医，注意天芮落宫对应的身体部位。',
-      };
+    if (bingXing || yaoXing) {
+      return analyzeHealth(palaces, bingXing, yaoXing);
     }
   }
 
+  // 特殊处理：出行用九天
+  if (questionType === 'travel') {
+    const jiuTianPalace = palaces.find(p => p.deity === '九天');
+    if (jiuTianPalace) {
+      return analyzeTravel(palaces, jiuTianPalace);
+    }
+  }
+
+  // 特殊处理：官司用开门+景门
+  if (questionType === 'lawsuit') {
+    const kaiMenPalace = palaces.find(p => p.gate === '开门');
+    const jingMenPalace = palaces.find(p => p.gate === '景门');
+    const zhiFuPalace = palaces.find(p => p.isZhiFu);
+    if (kaiMenPalace) {
+      return analyzeLawsuit(palaces, kaiMenPalace, jingMenPalace, zhiFuPalace);
+    }
+  }
+
+  // 通用分析
   if (!yongshenPalace) {
     return {
       yongshenName,
@@ -256,6 +285,380 @@ function analyzeYongshen(
     };
   }
 
+  return doGeneralAnalysis(yongshenPalace, yongshenName, qType, palaces, dayStem);
+}
+
+// 婚姻专项分析
+function analyzeMarriage(palaces: any[], liuHePalace: any, yiPalace: any, gengPalace: any) {
+  const liuHeInfo = getPalaceInfo(liuHePalace.trigram, liuHePalace.position);
+  const direction = liuHeInfo?.direction || '';
+  
+  let analysis = `【婚姻专项分析】\n`;
+  analysis += `用神六合落${liuHePalace.trigram}宫（${direction}，${liuHeInfo?.wuxing || ''}）。\n`;
+  
+  // 六合宫分析
+  const liuHeGate = BAMEN_INTERPRETATION[liuHePalace.gate];
+  const liuHeStar = JIUXING_INTERPRETATION[liuHePalace.star];
+  analysis += `六合宫中：${liuHePalace.star}（${liuHeStar?.level || ''}）、${liuHePalace.gate}（${liuHeGate?.level || ''}）。\n`;
+  
+  // 乙庚关系分析
+  if (yiPalace && gengPalace) {
+    const yiInfo = getPalaceInfo(yiPalace.trigram, yiPalace.position);
+    const gengInfo = getPalaceInfo(gengPalace.trigram, gengPalace.position);
+    analysis += `\n女方乙落${yiPalace.trigram}宫（${yiInfo?.direction || ''}），男方庚落${gengPalace.trigram}宫（${gengInfo?.direction || ''}）。\n`;
+    
+    const relation = getWuxingRelation(yiInfo?.wuxing || '', gengInfo?.wuxing || '');
+    if (relation === '生') {
+      analysis += `乙方生甲方，女方有助男方，婚姻美满。`;
+    } else if (relation === '克') {
+      analysis += `乙方克甲方，女方强势，需注意沟通。`;
+    } else if (relation === '同') {
+      analysis += `乙庚同五行，双方势均力敌，需互敬互重。`;
+    }
+  }
+  
+  // 判断吉凶
+  const levels = [liuHeGate?.level || '', liuHeStar?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '六合宫吉象明显，婚姻缘分佳，宜积极把握。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '六合宫凶象较多，婚姻有阻，需谨慎等待。';
+  } else {
+    overall = '六合宫吉凶参半，婚姻成败各半，需双方努力。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  const stemKey = `${liuHePalace.heavenlyStem}${liuHePalace.earthlyStem}`;
+  const stemPattern = TEN_STEM_PATTERNS[stemKey];
+  if (stemPattern) {
+    analysis += `\n\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
+  }
+  
+  return {
+    yongshenName: '六合',
+    yongshenPalace: liuHePalace,
+    analysis,
+    direction,
+    timing: getTiming(liuHeInfo?.wuxing || '', liuHePalace.earthBranch || '', liuHePalace.position),
+    advice: `宜往${direction}方向谈婚论嫁。${auspiciousCount > inauspiciousCount ? '当前时机有利，可积极推进婚事。' : '需耐心等待吉时，不宜急躁。'}`,
+  };
+}
+
+// 考试专项分析
+function analyzeExam(palaces: any[], tianFuPalace: any, dingPalace: any | null) {
+  const tfInfo = getPalaceInfo(tianFuPalace.trigram, tianFuPalace.position);
+  const direction = tfInfo?.direction || '';
+  
+  let analysis = `【考试/求学专项分析】\n`;
+  analysis += `用神天辅星落${tianFuPalace.trigram}宫（${direction}，${tfInfo?.wuxing || ''}）。\n`;
+  
+  const tfGate = BAMEN_INTERPRETATION[tianFuPalace.gate];
+  const tfStar = JIUXING_INTERPRETATION[tianFuPalace.star];
+  analysis += `天辅宫中：${tianFuPalace.deity}、${tianFuPalace.star}（${tfStar?.level || ''}）、${tianFuPalace.gate}（${tfGate?.level || ''}）。\n`;
+  
+  // 丁奇分析
+  if (dingPalace) {
+    const dingInfo = getPalaceInfo(dingPalace.trigram, dingPalace.position);
+    analysis += `\n文昌丁奇落${dingPalace.trigram}宫（${dingInfo?.direction || ''}），主考试有利。\n`;
+    
+    const dingGate = BAMEN_INTERPRETATION[dingPalace.gate];
+    if (dingGate?.level.includes('吉')) {
+      analysis += `丁奇坐吉门，考试发挥出色，有望金榜题名。`;
+    }
+  }
+  
+  // 判断吉凶
+  const levels = [tfGate?.level || '', tfStar?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '天辅星宫吉象，学业运佳，考试顺利。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '天辅星宫凶象，考试有压力，需加倍努力。';
+  } else {
+    overall = '天辅星宫吉凶参半，考试需正常发挥。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  const stemKey = `${tianFuPalace.heavenlyStem}${tianFuPalace.earthlyStem}`;
+  const stemPattern = TEN_STEM_PATTERNS[stemKey];
+  if (stemPattern) {
+    analysis += `\n\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
+  }
+  
+  return {
+    yongshenName: '天辅',
+    yongshenPalace: tianFuPalace,
+    analysis,
+    direction,
+    timing: getTiming(tfInfo?.wuxing || '', tianFuPalace.earthBranch || '', tianFuPalace.position),
+    advice: `宜往${direction}方向考试求学。${auspiciousCount > inauspiciousCount ? '当前文昌运旺，可大胆应考。' : '需认真备考，沉着应对。'}`,
+  };
+}
+
+// 求财专项分析
+function analyzeWealth(palaces: any[], shengMenPalace: any) {
+  const smInfo = getPalaceInfo(shengMenPalace.trigram, shengMenPalace.position);
+  const direction = smInfo?.direction || '';
+  
+  let analysis = `【求财专项分析】\n`;
+  analysis += `用神生门落${shengMenPalace.trigram}宫（${direction}，${smInfo?.wuxing || ''}）。\n`;
+  
+  const smGate = BAMEN_INTERPRETATION[shengMenPalace.gate];
+  const smStar = JIUXING_INTERPRETATION[shengMenPalace.star];
+  analysis += `生门宫中：${shengMenPalace.deity}、${shengMenPalace.star}（${smStar?.level || ''}）、${shengMenPalace.gate}（${smGate?.level || ''}）。\n`;
+  
+  // 生门五行旺衰
+  const wx = smInfo?.wuxing || '';
+  analysis += `生门五行属${wx}，得时令则财源旺盛。\n`;
+  
+  // 判断吉凶
+  const levels = [smGate?.level || '', smStar?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '生门旺相，财运亨通，求财可得。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '生门受制，财运受阻，不宜强求。';
+  } else {
+    overall = '生门吉凶参半，求财有得有失。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  const stemKey = `${shengMenPalace.heavenlyStem}${shengMenPalace.earthlyStem}`;
+  const stemPattern = TEN_STEM_PATTERNS[stemKey];
+  if (stemPattern) {
+    analysis += `\n\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
+  }
+  
+  return {
+    yongshenName: '生门',
+    yongshenPalace: shengMenPalace,
+    analysis,
+    direction,
+    timing: getTiming(smInfo?.wuxing || '', shengMenPalace.earthBranch || '', shengMenPalace.position),
+    advice: `宜往${direction}方向求财。${auspiciousCount > inauspiciousCount ? '当前财运旺盛，可积极投资求财。' : '需谨慎理财，不可盲目投资。'}`,
+  };
+}
+
+// 事业专项分析
+function analyzeCareer(palaces: any[], kaiMenPalace: any, zhiFuPalace: any | null) {
+  const kmInfo = getPalaceInfo(kaiMenPalace.trigram, kaiMenPalace.position);
+  const direction = kmInfo?.direction || '';
+  
+  let analysis = `【事业/求职专项分析】\n`;
+  analysis += `用神开门落${kaiMenPalace.trigram}宫（${direction}，${kmInfo?.wuxing || ''}）。\n`;
+  
+  const kmGate = BAMEN_INTERPRETATION[kaiMenPalace.gate];
+  const kmStar = JIUXING_INTERPRETATION[kaiMenPalace.star];
+  analysis += `开门宫中：${kaiMenPalace.deity}、${kaiMenPalace.star}（${kmStar?.level || ''}）、${kaiMenPalace.gate}（${kmGate?.level || ''}）。\n`;
+  
+  // 值符分析
+  if (zhiFuPalace) {
+    const zfInfo = getPalaceInfo(zhiFuPalace.trigram, zhiFuPalace.position);
+    analysis += `\n值符（${zhiFuPalace.star}）落${zhiFuPalace.trigram}宫（${zfInfo?.direction || ''}），为事业贵人所在。\n`;
+  }
+  
+  // 判断吉凶
+  const levels = [kmGate?.level || '', kmStar?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '开门大吉，事业顺利，求职可得。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '开门受制，事业有阻，需耐心等待。';
+  } else {
+    overall = '开门吉凶参半，事业有成有败。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  const stemKey = `${kaiMenPalace.heavenlyStem}${kaiMenPalace.earthlyStem}`;
+  const stemPattern = TEN_STEM_PATTERNS[stemKey];
+  if (stemPattern) {
+    analysis += `\n\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
+  }
+  
+  return {
+    yongshenName: '开门',
+    yongshenPalace: kaiMenPalace,
+    analysis,
+    direction,
+    timing: getTiming(kmInfo?.wuxing || '', kaiMenPalace.earthBranch || '', kaiMenPalace.position),
+    advice: `宜往${direction}方向求职谋事。${auspiciousCount > inauspiciousCount ? '当前事业运佳，可积极进取。' : '需静待时机，不宜急躁。'}`,
+  };
+}
+
+// 疾病专项分析
+function analyzeHealth(palaces: any[], bingXing: any | null, yaoXing: any | null) {
+  let analysis = `【健康/疾病专项分析】\n`;
+  
+  if (bingXing) {
+    const bingPalace = getPalaceInfo(bingXing.trigram, bingXing.position);
+    const bingWx = bingPalace?.wuxing || '';
+    analysis += `病星天芮落${bingXing.trigram}宫（${bingPalace?.direction || ''}，${bingWx}）。\n`;
+    analysis += `对应身体部位：${bingPalace?.bodyPart || ''}。\n`;
+  }
+  
+  if (yaoXing) {
+    const yaoPalace = getPalaceInfo(yaoXing.trigram, yaoXing.position);
+    const yaoWx = yaoPalace?.wuxing || '';
+    analysis += `医药天心落${yaoXing.trigram}宫（${yaoPalace?.direction || ''}，${yaoWx}）。\n`;
+    
+    // 五行生克判断
+    if (bingXing) {
+      const bingPalace = getPalaceInfo(bingXing.trigram, bingXing.position);
+      const wxRelation = getWuxingRelation(yaoWx, bingPalace?.wuxing || '');
+      if (wxRelation === '生') {
+        analysis += `\n药星生病星，医药有效，病情可愈。`;
+      } else if (wxRelation === '克') {
+        analysis += `\n药星克病星，医药有力，可治此病。`;
+      } else if (wxRelation === '同') {
+        analysis += `\n药病同五行，需费些时日，但终可治愈。`;
+      } else {
+        analysis += `\n药星被病星克或泄，医药效果有限，需另寻名医。`;
+      }
+    }
+    
+    return {
+      yongshenName: '天芮',
+      yongshenPalace: bingXing,
+      analysis,
+      direction: yaoPalace?.direction || '',
+      timing: getTiming(yaoWx, yaoXing.earthBranch || '', yaoXing.position),
+      advice: `宜往${yaoPalace?.direction || ''}方向求医。注意天芮落宫对应的身体部位，及时就医。`,
+    };
+  }
+  
+  return {
+    yongshenName: '天芮',
+    yongshenPalace: bingXing,
+    analysis: analysis + '\n未找到天心医药星，建议全面检查身体。',
+    direction: '',
+    timing: '',
+    advice: '建议全面体检，注意养生保健。',
+  };
+}
+
+// 出行专项分析
+function analyzeTravel(palaces: any[], jiuTianPalace: any) {
+  const jtInfo = getPalaceInfo(jiuTianPalace.trigram, jiuTianPalace.position);
+  const direction = jtInfo?.direction || '';
+  
+  let analysis = `【出行专项分析】\n`;
+  analysis += `用神九天落${jiuTianPalace.trigram}宫（${direction}，${jtInfo?.wuxing || ''}）。\n`;
+  
+  const jtGate = BAMEN_INTERPRETATION[jiuTianPalace.gate];
+  const jtStar = JIUXING_INTERPRETATION[jiuTianPalace.star];
+  analysis += `九天宫中：${jiuTianPalace.deity}、${jiuTianPalace.star}（${jtStar?.level || ''}）、${jiuTianPalace.gate}（${jtGate?.level || ''}）。\n`;
+  
+  // 判断吉凶
+  const levels = [jtGate?.level || '', jtStar?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '九天旺相，出行顺利，平安可达。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '九天受制，出行有阻，建议改期。';
+  } else {
+    overall = '九天吉凶参半，出行需谨慎。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  // 检查死门惊门
+  const siMen = palaces.find(p => p.gate === '死门');
+  const jingMen = palaces.find(p => p.gate === '惊门');
+  const avoidDirs: string[] = [];
+  if (siMen) {
+    const siInfo = getPalaceInfo(siMen.trigram, siMen.position);
+    avoidDirs.push(`${siInfo?.direction || ''}（死门）`);
+  }
+  if (jingMen) {
+    const jingInfo = getPalaceInfo(jingMen.trigram, jingMen.position);
+    avoidDirs.push(`${jingInfo?.direction || ''}（惊门）`);
+  }
+  
+  if (avoidDirs.length > 0) {
+    analysis += `\n\n需避开的方位：${avoidDirs.join('、')}`;
+  }
+  
+  return {
+    yongshenName: '九天',
+    yongshenPalace: jiuTianPalace,
+    analysis,
+    direction,
+    timing: getTiming(jtInfo?.wuxing || '', jiuTianPalace.earthBranch || '', jiuTianPalace.position),
+    advice: `宜往${direction}方向出行。避开死门、惊门方位。${auspiciousCount > inauspiciousCount ? '当前出行有利，可放心前往。' : '需谨慎出行，注意安全。'}`,
+  };
+}
+
+// 官司专项分析
+function analyzeLawsuit(palaces: any[], kaiMenPalace: any, jingMenPalace: any | null, zhiFuPalace: any | null) {
+  const kmInfo = getPalaceInfo(kaiMenPalace.trigram, kaiMenPalace.position);
+  const direction = kmInfo?.direction || '';
+  
+  let analysis = `【官司/诉讼专项分析】\n`;
+  analysis += `用神开门（法官）落${kaiMenPalace.trigram}宫（${direction}，${kmInfo?.wuxing || ''}）。\n`;
+  
+  const kmGate = BAMEN_INTERPRETATION[kaiMenPalace.gate];
+  analysis += `开门宫中：${kaiMenPalace.star}、${kaiMenPalace.gate}（${kmGate?.level || ''}）。\n`;
+  
+  // 景门（诉状）分析
+  if (jingMenPalace) {
+    const jmInfo = getPalaceInfo(jingMenPalace.trigram, jingMenPalace.position);
+    analysis += `\n诉状景门落${jingMenPalace.trigram}宫（${jmInfo?.direction || ''}），文书证据情况：${jingMenPalace.gate}。\n`;
+  }
+  
+  // 值符（原告/被告）分析
+  if (zhiFuPalace) {
+    const zfInfo = getPalaceInfo(zhiFuPalace.trigram, zhiFuPalace.position);
+    analysis += `\n值符落${zhiFuPalace.trigram}宫（${zfInfo?.direction || ''}），主方局势。\n`;
+  }
+  
+  // 判断吉凶
+  const levels = [kmGate?.level || ''];
+  const auspiciousCount = levels.filter(l => l.includes('吉')).length;
+  const inauspiciousCount = levels.filter(l => l.includes('凶')).length;
+  
+  let overall = '';
+  if (auspiciousCount > inauspiciousCount) {
+    overall = '开门得吉，官司有利，可胜诉。';
+  } else if (inauspiciousCount > auspiciousCount) {
+    overall = '开门受凶，官司不利，需谨慎应对。';
+  } else {
+    overall = '开门吉凶参半，官司成败各半。';
+  }
+  
+  analysis += `\n\n综合判断：${overall}`;
+  
+  return {
+    yongshenName: '开门',
+    yongshenPalace: kaiMenPalace,
+    analysis,
+    direction,
+    timing: getTiming(kmInfo?.wuxing || '', kaiMenPalace.earthBranch || '', kaiMenPalace.position),
+    advice: `宜在${direction}方向处理官司。${auspiciousCount > inauspiciousCount ? '当前局势有利，可积极应对。' : '需谨慎处理，建议寻求律师帮助。'}`,
+  };
+}
+
+// 通用分析
+function doGeneralAnalysis(yongshenPalace: any, yongshenName: string, qType: QuestionType, palaces: any[], dayStem: string) {
   const palaceInfo = getPalaceInfo(yongshenPalace.trigram, yongshenPalace.position);
   const direction = palaceInfo?.direction || '';
   const palaceWx = palaceInfo?.wuxing || '';
@@ -269,12 +672,13 @@ function analyzeYongshen(
   const stemKey = `${yongshenPalace.heavenlyStem}${yongshenPalace.earthlyStem}`;
   const stemPattern = TEN_STEM_PATTERNS[stemKey];
 
-  let analysis = `用神${yongshenName}落${yongshenPalace.trigram}宫（${direction}，${palaceWx}）。\n`;
+  let analysis = `【${qType.label}专项分析】\n`;
+  analysis += `用神${yongshenName}落${yongshenPalace.trigram}宫（${direction}，${palaceWx}）。\n`;
   analysis += `宫中：${yongshenPalace.deity}（${deityInfo?.level || ''}）、${yongshenPalace.star}（${starInfo?.level || ''}）、${yongshenPalace.gate}（${gateInfo?.level || ''}）。\n`;
   analysis += `天盘${yongshenPalace.heavenlyStem}加地盘${yongshenPalace.earthlyStem}。`;
 
   if (stemPattern) {
-    analysis += `\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
+    analysis += `\n\n十干克应：${stemPattern.name}（${stemPattern.level}）。${stemPattern.description}`;
   }
 
   // 判断吉凶
