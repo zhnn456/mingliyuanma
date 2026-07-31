@@ -14,15 +14,15 @@ const TRIGRAM_SYMBOLS: Record<string, string> = {
 };
 
 // 八卦五行颜色 - 用于区分不同卦的颜色
-const TRIGRAM_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  '乾': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-300' },
-  '兑': { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-300' },
-  '离': { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-300' },
-  '震': { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-300' },
-  '巽': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-300' },
-  '坎': { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-300' },
-  '艮': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-300' },
-  '坤': { bg: 'bg-stone-50', text: 'text-stone-800', border: 'border-stone-300' },
+const TRIGRAM_COLORS: Record<string, { bg: string; text: string; border: string; solid: string; hex: string }> = {
+  '乾': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-300', solid: 'bg-yellow-400', hex: '#FACC15' },
+  '兑': { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-300', solid: 'bg-orange-400', hex: '#FB923C' },
+  '离': { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-300', solid: 'bg-red-400', hex: '#F87171' },
+  '震': { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-300', solid: 'bg-green-400', hex: '#4ADE80' },
+  '巽': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-300', solid: 'bg-emerald-400', hex: '#34D399' },
+  '坎': { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-300', solid: 'bg-blue-400', hex: '#60A5FA' },
+  '艮': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-300', solid: 'bg-amber-400', hex: '#FBBF24' },
+  '坤': { bg: 'bg-stone-50', text: 'text-stone-800', border: 'border-stone-300', solid: 'bg-stone-400', hex: '#A8A29E' },
 };
 
 // 八卦基本信息
@@ -195,59 +195,6 @@ function HexagramDiagram({ hexagramName, size = 'small' }: { hexagramName: strin
   );
 }
 
-// 八卦方位图
-function BaguaCompass() {
-  return (
-    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
-      <h3 className="text-center font-bold text-amber-800 mb-4">八卦方位总图</h3>
-      <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
-        <div></div>
-        <div className="text-center p-2 bg-blue-100 rounded-lg">
-          <div className="text-lg">☵</div>
-          <div className="text-xs font-medium text-blue-700">坎 北</div>
-        </div>
-        <div></div>
-        <div className="text-center p-2 bg-green-100 rounded-lg">
-          <div className="text-lg">☳</div>
-          <div className="text-xs font-medium text-green-700">震 东</div>
-        </div>
-        <div className="text-center p-3 bg-gradient-to-br from-gray-200 via-white to-gray-200 rounded-lg">
-          <div className="text-2xl">☯</div>
-          <div className="text-xs text-gray-500">太极</div>
-        </div>
-        <div className="text-center p-2 bg-red-100 rounded-lg">
-          <div className="text-lg">☲</div>
-          <div className="text-xs font-medium text-red-700">离 南</div>
-        </div>
-        <div></div>
-        <div className="text-center p-2 bg-yellow-100 rounded-lg">
-          <div className="text-lg">☰</div>
-          <div className="text-xs font-medium text-yellow-700">乾 西北</div>
-        </div>
-        <div></div>
-      </div>
-      <div className="grid grid-cols-4 gap-2 mt-3 max-w-xs mx-auto text-center text-xs">
-        <div className="p-2 bg-emerald-100 rounded-lg">
-          <div>☴</div>
-          <div className="font-medium text-emerald-700">巽 东南</div>
-        </div>
-        <div className="p-2 bg-stone-100 rounded-lg">
-          <div>☷</div>
-          <div className="font-medium text-stone-700">坤 西南</div>
-        </div>
-        <div className="p-2 bg-orange-100 rounded-lg">
-          <div>☱</div>
-          <div className="font-medium text-orange-700">兑 西</div>
-        </div>
-        <div className="p-2 bg-amber-100 rounded-lg">
-          <div>☶</div>
-          <div className="font-medium text-amber-700">艮 东北</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function HexagramLookup() {
   const [selectedGua, setSelectedGua] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -266,66 +213,79 @@ export function HexagramLookup() {
   // 渲染矩阵视图（上下卦组合）
   const renderMatrixView = () => (
     <div className="space-y-4">
-      {/* 八卦方位总图 */}
-      <BaguaCompass />
-      
       {/* 64卦矩阵图 */}
       <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-200">
         <div className="text-center font-bold text-gray-700 mb-3">
           六十四卦总图
-          <span className="text-sm font-normal text-gray-500 ml-2">（行=下卦，列=上卦）</span>
+          <span className="text-sm font-normal text-gray-500 ml-2">上卦（外卦）+ 下卦（内卦）= 六十四卦</span>
         </div>
         
         {/* 表头 - 上卦 */}
-        <div className="flex">
-          <div className="w-20 flex-shrink-0"></div>
+        <div className="flex items-start">
+          <div className="w-16 flex-shrink-0 pt-11">
+            <div className="text-xs font-bold text-gray-500 text-center rotate-0">下卦<br/>(内卦)</div>
+          </div>
           <div className="grid grid-cols-8 gap-1 flex-1">
             {BAGUA_INFO.map((b, i) => (
               <div 
                 key={i} 
-                className={`text-center p-2 rounded-lg ${b.color.bg} ${b.color.border} border-2`}
+                className={`text-center p-2 rounded-lg ${b.color.bg} ${b.color.border} border-2 relative`}
               >
-                <div className="text-xl">{b.symbol}</div>
+                <div className="text-xs font-bold text-gray-500 mb-0.5">上卦</div>
+                <div className="text-lg">{b.symbol}</div>
                 <div className={`text-xs font-bold ${b.color.text}`}>{b.name}</div>
+                <div className="text-xs text-gray-400">{b.element}</div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-gray-300 text-xs">▼</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* 表格内容 */}
-        <div className="mt-2 space-y-1">
+        <div className="mt-3 space-y-1.5">
           {HEXAGRAM_MATRIX.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex">
+            <div key={rowIdx} className="flex items-center">
               {/* 行标题 - 下卦 */}
-              <div className={`w-20 flex-shrink-0 p-2 rounded-lg ${BAGUA_INFO[rowIdx].color.bg} ${BAGUA_INFO[rowIdx].color.border} border-2 text-center`}>
-                <div className="text-xl">{BAGUA_INFO[rowIdx].symbol}</div>
+              <div className={`w-16 flex-shrink-0 p-2 rounded-lg ${BAGUA_INFO[rowIdx].color.bg} ${BAGUA_INFO[rowIdx].color.border} border-2 text-center relative`}>
+                <div className="text-xs font-bold text-gray-500 mb-0.5">下卦</div>
+                <div className="text-lg">{BAGUA_INFO[rowIdx].symbol}</div>
                 <div className={`text-xs font-bold ${BAGUA_INFO[rowIdx].color.text}`}>{BAGUA_INFO[rowIdx].name}</div>
                 <div className="text-xs text-gray-400">{BAGUA_INFO[rowIdx].element}</div>
+                <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-gray-300 text-xs">▶</div>
               </div>
               
               {/* 卦单元格 */}
-              <div className="grid grid-cols-8 gap-1 flex-1 ml-1">
+              <div className="grid grid-cols-8 gap-1 ml-2 flex-1">
                 {row.map((cell, colIdx) => {
                   const rowColor = TRIGRAM_COLORS[BAGUA_INFO[rowIdx].name];
                   const colColor = TRIGRAM_COLORS[BAGUA_INFO[colIdx].name];
                   const isSelected = selectedGua === cell.name;
                   
-                  // 交替使用行列颜色
-                  const cellBg = (rowIdx + colIdx) % 2 === 0 
-                    ? `${rowColor.bg} ${rowColor.border}` 
-                    : `${colColor.bg} ${colColor.border}`;
-                  
+                  // 使用左边框（下卦颜色）和上边框（上卦颜色）表示组合
+                  // 背景使用浅色表示组合区域
                   return (
                     <button
                       key={colIdx}
                       onClick={() => setSelectedGua(cell.name)}
-                      className={`p-2 rounded-lg border-2 text-center transition-all ${
-                        isSelected 
+                      className={`p-2 rounded-lg border-2 border-gray-200 text-center transition-all relative overflow-hidden
+                        ${isSelected 
                           ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white border-red-500 shadow-lg scale-105 z-10' 
-                          : `${cellBg} hover:shadow-md hover:scale-102`
-                      }`}
+                          : 'bg-white hover:shadow-md hover:scale-102'
+                        }`}
+                      style={{
+                        borderLeftWidth: '4px',
+                        borderLeftColor: isSelected ? '' : rowColor.hex,
+                        borderTopWidth: '4px',
+                        borderTopColor: isSelected ? '' : colColor.hex,
+                      }}
                     >
-                      <div className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                      {/* 组合标记 - 显示两卦名称 */}
+                      {!isSelected && (
+                        <div className="absolute top-0 right-0 text-[8px] px-1 py-0.5 bg-gray-100 text-gray-400 rounded-bl">
+                          {BAGUA_INFO[colIdx].name}+{BAGUA_INFO[rowIdx].name}
+                        </div>
+                      )}
+                      <div className={`text-sm font-bold mt-1 ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                         {cell.name}
                       </div>
                       <div className={`text-xs mt-0.5 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
@@ -337,6 +297,18 @@ export function HexagramLookup() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 图例说明 */}
+        <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+          <div className="text-xs text-amber-800 mb-2 font-bold">📖 图例说明</div>
+          <div className="text-xs text-amber-700 leading-relaxed">
+            <span className="inline-block px-2 py-0.5 bg-gray-100 rounded mr-1">列头</span>
+            为 <strong>上卦（外卦）</strong>，
+            <span className="inline-block px-2 py-0.5 bg-gray-100 rounded mx-1">行头</span>
+            为 <strong>下卦（内卦）</strong>，
+            交叉处即为 <strong>上卦 + 下卦</strong> 组合而成的六十四卦。
+          </div>
         </div>
       </div>
 
