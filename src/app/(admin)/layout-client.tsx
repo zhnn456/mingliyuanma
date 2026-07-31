@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, getPendingUser } from '@/lib/auth-client';
 
-const APP_VERSION = 'v3.0.0';
+const APP_VERSION = 'v4.0.0';
 
 // === SVG Icon Components ===
 const icons: Record<string, ReactNode> = {
@@ -156,6 +156,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/admin/msg-templates', label: '消息模板', isNew: true },
       { href: '/admin/versions', label: '版本管理' },
       { href: '/admin/updates', label: '更新日志' },
+      { href: '/admin/update-logs', label: '系统更新日志', isNew: true },
     ],
   },
   {

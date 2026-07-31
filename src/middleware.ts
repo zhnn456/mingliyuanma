@@ -12,6 +12,10 @@ const RATE_LIMIT_WINDOW = 60_000;
 const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license/verify', '/api/watermark', '/api/features'];
 const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 
+// 代理商同步状态
+let agentSynced = false;
+let lastSyncTime = 0;
+
 interface RateEntry {
   count: number;
   resetTime: number;
@@ -107,10 +111,41 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 代理商路由保护：检查 License（仅在非中央服务器环境）
+  // 代理商路由保护：检查 License（仅在代理商 Worker 环境）
   const isAgentProtected = AGENT_PROTECTED_PATHS.some((p) => pathname.startsWith(p));
-  if (isAgentProtected && process.env.APP_LICENSE_KEY) {
-    const licenseKey = process.env.APP_LICENSE_KEY;
+  const isAgentEnv = !!process.env.APP_LICENSE_KEY && !!process.env.APP_AGENT_ID;
+
+  // 代理商同步（每 5 分钟同步一次）
+  if (isAgentEnv && !agentSynced || (Date.now() - lastSyncTime > 5 * 60 * 1000)) {
+    agentSynced = true;
+    lastSyncTime = Date.now();
+    
+    const licenseKey = process.env.APP_LICENSE_KEY || '';
+    const agentId = process.env.APP_AGENT_ID || '';
+    const centerApi = process.env.CENTER_API || '';
+    const domain = process.env.NEXTAUTH_URL || '';
+    const version = process.env.APP_VERSION || 'v4.0.0';
+
+    try {
+      const initOptions: any = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          license: licenseKey,
+          agentId,
+          domain,
+          version,
+          status: 'online',
+        }),
+        cf: { cacheTtl: 0 },
+      };
+      await fetch(`${centerApi}/api/agent/sync`, initOptions);
+    } catch {}
+  }
+
+  // 代理商路由保护：检查 License
+  if (isAgentProtected && isAgentEnv) {
+    const licenseKey = process.env.APP_LICENSE_KEY || '';
     const centerApi = process.env.CENTER_API || '';
     const domain = process.env.NEXTAUTH_URL || '';
 
@@ -122,13 +157,11 @@ export async function middleware(req: NextRequest) {
       };
       const res = await fetch(`${centerApi}/api/license/verify?${params}`, initOptions);
       if (!res.ok) {
-        // 远程验证失败，检查是否在宽限期内
-        const cached = req.headers.get('x-license-verified');
-        if (!cached) {
-          // 宽限期外，限制功能
-          if (pathname.startsWith('/api/agent/orders') || pathname.startsWith('/api/agent/update')) {
-            return NextResponse.json({ error: '授权验证失败，请联系管理员' }, { status: 503 });
-          }
+        // 远程验证失败，限制敏感功能
+        if (pathname.startsWith('/api/agent/orders') || 
+            pathname.startsWith('/api/agent/update') ||
+            pathname.startsWith('/api/agent/settlements')) {
+          return NextResponse.json({ error: '授权验证失败，请联系管理员' }, { status: 503 });
         }
       }
     } catch {}

@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Pre-commit: 运行代码检查..."
+
+# 1. TypeScript 类型检查（核心，确保类型安全）
+echo "📋 运行 TypeScript 类型检查..."
+if npx tsc --noEmit 2>&1; then
+  echo "✅ 类型检查通过"
+else
+  echo "❌ 类型检查失败，请修复类型错误后再提交"
+  exit 1
+fi
+
+# 2. 确保 Prisma Client 是最新的（如果 schema 有变更）
+echo "🔄 检查 Prisma Client..."
+if [ -f "prisma/schema.prisma" ]; then
+  npx prisma generate 2>&1 || {
+    echo "⚠️  Prisma generate 警告，但不阻止提交"
+  }
+fi
+
+# 3. 同步类型定义
+echo "📝 同步类型定义..."
+if [ -f "scripts/sync-types.js" ]; then
+  node scripts/sync-types.js 2>&1 || {
+    echo "⚠️  类型同步警告，但不阻止提交"
+  }
+fi
+
+echo "✅ Pre-commit 检查通过，可以提交代码！"

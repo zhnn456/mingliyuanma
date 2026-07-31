@@ -1,311 +1,192 @@
+// prisma/schema.prisma
+
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
-model Account {
-  id                String  @id
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+// ============================================
+// 核心原则：所有数据模型在此定义，其他层从此派生
+// ============================================
 
-  @@unique([provider, providerAccountId])
-}
-
-model Agent {
-  id            String    @id
-  userId        String    @unique
-  companyName   String?
-  contactName   String?
-  contactPhone  String?
-  domain        String?   @unique
-  brandName     String?
-  logo          String?
-  siteConfig    String?
-  licenseKey    String?   @unique
-  licenseExpiry DateTime?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-}
-
-model AgentLicense {
-  id         String    @id
-  agentId    String
-  licenseKey String    @unique
-  domain     String?   @unique
-  issuedAt   DateTime  @default(now())
-  expiryAt   DateTime?
-  maxUsers   Int?
-  features   String?
-  status     String    @default("active")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime
-}
-
-model BaziRecord {
-  id             String   @id
-  userId         String
-  name           String?
-  gender         String
-  birthDate      String
-  birthTime      String
-  isLunar        Boolean  @default(false)
-  yearGan        String
-  yearZhi        String
-  monthGan       String
-  monthZhi       String
-  dayGan         String
-  dayZhi         String
-  hourGan        String
-  hourZhi        String
-  wuxing         String?
-  dayun          String?
-  liunian        String?
-  interpretation String?
-  createdAt      DateTime @default(now())
-  User           User     @relation(fields: [userId], references: [id])
-}
-
-model DivinationRule {
-  id            String   @id
-  category      String
-  ruleType      String
-  ruleKey       String
-  subKey        String?
-  content       String
-  classicSource String?
-  classicQuote  String?
-  priority      Int      @default(0)
-  agentId       String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime
-
-  @@unique([category, ruleType, ruleKey, subKey, agentId])
-  @@index([category, ruleType, agentId])
-}
-
-model MeihuaRecord {
-  id             String   @id
-  userId         String
-  method         String
-  input          String
-  upperGua       String
-  lowerGua       String
-  dongYao        Int
-  benGua         String?
-  huGua          String?
-  bianGua        String?
-  tiYong         String?
-  interpretation String?
-  createdAt      DateTime @default(now())
-  User           User     @relation(fields: [userId], references: [id])
-}
-
-model MembershipPlan {
-  id          String   @id
-  name        String
-  level       String   @unique
-  price       Float
-  duration    Int?
-  description String?
-  features    String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-}
-
-model OfferingCategory {
-  id           String         @id
-  name         String
-  icon         String?
-  sortOrder    Int            @default(0)
-  isActive     Boolean        @default(true)
-  OfferingItem OfferingItem[]
-}
-
-model OfferingItem {
-  id               String           @id
-  categoryId       String
-  name             String
-  image            String?
-  description      String?
-  priceSingle      Float?
-  priceMonth       Float?
-  priceYear        Float?
-  isActive         Boolean          @default(true)
-  sortOrder        Int              @default(0)
-  OfferingCategory OfferingCategory @relation(fields: [categoryId], references: [id])
-  OfferingRecord   OfferingRecord[]
-}
-
-model OfferingRecord {
-  id           String       @id
-  userId       String
-  itemId       String
-  supplyIds    String?
-  amount       Float
-  type         String
-  startDate    DateTime     @default(now())
-  endDate      DateTime?
-  status       String       @default("active")
-  createdAt    DateTime     @default(now())
-  OfferingItem OfferingItem @relation(fields: [itemId], references: [id])
-  User         User         @relation(fields: [userId], references: [id])
-}
-
-model OfferingSupply {
-  id          String   @id
-  name        String
-  icon        String?
-  image       String?
-  price       Float
-  description String?
-  category    String   @default("general")
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  stock       Int      @default(0)
-}
-
-model Order {
-  id            String    @id
-  orderNo       String    @unique
-  userId        String
-  type          String
-  targetId      String?
-  amount        Float
-  status        String    @default("pending")
-  paymentMethod String?
-  transactionId String?
-  paidAt        DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-  User          User      @relation(fields: [userId], references: [id])
-}
-
-model Payment {
-  id            String    @id
-  orderId       String    @unique
-  userId        String
-  method        String
-  amount        Float
-  status        String    @default("pending")
-  transactionId String?
-  paidAt        DateTime?
-  refundAt      DateTime?
-  refundAmount  Float?
-  remark        String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-}
-
-model QimenRecord {
-  id             String   @id
-  userId         String
-  queryTime      String
-  dunType        String
-  juNumber       Int
-  tianPan        String?
-  diPan          String?
-  renPan         String?
-  shenPan        String?
-  interpretation String?
-  createdAt      DateTime @default(now())
-  User           User     @relation(fields: [userId], references: [id])
-}
-
-model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model SiteConfig {
-  id        String   @id
-  key       String   @unique
-  value     String
-  category  String   @default("general")
-  updatedAt DateTime
-}
-
+/// 用户表 - 所有角色共用
 model User {
-  id             String           @id
-  email          String?          @unique
-  phone          String?          @unique
-  name           String?
-  passwordHash   String?
-  avatar         String?
-  role           String           @default("user")
-  memberLevel    String           @default("free")
-  memberExpiry   DateTime?
-  dailyUsage     Int              @default(0)
-  lastUsageDate  String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-  Account        Account[]
-  BaziRecord     BaziRecord[]
-  MeihuaRecord   MeihuaRecord[]
-  OfferingRecord OfferingRecord[]
-  Order          Order[]
-  QimenRecord    QimenRecord[]
-  Session        Session[]
-  ZiweiRecord    ZiweiRecord[]
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  phone         String?
+  avatar        String?
+  role          String    @default("user") // user, agent, admin
+  memberLevel   String    @default("basic")
+  memberExpiryAt DateTime?
+  agentId       String?   // 如果是代理商用户，关联代理商
+  
+  // 关系
+  agent         Agent?    @relation(fields: [agentId], references: [id])
+  orders        Order[]
+  tickets       Ticket[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([role])
+  @@index([agentId])
 }
 
-model ExportTask {
-  id         String   @id
-  type       String
-  format     String   @default("csv")
-  status     String   @default("pending")
-  fileUrl    String?
-  params     String?
-  createdBy  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
+/// 代理商表 - 所有代理商信息
+model Agent {
+  id              String    @id @default(cuid())
+  userId          String    @unique // 关联用户账号
+  companyName     String?
+  contactName     String
+  contactPhone    String
+  domain          String?   @unique // 绑定域名
+  brandName       String?
+  logo            String?
+  licenseKey      String?   // 当前生效的授权码
+  licenseExpiry   DateTime?
+  siteConfig      String?   // JSON 格式的站点配置
+  
+  // 同步状态
+  lastSyncAt      DateTime?
+  lastVersion     String?
+  systemStatus    String?   @default("online")
+  
+  // 关系
+  user            User      @relation(fields: [userId], references: [id])
+  licenses        AgentLicense[]
+  settlements     Settlement[]
+  commissionRecords CommissionRecord[]
+  
+  isActive        Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([domain])
+  @@index([isActive])
+}
 
+/// 授权码表 - 代理商授权管理
+model AgentLicense {
+  id          String    @id @default(cuid())
+  agentId     String
+  licenseKey  String    @unique
+  domain      String?
+  maxUsers    Int       @default(1000)
+  expiryAt    DateTime?
+  features    String?   // JSON 格式的功能权限
+  status      String    @default("active") // active, expired, revoked
+  signature   String?   // HMAC 签名
+  
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([agentId])
+  @@index([licenseKey])
   @@index([status])
+}
+
+/// 订单表 - 所有交易记录
+model Order {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String    // membership, recharge, report
+  amount      Float
+  status      String    @default("pending") // pending, paid, cancelled, refunded
+  orderData   String?   // JSON 格式的订单详情
+  
+  user        User      @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+}
+
+/// 结算表 - 代理商结算
+model Settlement {
+  id          String    @id @default(cuid())
+  agentId     String
+  period      String    // 2024-01
+  amount      Float
+  status      String    @default("pending") // pending, approved, paid
+  note        String?
+  
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([agentId])
+  @@index([status])
+}
+
+/// 分润记录表
+model CommissionRecord {
+  id              String    @id @default(cuid())
+  agentId         String
+  orderId         String
+  orderAmount     Float
+  commissionRate  Float
+  commissionAmount Float
+  status          String    @default("pending")
+  period          String?
+  
+  agent           Agent     @relation(fields: [agentId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([agentId])
+  @@index([orderId])
+}
+
+/// 工单表
+model Ticket {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  content     String
+  status      String    @default("open")
+  priority    String    @default("normal")
+  
+  user        User      @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+/// 更新日志表 - 记录系统版本更新和变更内容
+model UpdateLog {
+  id          String    @id @default(cuid())
+  version     String    // 版本号，如 v4.0.0
+  title       String    // 更新标题
+  content     String    // 更新内容描述（支持 Markdown 或纯文本）
+  type        String    @default("update") // update, feature, fix, security
+  isMajor     Boolean   @default(false) // 是否为重大更新
+  changes     String?   // JSON 格式的变更列表
+  operatorId  String?   // 操作人ID
+  operatorName String?  // 操作人名称
+  tag         String?   // Git tag 或部署 ID
+  status      String    @default("success") // success, failed, rolled_back
+  rollbackVersion String? // 回滚目标版本
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([version])
+  @@index([type])
   @@index([createdAt])
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model ZiweiRecord {
-  id             String   @id
-  userId         String
-  name           String?
-  gender         String
-  birthDate      String
-  birthTime      String
-  isLunar        Boolean  @default(false)
-  mingGong       String?
-  palaceData     String?
-  starData       String?
-  sihuaData      String?
-  interpretation String?
-  createdAt      DateTime @default(now())
-  User           User     @relation(fields: [userId], references: [id])
+  @@index([status])
 }

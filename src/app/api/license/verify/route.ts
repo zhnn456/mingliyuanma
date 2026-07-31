@@ -27,18 +27,18 @@ export async function GET(req: NextRequest) {
 
   // 2. 查询数据库中的授权状态
   let dbStatus = 'active';
-  let agentLicense: any = null;
+  let dbLicense: any = null;
   try {
-    agentLicense = await queryFirst(
+    dbLicense = await queryFirst(
       'SELECT status, features, maxUsers, expiryAt FROM AgentLicense WHERE licenseKey = ?',
       license
     ) as any;
 
-    if (agentLicense) {
-      if (agentLicense.status !== 'active') {
-        dbStatus = agentLicense.status;
+    if (dbLicense) {
+      if (dbLicense.status !== 'active') {
+        dbStatus = dbLicense.status;
       }
-      if (agentLicense.expiryAt && new Date(agentLicense.expiryAt) < new Date()) {
+      if (dbLicense.expiryAt && new Date(dbLicense.expiryAt) < new Date()) {
         dbStatus = 'expired';
       }
     }
@@ -66,11 +66,11 @@ export async function GET(req: NextRequest) {
     license
   ) as any;
 
-  const features = agentLicense?.features
-    ? JSON.parse(agentLicense.features)
+  const features = dbLicense?.features
+    ? JSON.parse(dbLicense.features)
     : payload.features;
 
-  const maxUsers = agentLicense?.maxUsers || payload.maxUsers || 1000;
+  const maxUsers = dbLicense?.maxUsers || payload.maxUsers || 1000;
 
   return NextResponse.json({
     valid: true,

@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth-server'
 import { sanitizeString } from '@/lib/security';
 import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
+import { generateAgentLicenseAsync } from '@/lib/license-generator';
 
 export async function GET(req: NextRequest) {
   try {
@@ -91,17 +92,30 @@ export async function POST(req: NextRequest) {
 
       const passwordHash = await hashPassword(password);
       const now = new Date().toISOString();
+      const nowTs = Date.now();
 
-      const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `usr_${nowTs}_${Math.random().toString(36).slice(2, 8)}`;
       await execute(
         `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, createdAt)
          VALUES (?, ?, ?, ?, ?, 'agent', 'lifetime', ?)`,
         userId, email, passwordHash, contactName, contactPhone, now
       );
 
-      const randomPart = Array.from(new Uint8Array(4), (x: number) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
-      const licenseKey = `AGT-${Date.now()}-${randomPart}`;
-      const agentId = `agt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const agentId = `agt_${nowTs}_${Math.random().toString(36).slice(2, 8)}`;
+      const durationDays = body.durationDays || 365;
+      const expiryTs = nowTs + durationDays * 24 * 60 * 60 * 1000;
+
+      // 使用 HMAC 签名生成安全授权码
+      const signedLicense = await generateAgentLicenseAsync({
+        agentId,
+        features: ['bazi', 'ziwei', 'qimen', 'meihua'],
+        maxUsers: maxUsers || 1000,
+        expiryAt: expiryTs,
+        domain: domain || undefined,
+        level: body.level || 'basic',
+        monthlyFee: body.monthlyFee || 99,
+      });
+      const licenseKey = signedLicense.raw;
 
       await execute(
         `INSERT INTO Agent (id, userId, companyName, contactName, contactPhone, domain, brandName, licenseKey, licenseExpiry, siteConfig, createdAt)
@@ -114,27 +128,30 @@ export async function POST(req: NextRequest) {
         domain || null,
         sanitizeString(brandName || companyName || ''),
         licenseKey,
-        licenseExpiry ? new Date(licenseExpiry).toISOString() : null,
+        new Date(expiryTs).toISOString(),
         JSON.stringify({
           maxUsers: maxUsers || 1000,
           customPricing: false,
           whiteLabel: false,
+          level: body.level || 'basic',
+          monthlyFee: body.monthlyFee || 99,
         }),
         now
       );
 
-      const licenseId = `lic_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const licenseId = `lic_${nowTs}_${Math.random().toString(36).slice(2, 8)}`;
       await execute(
-        `INSERT INTO AgentLicense (id, agentId, licenseKey, domain, maxUsers, expiryAt, features, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+        `INSERT INTO AgentLicense (id, agentId, licenseKey, domain, maxUsers, expiryAt, features, status, createdAt, signature)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
         licenseId,
         agentId,
         licenseKey,
         domain || null,
         maxUsers || 1000,
-        licenseExpiry ? new Date(licenseExpiry).toISOString() : null,
+        new Date(expiryTs).toISOString(),
         JSON.stringify(['bazi', 'ziwei', 'qimen', 'meihua']),
-        now
+        now,
+        signedLicense.signature
       );
 
       await auditLog({
@@ -167,27 +184,45 @@ export async function POST(req: NextRequest) {
 
     if (action === 'regenerate_license') {
       const { agentId } = body;
-      const randomPart = Array.from(new Uint8Array(4), (x: number) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
-      const newLicenseKey = `AGT-${Date.now()}-${randomPart}`;
+      const agent = await queryFirst('SELECT * FROM Agent WHERE id = ?', agentId);
+      if (!agent) {
+        return NextResponse.json({ error: '代理商不存在' }, { status: 404 });
+      }
+
+      const nowTs = Date.now();
+      const expiryTs = nowTs + 365 * 24 * 60 * 60 * 1000;
+
+      // 使用 HMAC 签名重新生成授权码
+      const signedLicense = await generateAgentLicenseAsync({
+        agentId,
+        features: ['bazi', 'ziwei', 'qimen', 'meihua'],
+        maxUsers: (agent as any).siteConfig ? JSON.parse((agent as any).siteConfig).maxUsers || 1000 : 1000,
+        expiryAt: expiryTs,
+        domain: (agent as any).domain || undefined,
+        level: (agent as any).siteConfig ? JSON.parse((agent as any).siteConfig).level || 'basic' : 'basic',
+        monthlyFee: (agent as any).siteConfig ? JSON.parse((agent as any).siteConfig).monthlyFee || 99 : 99,
+      });
+      const newLicenseKey = signedLicense.raw;
 
       await execute("UPDATE AgentLicense SET status = 'revoked' WHERE agentId = ? AND status = 'active'", agentId);
-      await execute('UPDATE Agent SET licenseKey = ? WHERE id = ?', newLicenseKey, agentId);
+      await execute('UPDATE Agent SET licenseKey = ?, licenseExpiry = ? WHERE id = ?', newLicenseKey, new Date(expiryTs).toISOString(), agentId);
 
-      const agent = await queryFirst('SELECT * FROM Agent WHERE id = ?', agentId);
-      const licenseId = `lic_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const licenseId = `lic_${nowTs}_${Math.random().toString(36).slice(2, 8)}`;
       await execute(
-        `INSERT INTO AgentLicense (id, agentId, licenseKey, domain, maxUsers, features, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
+        `INSERT INTO AgentLicense (id, agentId, licenseKey, domain, maxUsers, expiryAt, features, status, createdAt, signature)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
         licenseId,
         agentId,
         newLicenseKey,
-        agent ? (agent as any).domain : null,
+        (agent as any).domain || null,
         1000,
+        new Date(expiryTs).toISOString(),
         JSON.stringify(['bazi', 'ziwei', 'qimen', 'meihua']),
-        new Date().toISOString()
+        new Date().toISOString(),
+        signedLicense.signature
       );
 
-      return NextResponse.json({ agent, licenseKey: newLicenseKey });
+      return NextResponse.json({ agent, licenseKey: newLicenseKey, signedLicense });
     }
 
     return NextResponse.json({ error: '无效操作' }, { status: 400 });

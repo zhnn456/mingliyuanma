@@ -1,8 +1,9 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
+import { generateAgentLicenseAsync, CENTER_SECRET_KEY } from '@/lib/license-generator';
 
-function generateLicenseKey(): string {
+function generateSimpleKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let key = '';
   for (let i = 0; i < 20; i++) {
@@ -63,31 +64,46 @@ export async function POST(req: NextRequest) {
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
-    const { agentId, domain, durationDays, maxUsers, features } = body;
+    const { agentId, domain, durationDays, maxUsers, features, level, monthlyFee } = body;
 
     if (!agentId) return NextResponse.json({ error: '代理商ID必填' }, { status: 400 });
 
-    const licenseKey = generateLicenseKey();
-    const now = new Date().toISOString();
-    const expiryDate = new Date(Date.now() + (durationDays || 365) * 24 * 60 * 60 * 1000).toISOString();
+    const now = Date.now();
+    const expiryTs = now + (durationDays || 365) * 24 * 60 * 60 * 1000;
+    const expiryDate = new Date(expiryTs).toISOString();
+    const nowStr = new Date(now).toISOString();
+
+    // 使用 HMAC 签名生成授权码
+    const signedLicense = await generateAgentLicenseAsync({
+      agentId,
+      features: features || ['bazi'],
+      maxUsers: maxUsers || 10,
+      expiryAt: expiryTs,
+      domain: domain || undefined,
+      level: level || 'basic',
+      monthlyFee: monthlyFee || 99,
+    });
+
+    const licenseKey = signedLicense.raw;
 
     await execute(
-      `INSERT INTO "AgentLicense" (id, agentId, licenseKey, domain, issuedAt, expiryAt, maxUsers, features, status, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+      `INSERT INTO "AgentLicense" (id, agentId, licenseKey, domain, issuedAt, expiryAt, maxUsers, features, status, createdAt, updatedAt, signature)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
       `lic_${Date.now()}`,
       agentId,
       licenseKey,
       domain || null,
-      now,
+      nowStr,
       expiryDate,
       maxUsers || 10,
-      JSON.stringify(features || {}),
-      now,
-      now
+      JSON.stringify(features || ['bazi']),
+      nowStr,
+      nowStr,
+      signedLicense.signature
     );
 
     const license = await queryFirst('SELECT * FROM "AgentLicense" WHERE licenseKey = ?', licenseKey);
-    return NextResponse.json({ license });
+    return NextResponse.json({ license, signedLicense, centerSecretKey: CENTER_SECRET_KEY });
   } catch (error) {
     console.error('创建授权码失败:', error);
     return NextResponse.json({ error: '创建失败' }, { status: 500 });
@@ -148,33 +164,44 @@ export async function PATCH(req: NextRequest) {
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
-    const { count, agentId, domain, durationDays, maxUsers, features } = body;
+    const { count, agentId, domain, durationDays, maxUsers, features, level, monthlyFee } = body;
 
     if (!count || count < 1) return NextResponse.json({ error: '数量必须大于0' }, { status: 400 });
     if (!agentId) return NextResponse.json({ error: '代理商ID必填' }, { status: 400 });
 
     const now = new Date().toISOString();
-    const expiryDate = new Date(Date.now() + (durationDays || 365) * 24 * 60 * 60 * 1000).toISOString();
+    const nowTs = Date.now();
+    const expiryTs = nowTs + (durationDays || 365) * 24 * 60 * 60 * 1000;
+    const expiryDate = new Date(expiryTs).toISOString();
     const statements: Array<{ sql: string; params?: any[] }> = [];
     const keys: string[] = [];
 
     for (let i = 0; i < count; i++) {
-      const licenseKey = generateLicenseKey();
-      keys.push(licenseKey);
+      const signedLicense = await generateAgentLicenseAsync({
+        agentId,
+        features: features || ['bazi'],
+        maxUsers: maxUsers || 10,
+        expiryAt: expiryTs,
+        domain: domain || undefined,
+        level: level || 'basic',
+        monthlyFee: monthlyFee || 99,
+      });
+      keys.push(signedLicense.raw);
       statements.push({
-        sql: `INSERT INTO "AgentLicense" (id, agentId, licenseKey, domain, issuedAt, expiryAt, maxUsers, features, status, createdAt, updatedAt)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+        sql: `INSERT INTO "AgentLicense" (id, agentId, licenseKey, domain, issuedAt, expiryAt, maxUsers, features, status, createdAt, updatedAt, signature)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
         params: [
           `lic_${Date.now()}_${i}`,
           agentId,
-          licenseKey,
+          signedLicense.raw,
           domain || null,
           now,
           expiryDate,
           maxUsers || 10,
-          JSON.stringify(features || {}),
+          JSON.stringify(features || ['bazi']),
           now,
           now,
+          signedLicense.signature,
         ],
       });
     }

@@ -688,3 +688,28 @@ export async function seedDefaultSupplies(force = false) {
   console.log(`Seed supplies done: ${inserted} inserted, ${errors.length} errors`);
   if (errors.length > 0) console.error('Seed errors:', errors);
 }
+
+/** 确保 UpdateLog 表存在 */
+export async function ensureUpdateLogTable() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS "UpdateLog" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "version" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "type" TEXT NOT NULL DEFAULT 'update',
+      "isMajor" INTEGER NOT NULL DEFAULT 0,
+      "changes" TEXT,
+      "operatorId" TEXT,
+      "operatorName" TEXT,
+      "tag" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'success',
+      "rollbackVersion" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+  );
+  await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_version_idx" ON "UpdateLog"("version")');
+  await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_type_idx" ON "UpdateLog"("type")');
+  await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_createdAt_idx" ON "UpdateLog"("createdAt")');
+  await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_status_idx" ON "UpdateLog"("status")');
+}

@@ -1,21 +1,25 @@
+# Cloudflare Workers 配置（简化版，用于部署）
 name = "mingli-yuanma"
 main = ".open-next/worker.js"
 compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
 
+# 静态资源
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+# D1 数据库绑定
 [[d1_databases]]
 binding = "DB"
 database_name = "yuanmamingli"
 database_id = "8eb80fad-28f3-4711-b9d0-4f1fb861b6e0"
 
+# KV 命名空间绑定
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "758d9485ac404f58bdb29aa249e5a1c8"
 
+# 环境变量
 [vars]
 NEXTAUTH_URL = "https://bazi6.cc.cd"
-NEXTAUTH_SECRET = "mingli-secret-key-2026-production"

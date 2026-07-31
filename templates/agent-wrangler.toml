@@ -1,0 +1,65 @@
+# ============================================================
+# 命理网代理商 Cloudflare Worker 配置模板
+# ============================================================
+# 使用说明：
+# 1. 复制此文件为 wrangler.toml
+# 2. 替换所有 {{占位符}} 为你的实际值
+# 3. 执行 npm run build:worker && npx wrangler deploy
+# ============================================================
+
+name = "mingli-agent-{{AGENT_ID}}"
+main = ".open-next/cloudflare/worker.js"
+compatibility_date = "2025-01-01"
+
+# ============================================================
+# 环境变量配置
+# ============================================================
+[vars]
+# 代理商授权码（由平台提供，不要修改）
+APP_LICENSE_KEY = "{{LICENSE_KEY}}"
+
+# 中央服务器地址（用于授权验证和版本更新）
+CENTER_API = "https://mingli-yuanma.zhnn456.workers.dev"
+
+# 代理商信息
+APP_AGENT_ID = "{{AGENT_ID}}"
+NEXT_PUBLIC_BRAND_NAME = "{{BRAND_NAME}}"
+
+# 系统版本（自动注入，不要修改）
+APP_VERSION = "v4.0.0"
+
+# 认证密钥（请修改为随机字符串）
+NEXTAUTH_SECRET = "{{NEXTAUTH_SECRET}}"
+
+# ============================================================
+# D1 数据库绑定
+# ============================================================
+# 需要在 Cloudflare Dashboard 创建 D1 数据库
+# 创建后填入 database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "mingli-agent-{{AGENT_ID}}"
+database_id = "{{D1_DATABASE_ID}}"
+
+# ============================================================
+# KV 命名空间绑定
+# ============================================================
+# 需要在 Cloudflare Dashboard 创建 KV 命名空间
+# 创建后填入 id
+[[kv_namespaces]]
+binding = "KV"
+id = "{{KV_NAMESPACE_ID}}"
+
+# ============================================================
+# 部署步骤
+# ============================================================
+# 1. 注册 Cloudflare 账号：https://dash.cloudflare.com/sign-up
+# 2. 安装 Node.js（v18 或以上）
+# 3. 安装 wrangler：npm install -g wrangler
+# 4. 登录 wrangler：wrangler login
+# 5. 创建 D1 数据库：wrangler d1 create mingli-agent-{{AGENT_ID}}
+# 6. 创建 KV：wrangler kv:namespace create KV
+# 7. 初始化数据库：wrangler d1 execute mingli-agent-{{AGENT_ID}} --remote --file=prisma/migrate_v4.sql
+# 8. 构建项目：npm run build:worker
+# 9. 部署：npx wrangler deploy
+# 10. 访问你的 Worker 域名即可使用
