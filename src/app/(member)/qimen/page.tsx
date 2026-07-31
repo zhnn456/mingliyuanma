@@ -112,6 +112,7 @@ export default function QimenPage() {
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [questionType, setQuestionType] = useState('general');
   const [showFactors, setShowFactors] = useState(false);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(Date.now());
 
   useEffect(() => {
     if (session && !initialLoaded) {
@@ -149,12 +150,76 @@ export default function QimenPage() {
       if (!response.ok) throw new Error(json.error || '排盘失败');
       setResult(json.result);
       setSelectedPosition(null);
+      setCurrentTimestamp(Date.now());
       addToast('success', '奇门遁甲排盘完成！');
     } catch (err: any) {
       const msg = err.message || '排盘失败';
       setError(msg);
       addToast('error', msg);
     } finally { setLoading(false); }
+  };
+
+  // 上一局：往前推1小时
+  const handlePrevChart = async () => {
+    const newTime = currentTimestamp - 3600000; // 1小时
+    setCurrentTimestamp(newTime);
+    await fetchAndDisplay(newTime);
+  };
+
+  // 下一局：往后推1小时
+  const handleNextChart = async () => {
+    const newTime = currentTimestamp + 3600000; // 1小时
+    setCurrentTimestamp(newTime);
+    await fetchAndDisplay(newTime);
+  };
+
+  // 此时：使用当前时间
+  const handleCurrentTime = async () => {
+    const newTime = Date.now();
+    setCurrentTimestamp(newTime);
+    setUseCurrentTime(true);
+    await fetchAndDisplay(newTime);
+  };
+
+  // 统一的排盘请求函数
+  const fetchAndDisplay = async (timestamp: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const dt = new Date(timestamp);
+      const year = dt.getFullYear();
+      const month = dt.getMonth() + 1;
+      const day = dt.getDate();
+      const hour = dt.getHours();
+      const minute = dt.getMinutes();
+      
+      const response = await fetch('/api/qimen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month, day, hour, minute }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || '排盘失败');
+      setResult(json.result);
+      setSelectedPosition(null);
+      addToast('success', '排盘更新成功！');
+    } catch (err: any) {
+      const msg = err.message || '排盘失败';
+      setError(msg);
+      addToast('error', msg);
+    } finally { setLoading(false); }
+  };
+
+  // 复制分享链接
+  const handleShare = async () => {
+    if (!result) return;
+    try {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?t=${currentTimestamp}`;
+      await navigator.clipboard.writeText(shareUrl);
+      addToast('success', '分享链接已复制到剪贴板！');
+    } catch {
+      addToast('error', '复制失败，请手动复制链接');
+    }
   };
 
   const getPalaceByPosition = (pos: number) => result?.palaces.find(p => p.position === pos);
@@ -432,6 +497,66 @@ export default function QimenPage() {
 
             {/* 奇门盘面 - SVG */}
             <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5 overflow-x-auto">
+              {/* 盘面控制栏 */}
+              {result && (
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrevChart}
+                      disabled={loading}
+                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                      上一局
+                    </button>
+                    <button
+                      onClick={handleCurrentTime}
+                      disabled={loading}
+                      className="px-3 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm disabled:opacity-50"
+                    >
+                      此时
+                    </button>
+                    <button
+                      onClick={handleNextChart}
+                      disabled={loading}
+                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      下一局
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {new Date(currentTimestamp).toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    <button
+                      onClick={handleShare}
+                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 flex items-center gap-1"
+                      title="复制分享链接"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                      </svg>
+                      分享
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               <QimenChart
                 result={result as any}
                 selectedPosition={selectedPosition}
