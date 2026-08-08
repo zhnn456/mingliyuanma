@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS `User` (
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `User_email_idx` ON `User`(`email`);
-CREATE INDEX IF NOT EXISTS `User_role_idx` ON `User`(`role`);
-CREATE INDEX IF NOT EXISTS `User_agentId_idx` ON `User`(`agentId`);
+ALTER TABLE `User` ADD INDEX `User_email_idx`(`email`);
+ALTER TABLE `User` ADD INDEX `User_role_idx`(`role`);
+ALTER TABLE `User` ADD INDEX `User_agentId_idx`(`agentId`);
 
 -- ============================================================
 -- 2. 代理商表 Agent
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS `Agent` (
   UNIQUE KEY `Agent_referralCode_key` (`referralCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `Agent_isActive_idx` ON `Agent`(`isActive`);
-CREATE INDEX IF NOT EXISTS `Agent_level_idx` ON `Agent`(`level`);
-CREATE INDEX IF NOT EXISTS `Agent_subdomain_idx` ON `Agent`(`subdomain`);
-CREATE INDEX IF NOT EXISTS `Agent_customDomain_idx` ON `Agent`(`customDomain`);
+ALTER TABLE `Agent` ADD INDEX `Agent_isActive_idx`(`isActive`);
+ALTER TABLE `Agent` ADD INDEX `Agent_level_idx`(`level`);
+ALTER TABLE `Agent` ADD INDEX `Agent_subdomain_idx`(`subdomain`);
+ALTER TABLE `Agent` ADD INDEX `Agent_customDomain_idx`(`customDomain`);
 
 -- ============================================================
 -- 3. 授权码表 AgentLicense
@@ -101,8 +101,8 @@ CREATE TABLE IF NOT EXISTS `AgentLicense` (
   UNIQUE KEY `AgentLicense_domain_key` (`domain`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `AgentLicense_agentId_idx` ON `AgentLicense`(`agentId`);
-CREATE INDEX IF NOT EXISTS `AgentLicense_status_idx` ON `AgentLicense`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `AgentLicense_agentId_idx` ON `AgentLicense`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `AgentLicense_status_idx` ON `AgentLicense`(`status`);
 
 -- ============================================================
 -- 4. 代理商站点配置表 AgentSiteConfig
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `AgentSiteConfig` (
   UNIQUE KEY `AgentSiteConfig_agentId_key_key` (`agentId`, `key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `AgentSiteConfig_agentId_idx` ON `AgentSiteConfig`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `AgentSiteConfig_agentId_idx` ON `AgentSiteConfig`(`agentId`);
 
 -- ============================================================
 -- 5. 订单表 Order
@@ -145,10 +145,10 @@ CREATE TABLE IF NOT EXISTS `Order` (
   UNIQUE KEY `Order_orderNo_key` (`orderNo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `Order_userId_idx` ON `Order`(`userId`);
-CREATE INDEX IF NOT EXISTS `Order_status_idx` ON `Order`(`status`);
-CREATE INDEX IF NOT EXISTS `Order_type_idx` ON `Order`(`type`);
-CREATE INDEX IF NOT EXISTS `Order_agentId_idx` ON `Order`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `Order_userId_idx` ON `Order`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `Order_status_idx` ON `Order`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `Order_type_idx` ON `Order`(`type`);
+-- ALTER TABLE ADD INDEX (see below) `Order_agentId_idx` ON `Order`(`agentId`);
 
 -- ============================================================
 -- 6. 用户灵珠余额表 UserPoints
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS `PointsLedger` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `PointsLedger_userId_idx` ON `PointsLedger`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `PointsLedger_userId_idx` ON `PointsLedger`(`userId`);
 
 -- ============================================================
 -- 8. 优惠码表 Coupon
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS `BaziRecord` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `BaziRecord_userId_idx` ON `BaziRecord`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `BaziRecord_userId_idx` ON `BaziRecord`(`userId`);
 
 -- ============================================================
 -- 10. 供奉记录表 OfferingRecord
@@ -238,8 +238,8 @@ CREATE TABLE IF NOT EXISTS `OfferingRecord` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `OfferingRecord_userId_idx` ON `OfferingRecord`(`userId`);
-CREATE INDEX IF NOT EXISTS `OfferingRecord_status_idx` ON `OfferingRecord`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `OfferingRecord_userId_idx` ON `OfferingRecord`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `OfferingRecord_status_idx` ON `OfferingRecord`(`status`);
 
 -- ============================================================
 -- 11. 供奉供品表 OfferingSupply
@@ -258,8 +258,8 @@ CREATE TABLE IF NOT EXISTS `OfferingSupply` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `OfferingSupply_category_idx` ON `OfferingSupply`(`category`);
-CREATE INDEX IF NOT EXISTS `OfferingSupply_isActive_idx` ON `OfferingSupply`(`isActive`);
+-- ALTER TABLE ADD INDEX (see below) `OfferingSupply_category_idx` ON `OfferingSupply`(`category`);
+-- ALTER TABLE ADD INDEX (see below) `OfferingSupply_isActive_idx` ON `OfferingSupply`(`isActive`);
 
 -- ============================================================
 -- 12. 工单表 Ticket
@@ -275,8 +275,8 @@ CREATE TABLE IF NOT EXISTS `Ticket` (
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `Ticket_userId_idx` ON `Ticket`(`userId`);
-CREATE INDEX IF NOT EXISTS `Ticket_status_idx` ON `Ticket`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `Ticket_userId_idx` ON `Ticket`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `Ticket_status_idx` ON `Ticket`(`status`);
 
 -- ============================================================
 -- 13. 站点配置表 SiteConfig (key-value 结构)
@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS `SiteConfig` (
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `SiteConfig_category_idx` ON `SiteConfig`(`category`);
+-- ALTER TABLE ADD INDEX (see below) `SiteConfig_category_idx` ON `SiteConfig`(`category`);
 
 -- ============================================================
 -- 14. 用户标签关系表 UserTagRelation
@@ -300,8 +300,8 @@ CREATE TABLE IF NOT EXISTS `UserTagRelation` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `UserTagRelation_userId_idx` ON `UserTagRelation`(`userId`);
-CREATE INDEX IF NOT EXISTS `UserTagRelation_tagId_idx` ON `UserTagRelation`(`tagId`);
+-- ALTER TABLE ADD INDEX (see below) `UserTagRelation_userId_idx` ON `UserTagRelation`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `UserTagRelation_tagId_idx` ON `UserTagRelation`(`tagId`);
 
 -- ============================================================
 -- 15. 提现表 Withdrawal
@@ -321,9 +321,9 @@ CREATE TABLE IF NOT EXISTS `Withdrawal` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `Withdrawal_userId_idx` ON `Withdrawal`(`userId`);
-CREATE INDEX IF NOT EXISTS `Withdrawal_status_idx` ON `Withdrawal`(`status`);
-CREATE INDEX IF NOT EXISTS `Withdrawal_createdAt_idx` ON `Withdrawal`(`createdAt`);
+-- ALTER TABLE ADD INDEX (see below) `Withdrawal_userId_idx` ON `Withdrawal`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `Withdrawal_status_idx` ON `Withdrawal`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `Withdrawal_createdAt_idx` ON `Withdrawal`(`createdAt`);
 
 -- ============================================================
 -- 16. 佣金规则表 CommissionRule
@@ -342,8 +342,8 @@ CREATE TABLE IF NOT EXISTS `CommissionRule` (
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `CommissionRule_agentId_idx` ON `CommissionRule`(`agentId`);
-CREATE INDEX IF NOT EXISTS `CommissionRule_productType_idx` ON `CommissionRule`(`productType`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRule_agentId_idx` ON `CommissionRule`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRule_productType_idx` ON `CommissionRule`(`productType`);
 
 -- ============================================================
 -- 17. 分润记录表 CommissionRecord
@@ -369,10 +369,10 @@ CREATE TABLE IF NOT EXISTS `CommissionRecord` (
   `settledAt` DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `CommissionRecord_agentId_idx` ON `CommissionRecord`(`agentId`);
-CREATE INDEX IF NOT EXISTS `CommissionRecord_orderId_idx` ON `CommissionRecord`(`orderId`);
-CREATE INDEX IF NOT EXISTS `CommissionRecord_status_idx` ON `CommissionRecord`(`status`);
-CREATE INDEX IF NOT EXISTS `CommissionRecord_createdAt_idx` ON `CommissionRecord`(`createdAt`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRecord_agentId_idx` ON `CommissionRecord`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRecord_orderId_idx` ON `CommissionRecord`(`orderId`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRecord_status_idx` ON `CommissionRecord`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `CommissionRecord_createdAt_idx` ON `CommissionRecord`(`createdAt`);
 
 -- ============================================================
 -- 18. 结算记录表 SettlementRecord
@@ -397,8 +397,8 @@ CREATE TABLE IF NOT EXISTS `SettlementRecord` (
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `SettlementRecord_agentId_idx` ON `SettlementRecord`(`agentId`);
-CREATE INDEX IF NOT EXISTS `SettlementRecord_status_idx` ON `SettlementRecord`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `SettlementRecord_agentId_idx` ON `SettlementRecord`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `SettlementRecord_status_idx` ON `SettlementRecord`(`status`);
 
 -- ============================================================
 -- 19. 邀请码表 ReferralCode
@@ -412,8 +412,8 @@ CREATE TABLE IF NOT EXISTS `ReferralCode` (
   UNIQUE KEY `ReferralCode_code_key` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `ReferralCode_code_idx` ON `ReferralCode`(`code`);
-CREATE INDEX IF NOT EXISTS `ReferralCode_agentId_idx` ON `ReferralCode`(`agentId`);
+-- ALTER TABLE ADD INDEX (see below) `ReferralCode_code_idx` ON `ReferralCode`(`code`);
+-- ALTER TABLE ADD INDEX (see below) `ReferralCode_agentId_idx` ON `ReferralCode`(`agentId`);
 
 -- ============================================================
 -- 20. 卡密表 CardKey
@@ -434,10 +434,10 @@ CREATE TABLE IF NOT EXISTS `CardKey` (
   UNIQUE KEY `CardKey_code_key` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `CardKey_code_idx` ON `CardKey`(`code`);
-CREATE INDEX IF NOT EXISTS `CardKey_status_idx` ON `CardKey`(`status`);
-CREATE INDEX IF NOT EXISTS `CardKey_batchId_idx` ON `CardKey`(`batchId`);
-CREATE INDEX IF NOT EXISTS `CardKey_type_idx` ON `CardKey`(`type`);
+-- ALTER TABLE ADD INDEX (see below) `CardKey_code_idx` ON `CardKey`(`code`);
+-- ALTER TABLE ADD INDEX (see below) `CardKey_status_idx` ON `CardKey`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `CardKey_batchId_idx` ON `CardKey`(`batchId`);
+-- ALTER TABLE ADD INDEX (see below) `CardKey_type_idx` ON `CardKey`(`type`);
 
 -- ============================================================
 -- 21. 更新日志表 UpdateLog
@@ -458,10 +458,10 @@ CREATE TABLE IF NOT EXISTS `UpdateLog` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `UpdateLog_version_idx` ON `UpdateLog`(`version`);
-CREATE INDEX IF NOT EXISTS `UpdateLog_type_idx` ON `UpdateLog`(`type`);
-CREATE INDEX IF NOT EXISTS `UpdateLog_createdAt_idx` ON `UpdateLog`(`createdAt`);
-CREATE INDEX IF NOT EXISTS `UpdateLog_status_idx` ON `UpdateLog`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `UpdateLog_version_idx` ON `UpdateLog`(`version`);
+-- ALTER TABLE ADD INDEX (see below) `UpdateLog_type_idx` ON `UpdateLog`(`type`);
+-- ALTER TABLE ADD INDEX (see below) `UpdateLog_createdAt_idx` ON `UpdateLog`(`createdAt`);
+-- ALTER TABLE ADD INDEX (see below) `UpdateLog_status_idx` ON `UpdateLog`(`status`);
 
 -- ============================================================
 -- 22. 支付表 Payment
@@ -483,10 +483,86 @@ CREATE TABLE IF NOT EXISTS `Payment` (
   UNIQUE KEY `Payment_orderId_key` (`orderId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `Payment_userId_idx` ON `Payment`(`userId`);
-CREATE INDEX IF NOT EXISTS `Payment_status_idx` ON `Payment`(`status`);
+-- ALTER TABLE ADD INDEX (see below) `Payment_userId_idx` ON `Payment`(`userId`);
+-- ALTER TABLE ADD INDEX (see below) `Payment_status_idx` ON `Payment`(`status`);
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- 安全创建索引（MySQL 8.0 不支持 CREATE INDEX IF NOT EXISTS）
+-- ============================================================
+DROP PROCEDURE IF EXISTS `add_index_if_missing`;
+DELIMITER //
+CREATE PROCEDURE `add_index_if_missing`(
+  IN p_table VARCHAR(64),
+  IN p_index VARCHAR(64),
+  IN p_col VARCHAR(255)
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+    AND table_name = p_table
+    AND index_name = p_index
+  ) THEN
+    SET @sql = CONCAT('ALTER TABLE `', p_table, '` ADD INDEX `', p_index, '`(', p_col, ')');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END//
+DELIMITER ;
+
+CALL add_index_if_missing('User', 'User_email_idx', '`email`');
+CALL add_index_if_missing('User', 'User_role_idx', '`role`');
+CALL add_index_if_missing('User', 'User_agentId_idx', '`agentId`');
+CALL add_index_if_missing('Agent', 'Agent_isActive_idx', '`isActive`');
+CALL add_index_if_missing('Agent', 'Agent_level_idx', '`level`');
+CALL add_index_if_missing('Agent', 'Agent_subdomain_idx', '`subdomain`');
+CALL add_index_if_missing('Agent', 'Agent_customDomain_idx', '`customDomain`');
+CALL add_index_if_missing('AgentLicense', 'AgentLicense_agentId_idx', '`agentId`');
+CALL add_index_if_missing('AgentLicense', 'AgentLicense_status_idx', '`status`');
+CALL add_index_if_missing('AgentSiteConfig', 'AgentSiteConfig_agentId_idx', '`agentId`');
+CALL add_index_if_missing('Order', 'Order_userId_idx', '`userId`');
+CALL add_index_if_missing('Order', 'Order_status_idx', '`status`');
+CALL add_index_if_missing('Order', 'Order_type_idx', '`type`');
+CALL add_index_if_missing('Order', 'Order_agentId_idx', '`agentId`');
+CALL add_index_if_missing('PointsLedger', 'PointsLedger_userId_idx', '`userId`');
+CALL add_index_if_missing('BaziRecord', 'BaziRecord_userId_idx', '`userId`');
+CALL add_index_if_missing('OfferingRecord', 'OfferingRecord_userId_idx', '`userId`');
+CALL add_index_if_missing('OfferingRecord', 'OfferingRecord_status_idx', '`status`');
+CALL add_index_if_missing('OfferingSupply', 'OfferingSupply_category_idx', '`category`');
+CALL add_index_if_missing('OfferingSupply', 'OfferingSupply_isActive_idx', '`isActive`');
+CALL add_index_if_missing('Ticket', 'Ticket_userId_idx', '`userId`');
+CALL add_index_if_missing('Ticket', 'Ticket_status_idx', '`status`');
+CALL add_index_if_missing('SiteConfig', 'SiteConfig_category_idx', '`category`');
+CALL add_index_if_missing('UserTagRelation', 'UserTagRelation_userId_idx', '`userId`');
+CALL add_index_if_missing('UserTagRelation', 'UserTagRelation_tagId_idx', '`tagId`');
+CALL add_index_if_missing('Withdrawal', 'Withdrawal_userId_idx', '`userId`');
+CALL add_index_if_missing('Withdrawal', 'Withdrawal_status_idx', '`status`');
+CALL add_index_if_missing('Withdrawal', 'Withdrawal_createdAt_idx', '`createdAt`');
+CALL add_index_if_missing('CommissionRule', 'CommissionRule_agentId_idx', '`agentId`');
+CALL add_index_if_missing('CommissionRule', 'CommissionRule_productType_idx', '`productType`');
+CALL add_index_if_missing('CommissionRecord', 'CommissionRecord_agentId_idx', '`agentId`');
+CALL add_index_if_missing('CommissionRecord', 'CommissionRecord_orderId_idx', '`orderId`');
+CALL add_index_if_missing('CommissionRecord', 'CommissionRecord_status_idx', '`status`');
+CALL add_index_if_missing('CommissionRecord', 'CommissionRecord_createdAt_idx', '`createdAt`');
+CALL add_index_if_missing('SettlementRecord', 'SettlementRecord_agentId_idx', '`agentId`');
+CALL add_index_if_missing('SettlementRecord', 'SettlementRecord_status_idx', '`status`');
+CALL add_index_if_missing('ReferralCode', 'ReferralCode_code_idx', '`code`');
+CALL add_index_if_missing('ReferralCode', 'ReferralCode_agentId_idx', '`agentId`');
+CALL add_index_if_missing('CardKey', 'CardKey_code_idx', '`code`');
+CALL add_index_if_missing('CardKey', 'CardKey_status_idx', '`status`');
+CALL add_index_if_missing('CardKey', 'CardKey_batchId_idx', '`batchId`');
+CALL add_index_if_missing('CardKey', 'CardKey_type_idx', '`type`');
+CALL add_index_if_missing('UpdateLog', 'UpdateLog_version_idx', '`version`');
+CALL add_index_if_missing('UpdateLog', 'UpdateLog_type_idx', '`type`');
+CALL add_index_if_missing('UpdateLog', 'UpdateLog_createdAt_idx', '`createdAt`');
+CALL add_index_if_missing('UpdateLog', 'UpdateLog_status_idx', '`status`');
+CALL add_index_if_missing('Payment', 'Payment_userId_idx', '`userId`');
+CALL add_index_if_missing('Payment', 'Payment_status_idx', '`status`');
+
+DROP PROCEDURE IF EXISTS `add_index_if_missing`;
 
 -- ============================================================
 -- 种子数据
