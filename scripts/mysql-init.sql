@@ -27,10 +27,7 @@ CREATE TABLE IF NOT EXISTS `User` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE `User` ADD INDEX `User_email_idx`(`email`);
-ALTER TABLE `User` ADD INDEX `User_role_idx`(`role`);
-ALTER TABLE `User` ADD INDEX `User_agentId_idx`(`agentId`);
+-- 索引由底部存储过程 add_index_if_missing 安全创建（支持重复执行）
 
 -- ============================================================
 -- 2. 代理商表 Agent
@@ -75,11 +72,7 @@ CREATE TABLE IF NOT EXISTS `Agent` (
   UNIQUE KEY `Agent_licenseKey_key` (`licenseKey`),
   UNIQUE KEY `Agent_referralCode_key` (`referralCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE `Agent` ADD INDEX `Agent_isActive_idx`(`isActive`);
-ALTER TABLE `Agent` ADD INDEX `Agent_level_idx`(`level`);
-ALTER TABLE `Agent` ADD INDEX `Agent_subdomain_idx`(`subdomain`);
-ALTER TABLE `Agent` ADD INDEX `Agent_customDomain_idx`(`customDomain`);
+-- 索引由底部存储过程 add_index_if_missing 安全创建（支持重复执行）
 
 -- ============================================================
 -- 3. 授权码表 AgentLicense

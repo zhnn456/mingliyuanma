@@ -36,7 +36,12 @@ function adaptSql(sql: string): string {
     // INSERT OR REPLACE INTO → REPLACE INTO
     .replace(/INSERT OR REPLACE INTO/g, 'REPLACE INTO')
     // INSERT OR IGNORE INTO → INSERT IGNORE INTO
-    .replace(/INSERT OR IGNORE INTO/g, 'INSERT IGNORE INTO');
+    .replace(/INSERT OR IGNORE INTO/g, 'INSERT IGNORE INTO')
+    // CREATE INDEX IF NOT EXISTS → 空操作（索引已由 mysql-init.sql 存储过程安全创建，避免重复创建报错）
+    .replace(/CREATE INDEX IF NOT EXISTS\s+[`"]?(\w+)[`"]?\s+ON\s+[`"]?(\w+)[`"]?\s*\([`"]?(\w+)[`"]?\)/g,
+             'SELECT 1 AS __noop')
+    // 双引号标识符 → 反引号（MySQL 标准，"Order" 等保留字必须用反引号）
+    .replace(/"(\w+)"/g, '`$1`');
 }
 
 /** 执行查询，返回第一行 */
