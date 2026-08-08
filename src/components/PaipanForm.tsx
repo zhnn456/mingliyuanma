@@ -340,7 +340,7 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
               <option value="">请选择城市</option>
               {CITIES.map((city) => (
                 <option key={city.name} value={city.name}>
-                  {city.name}（经度 {city.longitude}°，校正 {city.offset > 0 ? '+' : ''}{city.offset}分钟）
+                  {city.nameEn ? `${city.name} ${city.nameEn}` : city.name}（经度 {city.longitude}°，校正 {city.offset > 0 ? '+' : ''}{city.offset}分钟）
                 </option>
               ))}
             </select>

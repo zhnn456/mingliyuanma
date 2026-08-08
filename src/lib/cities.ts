@@ -5,6 +5,7 @@
  */
 export interface CityData {
   name: string;
+  nameEn?: string; // 外国城市英文名
   longitude: number;
   latitude: number;
   offset: number; // 分钟
@@ -69,64 +70,64 @@ export const CITIES: CityData[] = [
   { name: '延安', longitude: 109.5, latitude: 36.6, offset: -42.0 },
 
   // ============ 亚洲其他 ============
-  { name: '东京', longitude: 139.7, latitude: 35.7, offset: 78.8 },
-  { name: '大阪', longitude: 135.5, latitude: 34.7, offset: 62.0 },
-  { name: '首尔', longitude: 127.0, latitude: 37.6, offset: 28.0 },
-  { name: '新加坡', longitude: 103.8, latitude: 1.3, offset: -64.8 },
-  { name: '吉隆坡', longitude: 101.7, latitude: 3.1, offset: -73.2 },
-  { name: '曼谷', longitude: 100.5, latitude: 13.8, offset: -78.0 },
-  { name: '河内', longitude: 105.9, latitude: 21.0, offset: -56.4 },
-  { name: '雅加达', longitude: 106.8, latitude: -6.2, offset: -52.8 },
-  { name: '马尼拉', longitude: 121.0, latitude: 14.6, offset: 4.0 },
-  { name: '孟买', longitude: 72.9, latitude: 19.1, offset: -188.4 },
-  { name: '新德里', longitude: 77.2, latitude: 28.6, offset: -171.2 },
-  { name: '迪拜', longitude: 55.3, latitude: 25.3, offset: -258.8 },
-  { name: '伊斯坦布尔', longitude: 29.0, latitude: 41.0, offset: -364.0 },
+  { name: '东京', nameEn: 'Tokyo', longitude: 139.7, latitude: 35.7, offset: 78.8 },
+  { name: '大阪', nameEn: 'Osaka', longitude: 135.5, latitude: 34.7, offset: 62.0 },
+  { name: '首尔', nameEn: 'Seoul', longitude: 127.0, latitude: 37.6, offset: 28.0 },
+  { name: '新加坡', nameEn: 'Singapore', longitude: 103.8, latitude: 1.3, offset: -64.8 },
+  { name: '吉隆坡', nameEn: 'Kuala Lumpur', longitude: 101.7, latitude: 3.1, offset: -73.2 },
+  { name: '曼谷', nameEn: 'Bangkok', longitude: 100.5, latitude: 13.8, offset: -78.0 },
+  { name: '河内', nameEn: 'Hanoi', longitude: 105.9, latitude: 21.0, offset: -56.4 },
+  { name: '雅加达', nameEn: 'Jakarta', longitude: 106.8, latitude: -6.2, offset: -52.8 },
+  { name: '马尼拉', nameEn: 'Manila', longitude: 121.0, latitude: 14.6, offset: 4.0 },
+  { name: '孟买', nameEn: 'Mumbai', longitude: 72.9, latitude: 19.1, offset: -188.4 },
+  { name: '新德里', nameEn: 'New Delhi', longitude: 77.2, latitude: 28.6, offset: -171.2 },
+  { name: '迪拜', nameEn: 'Dubai', longitude: 55.3, latitude: 25.3, offset: -258.8 },
+  { name: '伊斯坦布尔', nameEn: 'Istanbul', longitude: 29.0, latitude: 41.0, offset: -364.0 },
 
   // ============ 欧洲 ============
-  { name: '伦敦', longitude: -0.1, latitude: 51.5, offset: -480.4 },
-  { name: '巴黎', longitude: 2.3, latitude: 48.9, offset: -470.8 },
-  { name: '柏林', longitude: 13.4, latitude: 52.5, offset: -426.4 },
-  { name: '罗马', longitude: 12.5, latitude: 41.9, offset: -430.0 },
-  { name: '马德里', longitude: -3.7, latitude: 40.4, offset: -494.8 },
-  { name: '阿姆斯特丹', longitude: 4.9, latitude: 52.4, offset: -460.4 },
-  { name: '维也纳', longitude: 16.4, latitude: 48.2, offset: -414.4 },
-  { name: '雅典', longitude: 23.7, latitude: 38.0, offset: -385.2 },
-  { name: '莫斯科', longitude: 37.6, latitude: 55.8, offset: -329.6 },
-  { name: '苏黎世', longitude: 8.5, latitude: 47.4, offset: -446.0 },
-  { name: '布拉格', longitude: 14.4, latitude: 50.1, offset: -422.4 },
-  { name: '哥本哈根', longitude: 12.6, latitude: 55.7, offset: -429.6 },
-  { name: '斯德哥尔摩', longitude: 18.1, latitude: 59.3, offset: -407.6 },
+  { name: '伦敦', nameEn: 'London', longitude: -0.1, latitude: 51.5, offset: -480.4 },
+  { name: '巴黎', nameEn: 'Paris', longitude: 2.3, latitude: 48.9, offset: -470.8 },
+  { name: '柏林', nameEn: 'Berlin', longitude: 13.4, latitude: 52.5, offset: -426.4 },
+  { name: '罗马', nameEn: 'Rome', longitude: 12.5, latitude: 41.9, offset: -430.0 },
+  { name: '马德里', nameEn: 'Madrid', longitude: -3.7, latitude: 40.4, offset: -494.8 },
+  { name: '阿姆斯特丹', nameEn: 'Amsterdam', longitude: 4.9, latitude: 52.4, offset: -460.4 },
+  { name: '维也纳', nameEn: 'Vienna', longitude: 16.4, latitude: 48.2, offset: -414.4 },
+  { name: '雅典', nameEn: 'Athens', longitude: 23.7, latitude: 38.0, offset: -385.2 },
+  { name: '莫斯科', nameEn: 'Moscow', longitude: 37.6, latitude: 55.8, offset: -329.6 },
+  { name: '苏黎世', nameEn: 'Zurich', longitude: 8.5, latitude: 47.4, offset: -446.0 },
+  { name: '布拉格', nameEn: 'Prague', longitude: 14.4, latitude: 50.1, offset: -422.4 },
+  { name: '哥本哈根', nameEn: 'Copenhagen', longitude: 12.6, latitude: 55.7, offset: -429.6 },
+  { name: '斯德哥尔摩', nameEn: 'Stockholm', longitude: 18.1, latitude: 59.3, offset: -407.6 },
 
   // ============ 北美洲 ============
-  { name: '纽约', longitude: -74.0, latitude: 40.7, offset: -776.0 },
-  { name: '洛杉矶', longitude: -118.2, latitude: 34.1, offset: -952.8 },
-  { name: '旧金山', longitude: -122.4, latitude: 37.8, offset: -969.6 },
-  { name: '芝加哥', longitude: -87.6, latitude: 41.9, offset: -830.4 },
-  { name: '华盛顿', longitude: -77.0, latitude: 38.9, offset: -788.0 },
-  { name: '波士顿', longitude: -71.1, latitude: 42.4, offset: -764.4 },
-  { name: '西雅图', longitude: -122.3, latitude: 47.6, offset: -969.2 },
-  { name: '迈阿密', longitude: -80.2, latitude: 25.8, offset: -800.8 },
-  { name: '多伦多', longitude: -79.4, latitude: 43.7, offset: -797.6 },
-  { name: '温哥华', longitude: -123.1, latitude: 49.3, offset: -972.4 },
-  { name: '墨西哥城', longitude: -99.1, latitude: 19.4, offset: -876.4 },
+  { name: '纽约', nameEn: 'New York', longitude: -74.0, latitude: 40.7, offset: -776.0 },
+  { name: '洛杉矶', nameEn: 'Los Angeles', longitude: -118.2, latitude: 34.1, offset: -952.8 },
+  { name: '旧金山', nameEn: 'San Francisco', longitude: -122.4, latitude: 37.8, offset: -969.6 },
+  { name: '芝加哥', nameEn: 'Chicago', longitude: -87.6, latitude: 41.9, offset: -830.4 },
+  { name: '华盛顿', nameEn: 'Washington', longitude: -77.0, latitude: 38.9, offset: -788.0 },
+  { name: '波士顿', nameEn: 'Boston', longitude: -71.1, latitude: 42.4, offset: -764.4 },
+  { name: '西雅图', nameEn: 'Seattle', longitude: -122.3, latitude: 47.6, offset: -969.2 },
+  { name: '迈阿密', nameEn: 'Miami', longitude: -80.2, latitude: 25.8, offset: -800.8 },
+  { name: '多伦多', nameEn: 'Toronto', longitude: -79.4, latitude: 43.7, offset: -797.6 },
+  { name: '温哥华', nameEn: 'Vancouver', longitude: -123.1, latitude: 49.3, offset: -972.4 },
+  { name: '墨西哥城', nameEn: 'Mexico City', longitude: -99.1, latitude: 19.4, offset: -876.4 },
 
   // ============ 南美洲 ============
-  { name: '圣保罗', longitude: -46.6, latitude: -23.5, offset: -666.4 },
-  { name: '里约热内卢', longitude: -43.2, latitude: -22.9, offset: -652.8 },
-  { name: '布宜诺斯艾利斯', longitude: -58.4, latitude: -34.6, offset: -713.6 },
-  { name: '利马', longitude: -77.0, latitude: -12.0, offset: -788.0 },
+  { name: '圣保罗', nameEn: 'São Paulo', longitude: -46.6, latitude: -23.5, offset: -666.4 },
+  { name: '里约热内卢', nameEn: 'Rio de Janeiro', longitude: -43.2, latitude: -22.9, offset: -652.8 },
+  { name: '布宜诺斯艾利斯', nameEn: 'Buenos Aires', longitude: -58.4, latitude: -34.6, offset: -713.6 },
+  { name: '利马', nameEn: 'Lima', longitude: -77.0, latitude: -12.0, offset: -788.0 },
 
   // ============ 大洋洲 ============
-  { name: '悉尼', longitude: 151.2, latitude: -33.9, offset: 124.8 },
-  { name: '墨尔本', longitude: 144.9, latitude: -37.8, offset: 99.6 },
-  { name: '奥克兰', longitude: 174.8, latitude: -36.9, offset: 219.2 },
+  { name: '悉尼', nameEn: 'Sydney', longitude: 151.2, latitude: -33.9, offset: 124.8 },
+  { name: '墨尔本', nameEn: 'Melbourne', longitude: 144.9, latitude: -37.8, offset: 99.6 },
+  { name: '奥克兰', nameEn: 'Auckland', longitude: 174.8, latitude: -36.9, offset: 219.2 },
 
   // ============ 非洲 ============
-  { name: '开罗', longitude: 31.2, latitude: 30.0, offset: -355.2 },
-  { name: '约翰内斯堡', longitude: 28.0, latitude: -26.2, offset: -368.0 },
-  { name: '开普敦', longitude: 18.4, latitude: -33.9, offset: -406.4 },
-  { name: '内罗毕', longitude: 36.8, latitude: -1.3, offset: -332.8 },
+  { name: '开罗', nameEn: 'Cairo', longitude: 31.2, latitude: 30.0, offset: -355.2 },
+  { name: '约翰内斯堡', nameEn: 'Johannesburg', longitude: 28.0, latitude: -26.2, offset: -368.0 },
+  { name: '开普敦', nameEn: 'Cape Town', longitude: 18.4, latitude: -33.9, offset: -406.4 },
+  { name: '内罗毕', nameEn: 'Nairobi', longitude: 36.8, latitude: -1.3, offset: -332.8 },
 ];
 
 /**
