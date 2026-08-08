@@ -31,10 +31,9 @@ export async function GET() {
   try {
     const real = await queryAll(`
       SELECT o.id, o.userId, o.itemId, o.amount, o.supplyIds, o.createdAt,
-             u.name as userName, i.name as itemName
+             u.name as userName
       FROM OfferingRecord o
       LEFT JOIN User u ON o.userId = u.id
-      LEFT JOIN OfferingItem i ON o.itemId = i.id
       ORDER BY o.createdAt DESC LIMIT 20
     `) as any[];
 
@@ -43,7 +42,7 @@ export async function GET() {
       try { const d = JSON.parse(r.supplyIds || '{}'); dedication = d.dedication || ''; } catch {}
       return {
         userName: r.userName || '善信',
-        itemName: r.itemName || '供奉',
+        itemName: r.itemId || '供奉',
         amount: r.amount || 0,
         dedication,
         timeAgo: timeAgo(r.createdAt),

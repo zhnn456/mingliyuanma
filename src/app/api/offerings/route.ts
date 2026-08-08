@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';
+import { queryAll } from '@/lib/d1';
 
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
   buddha: { label: '佛像类', icon: '🪷', color: 'bg-amber-50 text-amber-700' },
@@ -25,9 +25,6 @@ function formatSupply(s: any) {
 
 export async function GET(req: NextRequest) {
   try {
-    await ensureOfferingSupplyTable();
-    await seedDefaultSupplies();
-
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
 
