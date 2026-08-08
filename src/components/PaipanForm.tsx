@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { calcSolarTimeOffset, applySolarTimeCorrection } from '@/lib/cities';
+import { CITIES, calcSolarTimeOffset, applySolarTimeCorrection } from '@/lib/cities';
 import CityPicker from './CityPicker';
 import type { PaipanFormData } from '@/types';
 
