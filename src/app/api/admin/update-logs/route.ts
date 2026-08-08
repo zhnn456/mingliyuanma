@@ -9,10 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { queryFirst, queryAll, execute, ensureUpdateLogTable } from '@/lib/d1';
-
-// 确保表存在
-await ensureUpdateLogTable();
+import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {

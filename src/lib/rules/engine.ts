@@ -9,9 +9,7 @@
  * - 后台动态增删改
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 // ========== 类型定义 ==========
 
@@ -72,6 +70,16 @@ export function clearRuleCache(): void {
   cache.clear();
 }
 
+/** 把数据库行转为规则结果（解析 content JSON + 注入古籍字段） */
+function rowToResult(row: any): Record<string, any> {
+  const content = JSON.parse(row.content);
+  return {
+    ...content,
+    _classicSource: row.classicSource || undefined,
+    _classicQuote: row.classicQuote || undefined,
+  };
+}
+
 // ========== 核心查询方法 ==========
 
 /**
@@ -89,55 +97,33 @@ export async function getRule(
   const cached = getCached<Record<string, any> | null>(cacheKey);
   if (cached !== null) return cached;
 
+  const sk = subKey || '';
+
   // 先查代理商规则
   if (agentId) {
-    const agentRule = await prisma.divinationRule.findFirst({
-      where: {
-        category,
-        ruleType,
-        ruleKey,
-        subKey: subKey || null,
-        agentId,
-        isActive: true,
-      },
-      orderBy: { priority: 'desc' },
-    });
+    const agentRule = await queryFirst(
+      'SELECT * FROM DivinationRule WHERE category = ? AND ruleType = ? AND ruleKey = ? AND subKey = ? AND agentId = ? AND isActive = 1 ORDER BY priority DESC LIMIT 1',
+      category, ruleType, ruleKey, sk, agentId,
+    ) as any;
     if (agentRule) {
-      const content = JSON.parse(agentRule.content);
-      const result = {
-        ...content,
-        _classicSource: agentRule.classicSource || undefined,
-        _classicQuote: agentRule.classicQuote || undefined,
-      };
+      const result = rowToResult(agentRule);
       setCached(cacheKey, result);
       return result;
     }
   }
 
-  // 再查平台默认规则
-  const platformRule = await prisma.divinationRule.findFirst({
-    where: {
-      category,
-      ruleType,
-      ruleKey,
-      subKey: subKey || null,
-      agentId: null,
-      isActive: true,
-    },
-    orderBy: { priority: 'desc' },
-  });
+  // 再查平台默认规则（agentId 为空字符串）
+  const platformRule = await queryFirst(
+    'SELECT * FROM DivinationRule WHERE category = ? AND ruleType = ? AND ruleKey = ? AND subKey = ? AND agentId = ? AND isActive = 1 ORDER BY priority DESC LIMIT 1',
+    category, ruleType, ruleKey, sk, '',
+  ) as any;
 
   if (!platformRule) {
     setCached(cacheKey, null);
     return null;
   }
 
-  const content = JSON.parse(platformRule.content);
-  const result = {
-    ...content,
-    _classicSource: platformRule.classicSource || undefined,
-    _classicQuote: platformRule.classicQuote || undefined,
-  };
+  const result = rowToResult(platformRule);
   setCached(cacheKey, result);
   return result;
 }
@@ -154,32 +140,27 @@ export async function getRulesByType(
   const cached = getCached<Record<string, Record<string, any>> | null>(cacheKey);
   if (cached !== null) return cached;
 
-  const where: any = {
-    category,
-    ruleType,
-    isActive: true,
-    OR: [{ agentId: null }],
-  };
+  let sql = 'SELECT * FROM DivinationRule WHERE category = ? AND ruleType = ? AND isActive = 1';
+  const params: any[] = [category, ruleType];
   if (agentId) {
-    where.OR = [{ agentId: null }, { agentId }];
+    // 代理商规则 + 平台默认规则
+    sql += ' AND (agentId = ? OR agentId = ?)';
+    params.push(agentId, '');
+  } else {
+    sql += ' AND agentId = ?';
+    params.push('');
   }
+  // 代理商规则排在前面（非空字符串 > 空字符串）
+  sql += ' ORDER BY agentId DESC, priority DESC';
 
-  const rules = await prisma.divinationRule.findMany({
-    where,
-    orderBy: [{ agentId: 'desc' }, { priority: 'desc' }],
-  });
+  const rules = await queryAll(sql, ...params) as any[];
 
   // 合并：代理商规则覆盖平台规则
   const result: Record<string, Record<string, any>> = {};
   for (const rule of rules) {
     const key = rule.subKey ? `${rule.ruleKey}:${rule.subKey}` : rule.ruleKey;
     if (result[key] && !rule.agentId) continue; // 已有代理商规则，跳过平台默认
-    const content = JSON.parse(rule.content);
-    result[key] = {
-      ...content,
-      _classicSource: rule.classicSource || undefined,
-      _classicQuote: rule.classicQuote || undefined,
-    };
+    result[key] = rowToResult(rule);
   }
 
   setCached(cacheKey, result);
@@ -197,19 +178,18 @@ export async function getRulesByCategory(
   const cached = getCached<Record<string, Record<string, Record<string, any>>>>(cacheKey);
   if (cached !== null) return cached;
 
-  const where: any = {
-    category,
-    isActive: true,
-    OR: [{ agentId: null }],
-  };
+  let sql = 'SELECT * FROM DivinationRule WHERE category = ? AND isActive = 1';
+  const params: any[] = [category];
   if (agentId) {
-    where.OR = [{ agentId: null }, { agentId }];
+    sql += ' AND (agentId = ? OR agentId = ?)';
+    params.push(agentId, '');
+  } else {
+    sql += ' AND agentId = ?';
+    params.push('');
   }
+  sql += ' ORDER BY agentId DESC, ruleType ASC, priority DESC';
 
-  const rules = await prisma.divinationRule.findMany({
-    where,
-    orderBy: [{ agentId: 'desc' }, { ruleType: 'asc' }, { priority: 'desc' }],
-  });
+  const rules = await queryAll(sql, ...params) as any[];
 
   const result: Record<string, Record<string, Record<string, any>>> = {};
   const seen = new Set<string>(); // 去重：代理商规则覆盖平台规则
@@ -223,12 +203,7 @@ export async function getRulesByCategory(
     const key = rule.subKey ? `${rule.ruleKey}:${rule.subKey}` : rule.ruleKey;
     if (result[rule.ruleType][key] && !rule.agentId) continue;
 
-    const content = JSON.parse(rule.content);
-    result[rule.ruleType][key] = {
-      ...content,
-      _classicSource: rule.classicSource || undefined,
-      _classicQuote: rule.classicQuote || undefined,
-    };
+    result[rule.ruleType][key] = rowToResult(rule);
   }
 
   setCached(cacheKey, result);
@@ -257,79 +232,69 @@ export async function searchRules(params: {
     pageSize = 20,
   } = params;
 
-  const where: any = {};
-  if (category) where.category = category;
-  if (ruleType) where.ruleType = ruleType;
+  let where = 'WHERE 1=1';
+  const conditions: any[] = [];
+  if (category) { where += ' AND category = ?'; conditions.push(category); }
+  if (ruleType) { where += ' AND ruleType = ?'; conditions.push(ruleType); }
   if (keyword) {
-    where.OR = [
-      { ruleKey: { contains: keyword } },
-      { classicSource: { contains: keyword } },
-      { classicQuote: { contains: keyword } },
-      { content: { contains: keyword } },
-    ];
+    where += ' AND (ruleKey LIKE ? OR classicSource LIKE ? OR classicQuote LIKE ? OR content LIKE ?)';
+    const kw = `%${keyword}%`;
+    conditions.push(kw, kw, kw, kw);
   }
   if (agentId !== undefined) {
-    where.OR = [{ agentId: null }, { agentId }];
+    where += ' AND (agentId = ? OR agentId = ?)';
+    conditions.push(agentId, '');
   } else {
-    where.agentId = null; // 默认只看平台规则
+    where += ' AND agentId = ?';
+    conditions.push('');
   }
   if (!includeInactive) {
-    where.isActive = true;
+    where += ' AND isActive = 1';
   }
 
-  const [rules, total] = await Promise.all([
-    prisma.divinationRule.findMany({
-      where,
-      orderBy: [{ category: 'asc' }, { ruleType: 'asc' }, { ruleKey: 'asc' }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.divinationRule.count({ where }),
-  ]);
+  const offset = (page - 1) * pageSize;
+  const rules = await queryAll(
+    `SELECT * FROM DivinationRule ${where} ORDER BY category, ruleType, ruleKey LIMIT ? OFFSET ?`,
+    ...conditions, pageSize, offset,
+  ) as any[];
 
-  return { rules, total };
+  const countRow = await queryFirst(
+    `SELECT COUNT(*) as total FROM DivinationRule ${where}`,
+    ...conditions,
+  ) as any;
+
+  return { rules, total: countRow?.total || 0 };
 }
 
 // ========== 写入方法 ==========
 
 /**
- * 创建或更新规则（upsert）
+ * 创建或更新规则（upsert，基于唯一键 category+ruleType+ruleKey+subKey+agentId）
  */
 export async function upsertRule(data: RuleData): Promise<any> {
   const content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
-  const result = await prisma.divinationRule.upsert({
-    where: {
-      category_ruleType_ruleKey_subKey_agentId: {
-        category: data.category,
-        ruleType: data.ruleType,
-        ruleKey: data.ruleKey,
-        subKey: data.subKey || '',
-        agentId: data.agentId || '',
-      },
-    },
-    create: {
-      category: data.category,
-      ruleType: data.ruleType,
-      ruleKey: data.ruleKey,
-      subKey: data.subKey || null,
-      content,
-      classicSource: data.classicSource || null,
-      classicQuote: data.classicQuote || null,
-      priority: data.priority || 0,
-      agentId: data.agentId || null,
-      isActive: data.isActive ?? true,
-    } as any,
-    update: {
-      content,
-      classicSource: data.classicSource || null,
-      classicQuote: data.classicQuote || null,
-      priority: data.priority || 0,
-      isActive: data.isActive ?? true,
-    },
-  });
+  const subKey = data.subKey || '';
+  const agentId = data.agentId || '';
+  const isActive = data.isActive !== false ? 1 : 0;
+
+  await execute(
+    `INSERT INTO DivinationRule (id, category, ruleType, ruleKey, subKey, content, classicSource, classicQuote, priority, agentId, isActive, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE
+       content = VALUES(content),
+       classicSource = VALUES(classicSource),
+       classicQuote = VALUES(classicQuote),
+       priority = VALUES(priority),
+       isActive = VALUES(isActive),
+       updatedAt = NOW()`,
+    `rule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    data.category, data.ruleType, data.ruleKey, subKey, content,
+    data.classicSource || null, data.classicQuote || null,
+    data.priority || 0, agentId, isActive,
+  );
 
   clearRuleCache();
-  return result;
+  return { ...data, content: data.content };
 }
 
 /**
@@ -348,7 +313,7 @@ export async function batchUpsertRules(rules: RuleData[]): Promise<number> {
  * 删除规则
  */
 export async function deleteRule(id: string): Promise<void> {
-  await prisma.divinationRule.delete({ where: { id } });
+  await execute('DELETE FROM DivinationRule WHERE id = ?', id);
   clearRuleCache();
 }
 
@@ -360,16 +325,12 @@ export async function getRuleTypes(category?: RuleCategory): Promise<string[]> {
   const cached = getCached<string[] | null>(cacheKey);
   if (cached !== null) return cached;
 
-  const where: any = { isActive: true, agentId: null };
-  if (category) where.category = category;
+  let sql = 'SELECT DISTINCT ruleType FROM DivinationRule WHERE isActive = 1 AND agentId = ?';
+  const params: any[] = [''];
+  if (category) { sql += ' AND category = ?'; params.push(category); }
+  sql += ' ORDER BY ruleType';
 
-  const results = await prisma.divinationRule.findMany({
-    where,
-    select: { ruleType: true },
-    distinct: ['ruleType'],
-    orderBy: { ruleType: 'asc' },
-  });
-
+  const results = await queryAll(sql, ...params) as any[];
   const types = results.map((r: any) => r.ruleType);
   setCached(cacheKey, types);
   return types;
@@ -383,10 +344,11 @@ export async function getRuleStats(): Promise<Record<string, number>> {
   const stats: Record<string, number> = {};
 
   for (const cat of categories) {
-    const count = await prisma.divinationRule.count({
-      where: { category: cat, isActive: true, agentId: null },
-    });
-    stats[cat] = count;
+    const row = await queryFirst(
+      'SELECT COUNT(*) as cnt FROM DivinationRule WHERE category = ? AND isActive = 1 AND agentId = ?',
+      cat, '',
+    ) as any;
+    stats[cat] = row?.cnt || 0;
   }
 
   stats['total'] = Object.values(stats).reduce((a, b) => a + b, 0);

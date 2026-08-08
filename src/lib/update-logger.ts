@@ -5,10 +5,7 @@
  * 可在版本管理、部署流程中自动调用
  */
 
-import { queryFirst, queryAll, execute, ensureUpdateLogTable } from './d1';
-
-// 确保表存在
-await ensureUpdateLogTable();
+import { queryFirst, queryAll, execute } from './d1';
 
 export interface CreateLogInput {
   version: string;

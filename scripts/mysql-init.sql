@@ -479,6 +479,26 @@ CREATE TABLE IF NOT EXISTS `Payment` (
 -- ALTER TABLE ADD INDEX (see below) `Payment_userId_idx` ON `Payment`(`userId`);
 -- ALTER TABLE ADD INDEX (see below) `Payment_status_idx` ON `Payment`(`status`);
 
+-- ============================================================
+-- 23. 命理规则表 DivinationRule
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `DivinationRule` (
+  `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `category` VARCHAR(50) NOT NULL,
+  `ruleType` VARCHAR(100) NOT NULL,
+  `ruleKey` VARCHAR(255) NOT NULL,
+  `subKey` VARCHAR(255) NOT NULL DEFAULT '',
+  `content` TEXT NOT NULL,
+  `classicSource` TEXT,
+  `classicQuote` TEXT,
+  `priority` INT NOT NULL DEFAULT 0,
+  `agentId` VARCHAR(255) NOT NULL DEFAULT '',
+  `isActive` TINYINT(1) NOT NULL DEFAULT 1,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `DivinationRule_cat_type_key_sub_agent` (`category`, `ruleType`, `ruleKey`, `subKey`, `agentId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
@@ -554,6 +574,7 @@ CALL add_index_if_missing('UpdateLog', 'UpdateLog_createdAt_idx', '`createdAt`')
 CALL add_index_if_missing('UpdateLog', 'UpdateLog_status_idx', '`status`');
 CALL add_index_if_missing('Payment', 'Payment_userId_idx', '`userId`');
 CALL add_index_if_missing('Payment', 'Payment_status_idx', '`status`');
+CALL add_index_if_missing('DivinationRule', 'DivinationRule_cat_type_agent_idx', '`category`,`ruleType`,`agentId`');
 
 DROP PROCEDURE IF EXISTS `add_index_if_missing`;
 

@@ -6,10 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { queryFirst, execute, ensureUpdateLogTable } from '@/lib/d1';
-
-// 确保表存在
-await ensureUpdateLogTable();
+import { queryFirst, execute } from '@/lib/d1';
 
 export async function POST(req: NextRequest) {
   try {
