@@ -1,0 +1,76 @@
+import paramiko, os, time, sys
+
+HOST = '47.82.116.220'
+USER = 'root'
+PASSWORD = 'sanBAO1234!'
+LOCAL_ZIP = r'f:\mingliyuanma\next-build.zip'
+REMOTE_ZIP = '/www/ming8/next-build.zip'
+
+def run(ssh, cmd, timeout=180):
+    print(f"\n>>> {cmd}")
+    _, stdout, stderr = ssh.exec_command(cmd, timeout=timeout)
+    out = stdout.read().decode()
+    err = stderr.read().decode()
+    if out: print(out.strip())
+    if err: print(f"[stderr] {err.strip()}")
+    return out, err
+
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+print("连接服务器...")
+ssh.connect(HOST, username=USER, password=PASSWORD, timeout=10, look_for_keys=False, allow_agent=False)
+print("SSH 连接成功")
+
+# 1. 停掉 ming8（admin 用户的 PM2）
+print("\n===== 1/6 停止 ming8 进程 =====")
+run(ssh, 'su - admin -c "pm2 stop ming8" 2>/dev/null || pm2 stop ming8 2>/dev/null || echo "ming8 not running or already stopped"')
+
+# 2. git pull（用 admin 用户，修复 ownership）
+print("\n===== 2/6 拉取最新代码 =====")
+run(ssh, 'git config --global --add safe.directory /www/ming8 2>/dev/null; su - admin -c "cd /www/ming8 && git config --global --add safe.directory /www/ming8 && git pull origin main" 2>&1')
+
+# 3. mysql init
+print("\n===== 3/6 初始化数据库 =====")
+run(ssh, "mysql -u ming8 -p'Ming8@2026!' ming8_db < /www/ming8/scripts/mysql-init.sql 2>&1 | grep -v 'Using a password' | tail -5")
+
+# 4. 上传构建产物
+print("\n===== 4/6 上传构建产物 (223MB) =====")
+file_size = os.path.getsize(LOCAL_ZIP)
+print(f"文件大小: {file_size / 1024 / 1024:.1f} MB")
+sftp = ssh.open_sftp()
+last_print = [0]
+def callback(transferred, total):
+    now = time.time()
+    if now - last_print[0] > 2:
+        if total > 0:
+            percent = transferred / total * 100
+            speed = transferred / 1024 / 1024 / max(now - start_time[0], 1)
+            print(f"\r  进度: {percent:.1f}% ({transferred//1024//1024}MB/{total//1024//1024}MB, {speed:.1f} MB/s)", end='', flush=True)
+        else:
+            print(f"\r  已上传 {transferred//1024//1024}MB", end='', flush=True)
+        last_print[0] = now
+start_time = [time.time()]
+with open(LOCAL_ZIP, 'rb') as f:
+    sftp.putfo(f, REMOTE_ZIP, callback=callback)
+print(f"\n  上传完成 ({time.time()-start_time[0]:.0f}s)")
+sftp.close()
+
+# 5. 解压
+print("\n===== 5/6 解压构建产物 =====")
+run(ssh, 'which unzip >/dev/null 2>&1 || apt install -y unzip 2>&1 | tail -1')
+run(ssh, 'cd /www/ming8 && rm -rf .next && unzip -qo next-build.zip && rm -f next-build.zip && echo "解压完成"')
+
+# 6. 启动服务
+print("\n===== 6/6 启动服务 =====")
+run(ssh, 'su - admin -c "cd /www/ming8 && pm2 start deploy/ecosystem.config.js" 2>/dev/null || su - admin -c "pm2 restart ming8" 2>/dev/null || pm2 restart ming8 2>/dev/null || echo "启动失败，检查 pm2 logs"')
+run(ssh, 'su - admin -c "pm2 save" 2>/dev/null; pm2 save 2>/dev/null; echo "PM2 已保存"')
+
+# 验证
+print("\n===== 验证 =====")
+time.sleep(5)
+run(ssh, 'curl -s -o /dev/null -w "HTTP状态码: %{http_code}\\n" http://localhost:3001')
+run(ssh, 'su - admin -c "pm2 status" 2>/dev/null || pm2 status')
+run(ssh, 'free -h')
+
+ssh.close()
+print("\n===== 部署完成 =====")

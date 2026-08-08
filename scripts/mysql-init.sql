@@ -496,7 +496,7 @@ CREATE TABLE IF NOT EXISTS `DivinationRule` (
   `isActive` TINYINT(1) NOT NULL DEFAULT 1,
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY `DivinationRule_cat_type_key_sub_agent` (`category`, `ruleType`, `ruleKey`, `subKey`, `agentId`)
+  UNIQUE KEY `DivinationRule_cat_type_key_sub_agent` (`category`, `ruleType`, `ruleKey`(150), `subKey`(100), `agentId`(100))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
