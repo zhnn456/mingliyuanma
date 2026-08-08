@@ -5,6 +5,7 @@
  * - 权限守卫（requireAuth / requireAdmin / requireAgent）
  */
 import { NextRequest } from 'next/server';
+import { createHmac } from 'crypto';
 
 const TOKEN_TTL = 86_400_000; // 24小时
 const FALLBACK_SECRET = 'mingli-secret-key-2026-production';
@@ -13,28 +14,18 @@ const FALLBACK_SECRET = 'mingli-secret-key-2026-production';
 let _cachedSecret: string | null = null;
 let _cachedSecretPromise: Promise<string> | null = null;
 
-/** 获取密钥，支持 Cloudflare Workers 和 Node.js 环境 */
+/** 获取密钥（普通服务器通过 process.env 注入） */
 async function getSecretKey(): Promise<string> {
   if (_cachedSecret) return _cachedSecret;
   if (_cachedSecretPromise) return _cachedSecretPromise;
-  
+
   _cachedSecretPromise = (async () => {
     try {
       if (process.env?.NEXTAUTH_SECRET) {
         _cachedSecret = process.env.NEXTAUTH_SECRET;
         return _cachedSecret;
       }
-      
-      try {
-        const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-        const ctx = await getCloudflareContext({ async: true });
-        const cfSecret = (ctx.env as any)?.NEXTAUTH_SECRET;
-        if (cfSecret && typeof cfSecret === 'string') {
-          _cachedSecret = cfSecret;
-          return _cachedSecret;
-        }
-      } catch {}
-      
+
       console.warn('[auth] ⚠️ 使用回退密钥！生产环境必须设置 NEXTAUTH_SECRET');
       _cachedSecret = FALLBACK_SECRET;
       return _cachedSecret;
@@ -42,7 +33,7 @@ async function getSecretKey(): Promise<string> {
       _cachedSecretPromise = null;
     }
   })();
-  
+
   return _cachedSecretPromise;
 }
 
@@ -86,18 +77,8 @@ export async function signToken(payload: Record<string, any>): Promise<string> {
   const data = { ...payload, iat: Date.now(), exp: Date.now() + TOKEN_TTL };
   const encodedPayload = base64UrlEncode(JSON.stringify(data));
 
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(encodedPayload));
-  const sigHex = Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  // 使用 Node.js crypto 模块计算 HMAC-SHA256 签名
+  const sigHex = createHmac('sha256', secret).update(encodedPayload).digest('hex');
 
   return `${encodedPayload}.${sigHex}`;
 }
@@ -120,20 +101,9 @@ export async function verifyAndParseToken(token: string): Promise<any> {
     }
 
     const secret = await getSecretKey();
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign', 'verify']
-    );
-    
-    // 计算期望签名
-    const expectedSig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-    const expectedHex = Array.from(new Uint8Array(expectedSig))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+
+    // 使用 Node.js crypto 模块计算期望签名（HMAC-SHA256）
+    const expectedHex = createHmac('sha256', secret).update(payload).digest('hex');
 
     // 使用常量时间比较（防止时序攻击）
     if (!constantTimeEqual(sig, expectedHex)) {

@@ -21,7 +21,7 @@ const CATEGORY_OPTIONS = [
   { value: 'deity', label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700 border-blue-200' },
   { value: 'ritual', label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700 border-purple-200' },
   { value: 'offering', label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-  { value: 'deliverance', label: '超度类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { value: 'deliverance', label: '追思祈福类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
 ];
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: string; color: string }> = {
@@ -29,7 +29,7 @@ const CATEGORY_LABELS: Record<string, { label: string; icon: string; color: stri
   deity: { label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700 border-blue-200' },
   ritual: { label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700 border-purple-200' },
   offering: { label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-  deliverance: { label: '超度类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  deliverance: { label: '追思祈福类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   general: { label: '普通供品', icon: '📦', color: 'bg-gray-50 text-gray-700 border-gray-200' },
   premium: { label: '精品供品', icon: '💎', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
   special: { label: '特殊供品', icon: '✨', color: 'bg-rose-50 text-rose-700 border-rose-200' },

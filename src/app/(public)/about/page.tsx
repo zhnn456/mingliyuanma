@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '关于我们 - 命理网',
@@ -19,6 +20,9 @@ export default function AboutPage() {
           </h1>
           <p className="page-header-subtitle">传承千年智慧 · 融合现代科技</p>
         </div>
+
+        {/* 代理商授权声明 */}
+        <AgentBrandNotice type="about" />
 
         {/* 品牌故事 */}
         <div className="card mb-8">

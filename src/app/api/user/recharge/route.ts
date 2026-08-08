@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
     const orderNo = `RC${Date.now()}`;
 
     await execute(
-      'INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      orderId, orderNo, userId, 'recharge', pkg.id, pkg.amount, 'pending', now
+      'INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      orderId, orderNo, userId, 'recharge', pkg.id, pkg.amount, 'pending', now, now
     );
 
-    return NextResponse.json({ orderId, amount: pkg.amount, points: pkg.points, message: '订单创建成功，请扫码支付' });
+    return NextResponse.json({ orderId, orderNo, amount: pkg.amount, points: pkg.points, message: '订单创建成功，请扫码支付' });
   } catch (error: any) {
     console.error('充值失败:', error?.message);
     return NextResponse.json({ error: '创建订单失败，请稍后重试' }, { status: 500 });

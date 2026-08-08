@@ -1,136 +1,97 @@
-import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
-import { queryFirst, queryAll, ensureCommissionTables } from '@/lib/d1';
-import { listSettlements, generateWeeklySettlement, approveSettlement, markSettlementPaid } from '@/lib/commission';
+import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';
+import { requireAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 
-async function ensureTable() {
+// 确保 Settlement 表存在（与代理商后台共用同一张表，实现联动）
+// 在代理商端 schema 基础上补充 adminNote 列，用于记录管理员审批备注
+async function ensureSettlementTable() {
   await ensureCommissionTables();
+  await execute(`CREATE TABLE IF NOT EXISTS "Settlement" (
+    id TEXT PRIMARY KEY,
+    agentId TEXT NOT NULL,
+    period TEXT,
+    amount REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    note TEXT,
+    adminNote TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  )`);
+  await execute('CREATE INDEX IF NOT EXISTS "set_agentId_idx" ON "Settlement"("agentId")');
+  await execute('CREATE INDEX IF NOT EXISTS "set_status_idx" ON "Settlement"("status")');
+
+  // 老表可能缺少 adminNote 列，按需补列
+  const cols = await queryAll("PRAGMA table_info('Settlement')") as any[];
+  const colNames = cols.map(c => c.name);
+  if (!colNames.includes('adminNote')) {
+    try { await execute('ALTER TABLE "Settlement" ADD COLUMN "adminNote" TEXT'); } catch {}
+  }
 }
 
+// 获取所有代理商的结算申请列表（支持状态筛选）
 export async function GET(req: NextRequest) {
   try {
     const { allowed } = await requireAdmin(req);
-    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
-
-    await ensureTable();
-
+    if (!allowed) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+    await ensureSettlementTable();
     const { searchParams } = new URL(req.url);
-    const agentId = searchParams.get('agentId') || undefined;
-    const status = searchParams.get('status') || undefined;
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
-
-    const [listResult, statsResult] = await Promise.all([
-      listSettlements(agentId, status, page, pageSize),
-      queryFirst(
-        `SELECT
-           COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingCount,
-           COALESCE(SUM(CASE WHEN status = 'pending' THEN netCommission ELSE 0 END), 0) as pendingAmount,
-           COALESCE(SUM(CASE WHEN status = 'approved' THEN netCommission ELSE 0 END), 0) as approvedAmount,
-           COALESCE(SUM(CASE WHEN status = 'paid' THEN netCommission ELSE 0 END), 0) as paidAmount
-         FROM "SettlementRecord"`
-      ) as any,
-    ]);
-
-    return NextResponse.json({
-      settlements: listResult.settlements,
-      total: listResult.total,
-      page: listResult.page,
-      pageSize: listResult.pageSize,
-      stats: {
-        pendingSettlementCount: statsResult?.pendingCount || 0,
-        pendingAmount: statsResult?.pendingAmount || 0,
-        approvedAmount: statsResult?.approvedAmount || 0,
-        paidAmount: statsResult?.paidAmount || 0,
-      },
-    });
+    const status = searchParams.get('status');
+    let sql = `SELECT s.*, a.brandName, a.companyName, a.contactName, a.contactPhone, u.email as agentEmail
+               FROM Settlement s
+               LEFT JOIN Agent a ON a.id = s.agentId
+               LEFT JOIN User u ON u.id = a.userId
+               ORDER BY s.createdAt DESC`;
+    if (status) {
+      sql = `SELECT s.*, a.brandName, a.companyName, a.contactName, a.contactPhone, u.email as agentEmail
+             FROM Settlement s
+             LEFT JOIN Agent a ON a.id = s.agentId
+             LEFT JOIN User u ON u.id = a.userId
+             WHERE s.status = ?
+             ORDER BY s.createdAt DESC`;
+    }
+    const settlements = await queryAll(sql, ...(status ? [status] : []));
+    return NextResponse.json({ settlements });
   } catch (error) {
     console.error('获取结算列表失败:', error);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
 }
 
+// 审批结算申请（approve/reject/paid）
 export async function POST(req: NextRequest) {
   try {
     const { allowed, session } = await requireAdmin(req);
-    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
-
-    await ensureTable();
-
+    if (!allowed || !session) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+    await ensureSettlementTable();
     const body = await req.json();
-    const { action } = body;
-
-    if (action === 'generate') {
-      const { weekStart, weekEnd } = body;
-      if (!weekStart || !weekEnd) {
-        return NextResponse.json({ error: '请选择结算周期' }, { status: 400 });
-      }
-
-      const agents = await queryAll('SELECT id FROM "Agent" WHERE isActive = 1') as any[];
-      if (agents.length === 0) {
-        return NextResponse.json({ error: '没有活跃的代理商' }, { status: 400 });
-      }
-
-      const results: any[] = [];
-      for (const agent of agents) {
-        try {
-          const result = await generateWeeklySettlement(agent.id, weekStart, weekEnd);
-          if (result) results.push(result);
-        } catch (e) {
-          console.error(`生成 ${agent.id} 结算失败:`, e);
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        generatedCount: results.length,
-        results,
-      });
+    const { settlementId, action, note } = body;
+    if (!settlementId || !action) {
+      return NextResponse.json({ error: '参数错误' }, { status: 400 });
     }
-
-    if (action === 'generate-for-agent') {
-      const { agentId, weekStart, weekEnd } = body;
-      if (!agentId || !weekStart || !weekEnd) {
-        return NextResponse.json({ error: '参数不足' }, { status: 400 });
-      }
-
-      const result = await generateWeeklySettlement(agentId, weekStart, weekEnd);
-      if (!result) {
-        return NextResponse.json({ error: '该代理商此周期没有待结算分润' }, { status: 400 });
-      }
-      return NextResponse.json({ success: true, ...result });
+    const validActions = ['approve', 'reject', 'paid'];
+    if (!validActions.includes(action)) {
+      return NextResponse.json({ error: '无效操作' }, { status: 400 });
     }
-
-    if (action === 'approve') {
-      const { settlementId, remark } = body;
-      if (!settlementId) return NextResponse.json({ error: '缺少结算单ID' }, { status: 400 });
-
-      await approveSettlement(settlementId, 'approve', session.sub || session.id, remark);
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === 'reject') {
-      const { settlementId, remark } = body;
-      if (!settlementId) return NextResponse.json({ error: '缺少结算单ID' }, { status: 400 });
-
-      await approveSettlement(settlementId, 'reject', session.sub || session.id, remark);
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === 'mark-paid') {
-      const { settlementId, paidMethod, paidAccount } = body;
-      if (!settlementId) return NextResponse.json({ error: '缺少结算单ID' }, { status: 400 });
-      if (!paidMethod || !paidAccount) {
-        return NextResponse.json({ error: '支付方式和账号为必填项' }, { status: 400 });
-      }
-
-      await markSettlementPaid(settlementId, paidMethod, paidAccount);
-      return NextResponse.json({ success: true });
-    }
-
-    return NextResponse.json({ error: '无效的操作' }, { status: 400 });
-  } catch (error: any) {
-    console.error('结算操作失败:', error);
-    return NextResponse.json({ error: error.message || '操作失败' }, { status: 500 });
+    const statusMap: Record<string, string> = {
+      approve: 'approved',
+      reject: 'rejected',
+      paid: 'paid',
+    };
+    await execute('UPDATE Settlement SET status = ?, adminNote = ?, updatedAt = ? WHERE id = ?', statusMap[action], note || '', new Date().toISOString(), settlementId);
+    await auditLog({
+      userId: session.sub,
+      action: 'admin_settlement_review',
+      details: { settlementId, action, note },
+      status: 'success',
+    });
+    return NextResponse.json({ success: true, message: '审批成功' });
+  } catch (error) {
+    console.error('审批结算失败:', error);
+    return NextResponse.json({ error: '审批失败' }, { status: 500 });
   }
 }

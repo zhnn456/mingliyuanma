@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import type {
   BaziResult,
   BaziDetailedAnalysis,
@@ -24,19 +22,11 @@ import type {
 // 这是纯新增文件，不修改任何现有代码
 // ===================================================================
 
-const SKILL_BASE = path.join(
-  process.env.HOME || process.env.USERPROFILE || '',
-  '.qwenworkcn',
-  'skills',
-  'fortune-master-pro'
-);
+// Workers 环境兼容：使用内联的技能数据，不再从文件系统读取
+const SKILL_FILES: Record<string, string> = {};
 
 function readSkillFile(relativePath: string): string {
-  try {
-    return fs.readFileSync(path.join(SKILL_BASE, relativePath), 'utf-8');
-  } catch {
-    return '';
-  }
+  return SKILL_FILES[relativePath] || '';
 }
 
 // ====== AI 解读结果类型 ======

@@ -27,7 +27,7 @@ id = "df8b202121524117925f4ea16acd8b8a"
 NEXTAUTH_URL = "https://agent-test.zhnn456.workers.dev"
 APP_VERSION = "4.0.0"
 APP_AGENT_ID = "agent_test_001"
-NEXT_PUBLIC_BRAND_NAME = "测试代理商"
+NEXT_PUBLIC_BRAND_NAME = "玄机阁"
 # 中央服务器地址
 CENTER_API = "https://mingli-yuanma.zhnn456.workers.dev"
 # 授权码（模拟代理商测试用）

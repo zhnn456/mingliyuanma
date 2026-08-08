@@ -87,6 +87,20 @@ export async function POST(req: NextRequest) {
 }
 
 async function applySettlement(agentId: string, period: string) {
+  // 确保 Settlement 表存在
+  await execute(`CREATE TABLE IF NOT EXISTS "Settlement" (
+    id TEXT PRIMARY KEY,
+    agentId TEXT NOT NULL,
+    period TEXT,
+    amount REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    note TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  )`);
+  await execute('CREATE INDEX IF NOT EXISTS "set_agentId_idx" ON "Settlement"("agentId")');
+  await execute('CREATE INDEX IF NOT EXISTS "set_status_idx" ON "Settlement"("status")');
+
   // 计算待结算金额
   const pending = await queryAll(
     `SELECT SUM(commissionAmount) as total, COUNT(*) as count
@@ -95,8 +109,8 @@ async function applySettlement(agentId: string, period: string) {
     agentId
   ) as any[];
 
-  const totalAmount = pending[0]?.total || 0;
-  const count = pending[0]?.count || 0;
+  const totalAmount = Number(pending[0]?.total || 0);
+  const count = Number(pending[0]?.count || 0);
 
   if (count === 0 || totalAmount <= 0) {
     return NextResponse.json({ error: '没有可结算的分润' }, { status: 400 });
@@ -114,9 +128,9 @@ async function applySettlement(agentId: string, period: string) {
 
   // 更新分润状态
   await execute(
-    `UPDATE CommissionRecord SET status = 'settling', period = ?, updatedAt = ?
+    `UPDATE CommissionRecord SET status = 'settling', settlementId = ?
      WHERE agentId = ? AND status = 'pending'`,
-    period, now, agentId
+    settlementId, agentId
   );
 
   return NextResponse.json({

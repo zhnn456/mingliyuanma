@@ -4,6 +4,23 @@
  * 为 SaaS 多租户部署设计：每个代理商可配置独立支付参数
  */
 
+import {
+  createNativeOrder as wechatNativeOrder,
+  createJsapiOrder as wechatJsapiOrder,
+  queryOrder as wechatQueryOrder,
+  createRefund as wechatRefund,
+  parseCallback as wechatParseCallback,
+  type WechatPayConfig,
+} from './wechat';
+import {
+  createPagePayUrlAsync,
+  createWapPayUrlAsync,
+  queryTrade as alipayQueryTrade,
+  createRefund as alipayRefund,
+  parseCallback as alipayParseCallback,
+  type AlipayConfig,
+} from './alipay';
+
 // ============ 类型定义 ============
 
 export type PaymentMethod = 'wechat' | 'alipay' | 'mock';
@@ -14,35 +31,40 @@ export interface PaymentConfig {
   // 微信支付
   wechatAppId?: string;
   wechatMchId?: string;
-  wechatApiKey?: string;
+  wechatApiV3Key?: string;
+  wechatPrivateKey?: string;
+  wechatCertSerial?: string;
   wechatNotifyUrl?: string;
   // 支付宝
   alipayAppId?: string;
   alipayPrivateKey?: string;
   alipayPublicKey?: string;
   alipayNotifyUrl?: string;
+  alipayReturnUrl?: string;
+  alipayGateway?: string;
   // 代理商配置（多租户）
   agentId?: string;
 }
 
 export interface CreateOrderParams {
   orderNo: string;
-  amount: number; // 金额（元）
+  amount: number;
   title: string;
   description?: string;
   method: PaymentMethod;
   userId: string;
   targetType: 'membership' | 'offering' | 'pdf_report';
   targetId?: string;
-  openid?: string; // 微信 openid（可选）
-  returnUrl?: string; // 支付完成跳转URL
+  openid?: string;
+  returnUrl?: string;
 }
 
 export interface CreateOrderResult {
   orderNo: string;
-  paymentUrl?: string; // 支付链接（H5/扫码）
-  qrCode?: string; // 二维码内容
-  prepayId?: string; // 微信预支付ID
+  paymentUrl?: string;
+  qrCode?: string;
+  prepayId?: string;
+  jsapiParams?: Record<string, string>;
   status: PaymentStatus;
 }
 
@@ -61,7 +83,6 @@ export function generateOrderNo(): string {
   const dateStr = now.getFullYear().toString() +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
-  // 使用 Web Crypto API 生成随机部分（Cloudflare Workers 兼容）
   const buf = new Uint8Array(4);
   globalThis.crypto.getRandomValues(buf);
   const random = Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
@@ -75,7 +96,7 @@ export interface MembershipPlanConfig {
   level: 'monthly' | 'yearly' | 'lifetime';
   name: string;
   price: number;
-  durationDays: number | null; // null = 终身
+  durationDays: number | null;
   features: string[];
   popular?: boolean;
 }
@@ -142,95 +163,231 @@ export class PaymentService {
     }
   }
 
-  // ============ 微信支付 ============
-
-  private async createWechatOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
-    // TODO: 实际微信支付API调用
-    // 当前为模拟实现，生产环境替换为真实API
-    if (!this.config.wechatAppId || !this.config.wechatMchId) {
-      // 降级为 mock 模式
-      return this.createMockOrder(params);
-    }
-
-    try {
-      // 真实微信支付统一下单 API
-      // const response = await fetch('https://api.mch.weixin.qq.com/pay/unifiedorder', { ... });
-      // 解析返回的 prepay_id, code_url 等
-
-      return {
-        orderNo: params.orderNo,
-        qrCode: `weixin://wxpay/bizpayurl?pr=${params.orderNo}`,
-        prepayId: `wx_${params.orderNo}`,
-        status: 'pending',
-      };
-    } catch (error) {
-      console.error('微信支付创建订单失败:', error);
-      throw new Error('微信支付创建订单失败');
+  /**
+   * 查询订单状态
+   */
+  async queryOrder(orderNo: string, method: PaymentMethod): Promise<PaymentStatus> {
+    switch (method) {
+      case 'wechat':
+        return this.queryWechatOrder(orderNo);
+      case 'alipay':
+        return this.queryAlipayOrder(orderNo);
+      case 'mock':
+        return 'pending';
     }
   }
 
-  private async handleWechatCallback(rawBody: string, _headers: Record<string, string>): Promise<CallbackResult> {
-    // TODO: 实际微信支付回调验证
-    // 1. 验证签名
-    // 2. 解析 XML 数据
-    // 3. 验证金额
-
+  /**
+   * 申请退款
+   */
+  async refund(orderNo: string, amount: number, method: PaymentMethod, reason?: string): Promise<{ success: boolean; refundId?: string }> {
+    const refundNo = `RF${Date.now()}`;
     try {
-      // 模拟解析
-      const data = JSON.parse(rawBody);
-      return {
-        success: true,
-        orderNo: data.orderNo,
-        transactionId: data.transactionId || `wx_tx_${Date.now()}`,
-        amount: data.amount,
-        method: 'wechat',
-      };
-    } catch {
-      throw new Error('微信支付回调解析失败');
+      switch (method) {
+        case 'wechat': {
+          if (!this.isWechatConfigured()) throw new Error('微信支付未配置');
+          const config = this.getWechatConfig();
+          const result = await wechatRefund(config, { orderNo, refundNo, amount, refundAmount: amount, reason });
+          return { success: result.status === 'SUCCESS' || result.status === 'PROCESSING', refundId: result.refundId };
+        }
+        case 'alipay': {
+          if (!this.isAlipayConfigured()) throw new Error('支付宝未配置');
+          const config = this.getAlipayConfig();
+          const result = await alipayRefund(config, { orderNo, refundNo, amount, refundAmount: amount, reason });
+          return { success: result.status === 'SUCCESS', refundId: result.refundId };
+        }
+        case 'mock':
+          return { success: true, refundId: `mock_rf_${Date.now()}` };
+      }
+    } catch (e) {
+      console.error(`[支付] 退款失败 (${method}):`, e);
+      return { success: false };
     }
+  }
+
+  // ============ 微信支付 ============
+
+  private isWechatConfigured(): boolean {
+    return !!(this.config.wechatAppId && this.config.wechatMchId && this.config.wechatPrivateKey);
+  }
+
+  private getWechatConfig(): WechatPayConfig {
+    return {
+      appId: this.config.wechatAppId!,
+      mchId: this.config.wechatMchId!,
+      apiV3Key: this.config.wechatApiV3Key || '',
+      privateKey: this.config.wechatPrivateKey!,
+      certSerial: this.config.wechatCertSerial || '',
+      notifyUrl: this.config.wechatNotifyUrl || `${process.env.NEXTAUTH_URL}/api/payment/wechat/notify`,
+    };
+  }
+
+  private async createWechatOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    // 未配置时降级为 mock
+    if (!this.isWechatConfigured()) {
+      console.warn('[微信支付] 未配置，降级为 mock 模式');
+      return this.createMockOrder(params);
+    }
+
+    const config = this.getWechatConfig();
+
+    // 有 openid 用 JSAPI，否则用 Native 扫码
+    if (params.openid) {
+      const result = await wechatJsapiOrder(config, {
+        orderNo: params.orderNo,
+        amount: params.amount,
+        description: params.title,
+        openid: params.openid,
+      });
+      return {
+        orderNo: params.orderNo,
+        prepayId: result.prepayId,
+        jsapiParams: {
+          timeStamp: result.timeStamp,
+          nonceStr: result.nonceStr,
+          package: result.package,
+          signType: result.signType,
+          paySign: result.paySign,
+        },
+        status: 'pending',
+      };
+    }
+
+    // Native 扫码支付
+    const result = await wechatNativeOrder(config, {
+      orderNo: params.orderNo,
+      amount: params.amount,
+      description: params.title,
+    });
+    return {
+      orderNo: params.orderNo,
+      qrCode: result.codeUrl,
+      status: 'pending',
+    };
+  }
+
+  private async handleWechatCallback(rawBody: string, _headers: Record<string, string>): Promise<CallbackResult> {
+    if (!this.isWechatConfigured()) {
+      return this.handleMockCallback(rawBody);
+    }
+
+    const config = this.getWechatConfig();
+    const data = await wechatParseCallback(config, rawBody, _headers);
+
+    return {
+      success: data.status === 'SUCCESS',
+      orderNo: data.orderNo,
+      transactionId: data.transactionId,
+      amount: data.amount / 100, // 分转元
+      method: 'wechat',
+    };
+  }
+
+  private async queryWechatOrder(orderNo: string): Promise<PaymentStatus> {
+    if (!this.isWechatConfigured()) return 'pending';
+    const config = this.getWechatConfig();
+    const result = await wechatQueryOrder(config, orderNo);
+    const statusMap: Record<string, PaymentStatus> = {
+      'SUCCESS': 'paid',
+      'REFUND': 'refunded',
+      'NOTPAY': 'pending',
+      'CLOSED': 'closed',
+      'REVOKED': 'closed',
+      'USERPAYING': 'pending',
+      'PAYERROR': 'failed',
+    };
+    return statusMap[result.status] || 'pending';
   }
 
   // ============ 支付宝 ============
 
+  private isAlipayConfigured(): boolean {
+    return !!(this.config.alipayAppId && this.config.alipayPrivateKey && this.config.alipayPublicKey);
+  }
+
+  private getAlipayConfig(): AlipayConfig {
+    return {
+      appId: this.config.alipayAppId!,
+      privateKey: this.config.alipayPrivateKey!,
+      publicKey: this.config.alipayPublicKey!,
+      notifyUrl: this.config.alipayNotifyUrl || `${process.env.NEXTAUTH_URL}/api/payment/alipay/notify`,
+      returnUrl: this.config.alipayReturnUrl,
+      gateway: this.config.alipayGateway || 'https://openapi.alipay.com/gateway.do',
+    };
+  }
+
   private async createAlipayOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
-    if (!this.config.alipayAppId) {
+    // 未配置时降级为 mock
+    if (!this.isAlipayConfigured()) {
+      console.warn('[支付宝] 未配置，降级为 mock 模式');
       return this.createMockOrder(params);
     }
 
-    try {
-      // TODO: 实际支付宝API调用
-      // 构建支付宝支付链接
+    const config = this.getAlipayConfig();
 
-      return {
+    // 判断是否手机端
+    const isMobile = params.returnUrl?.includes('mobile') || false;
+
+    let payUrl: string;
+    if (isMobile) {
+      payUrl = await createWapPayUrlAsync(config, {
         orderNo: params.orderNo,
-        paymentUrl: `https://openapi.alipaydev.com/gateway.do?out_trade_no=${params.orderNo}`,
-        status: 'pending',
-      };
-    } catch (error) {
-      console.error('支付宝创建订单失败:', error);
-      throw new Error('支付宝创建订单失败');
+        amount: params.amount,
+        title: params.title,
+        description: params.description,
+        returnUrl: params.returnUrl,
+      });
+    } else {
+      payUrl = await createPagePayUrlAsync(config, {
+        orderNo: params.orderNo,
+        amount: params.amount,
+        title: params.title,
+        description: params.description,
+        returnUrl: params.returnUrl,
+      });
     }
+
+    return {
+      orderNo: params.orderNo,
+      paymentUrl: payUrl,
+      status: 'pending',
+    };
   }
 
   private async handleAlipayCallback(rawBody: string, _headers: Record<string, string>): Promise<CallbackResult> {
-    // TODO: 实际支付宝回调验证（需 RSA 签名验签）
-    try {
-      const params = new URLSearchParams(rawBody);
-      const orderNo = params.get('out_trade_no') || '';
-      const transactionId = params.get('trade_no') || '';
-      const rawAmount = parseFloat(params.get('total_amount') || '0');
-      const amount = isNaN(rawAmount) ? 0 : rawAmount;
-
-      return {
-        success: params.get('trade_status') === 'TRADE_SUCCESS',
-        orderNo,
-        transactionId,
-        amount,
-        method: 'alipay',
-      };
-    } catch {
-      throw new Error('支付宝回调解析失败');
+    if (!this.isAlipayConfigured()) {
+      return this.handleMockCallback(rawBody);
     }
+
+    const config = this.getAlipayConfig();
+
+    // 解析 form-urlencoded
+    const params: Record<string, string> = {};
+    const searchParams = new URLSearchParams(rawBody);
+    searchParams.forEach((v, k) => { params[k] = v; });
+
+    const data = await alipayParseCallback(config, params);
+
+    return {
+      success: data.status === 'TRADE_SUCCESS' || data.status === 'TRADE_FINISHED',
+      orderNo: data.orderNo,
+      transactionId: data.transactionId,
+      amount: data.amount,
+      method: 'alipay',
+    };
+  }
+
+  private async queryAlipayOrder(orderNo: string): Promise<PaymentStatus> {
+    if (!this.isAlipayConfigured()) return 'pending';
+    const config = this.getAlipayConfig();
+    const result = await alipayQueryTrade(config, orderNo);
+    const statusMap: Record<string, PaymentStatus> = {
+      'TRADE_SUCCESS': 'paid',
+      'TRADE_FINISHED': 'paid',
+      'WAIT_BUYER_PAY': 'pending',
+      'TRADE_CLOSED': 'closed',
+    };
+    return statusMap[result.status] || 'pending';
   }
 
   // ============ Mock 支付（开发/测试用） ============
@@ -260,45 +417,33 @@ export class PaymentService {
       method: 'mock',
     };
   }
-
-  // ============ 查询订单状态 ============
-
-  async queryOrder(orderNo: string, method: PaymentMethod): Promise<PaymentStatus> {
-    // TODO: 实际查询API
-    // 当前返回 mock 状态
-    return 'pending';
-  }
 }
 
 // ============ 工厂函数 ============
 
-/**
- * 获取支付配置（支持多租户：代理商可有自己的支付配置）
- */
 export function getPaymentConfig(agentId?: string): PaymentConfig {
-  // 从环境变量读取平台默认配置
   const baseConfig: PaymentConfig = {
     method: (process.env.PAYMENT_DEFAULT_METHOD as PaymentMethod) || 'mock',
+    // 微信支付
     wechatAppId: process.env.WECHAT_APP_ID,
     wechatMchId: process.env.WECHAT_MCH_ID,
-    wechatApiKey: process.env.WECHAT_API_KEY,
+    wechatApiV3Key: process.env.WECHAT_API_V3_KEY,
+    wechatPrivateKey: process.env.WECHAT_PRIVATE_KEY,
+    wechatCertSerial: process.env.WECHAT_CERT_SERIAL,
     wechatNotifyUrl: process.env.WECHAT_NOTIFY_URL,
+    // 支付宝
     alipayAppId: process.env.ALIPAY_APP_ID,
     alipayPrivateKey: process.env.ALIPAY_PRIVATE_KEY,
     alipayPublicKey: process.env.ALIPAY_PUBLIC_KEY,
     alipayNotifyUrl: process.env.ALIPAY_NOTIFY_URL,
+    alipayReturnUrl: process.env.ALIPAY_RETURN_URL,
+    alipayGateway: process.env.ALIPAY_GATEWAY || 'https://openapi.alipay.com/gateway.do',
     agentId,
   };
-
-  // 如果是代理商，可从数据库读取代理商的支付配置覆盖
-  // TODO: 实现 agent-specific payment config
 
   return baseConfig;
 }
 
-/**
- * 创建支付服务实例
- */
 export function createPaymentService(agentId?: string): PaymentService {
   const config = getPaymentConfig(agentId);
   return new PaymentService(config);

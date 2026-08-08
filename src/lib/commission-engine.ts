@@ -1,100 +1,112 @@
+import { queryFirst, execute } from './d1';
+
 /**
- * 自动分润计算引擎
- * 
- * 分润规则：
- * - 平台分成：60%
- * - 代理商分润：40%
- * 
- * 代理商等级加成：
- * - 基础版：分润比例 30%
- * - 标准版：分润比例 40%
- * - 高级版：分润比例 50%
+ * 分润引擎 - 用户消费时自动计算分润给代理商
  */
 
-export interface CommissionResult {
-  orderAmount: number;
-  platformAmount: number;
-  agentAmount: number;
-  commissionRate: number;
-  agentId: string;
-  level: 'basic' | 'standard' | 'premium';
+// 分润计算并记录
+export async function processCommission(orderId: string, userId: string, orderAmount: number): Promise<{ processed: boolean; agentId?: string; commissionAmount?: number }> {
+  // 1. 查询用户的 agentId
+  const user = await queryFirst('SELECT agentId FROM User WHERE id = ?', userId) as any;
+  if (!user || !user.agentId) return { processed: false };
+
+  // 2. 查询代理商的分润比例和状态（含代理类型）
+  const agent = await queryFirst('SELECT id, commissionRate, isActive, planExpiry, level FROM Agent WHERE id = ?', user.agentId) as any;
+  if (!agent || !agent.isActive) return { processed: false };
+
+  // 2.1 源码部署代理不触发分润（100% 收入归代理商自己）
+  if (agent.level === 'source') return { processed: false };
+
+  // 3. 检查授权是否过期
+  if (agent.planExpiry && new Date(agent.planExpiry) < new Date()) return { processed: false };
+
+  // 4. 计算分润
+  const commissionRate = agent.commissionRate || 0.3;
+  const commissionAmount = Math.round(orderAmount * commissionRate * 100) / 100;
+
+  // 5. 更新订单分润信息
+  await execute('UPDATE "Order" SET agentId = ?, commissionRate = ?, commissionAmount = ? WHERE id = ?',
+    user.agentId, commissionRate, commissionAmount, orderId);
+
+  // 6. 更新代理商余额和统计
+  await execute('UPDATE Agent SET totalCommission = totalCommission + ?, pendingCommission = pendingCommission + ?, currentMonthGMV = currentMonthGMV + ? WHERE id = ?',
+    commissionAmount, commissionAmount, orderAmount, user.agentId);
+
+  // 7. 创建分润记录
+  const recordId = `com_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  // 查询订单类型作为 productType
+  const orderInfo = await queryFirst('SELECT type FROM "Order" WHERE id = ?', orderId) as any;
+  const productType = orderInfo?.type || 'recharge';
+  await execute(
+    `INSERT INTO CommissionRecord (id, agentId, orderId, userId, productType, orderAmount, baseAmount, commissionRate, commissionAmount, totalCommission, status, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    recordId, user.agentId, orderId, userId, productType, orderAmount, orderAmount, commissionRate, commissionAmount, commissionAmount, 'pending', now
+  );
+
+  return { processed: true, agentId: user.agentId, commissionAmount };
 }
 
-const COMMISSION_RATES = {
-  basic: 0.30,
-  standard: 0.40,
-  premium: 0.50,
-};
-
-const PLATFORM_RATES = {
-  basic: 0.70,
-  standard: 0.60,
-  premium: 0.50,
-};
-
-export function calculateCommission(
-  orderAmount: number,
-  agentLevel: 'basic' | 'standard' | 'premium' = 'standard'
-): CommissionResult {
-  const agentRate = COMMISSION_RATES[agentLevel];
-  const platformRate = PLATFORM_RATES[agentLevel];
-
-  const agentAmount = Math.round(orderAmount * agentRate * 100) / 100;
-  const platformAmount = Math.round(orderAmount * platformRate * 100) / 100;
-
-  return {
-    orderAmount,
-    platformAmount,
-    agentAmount,
-    commissionRate: agentRate,
-    agentId: '',
-    level: agentLevel,
-  };
+// 获取代理商分润统计
+export async function getAgentCommissionStats(agentId: string) {
+  const stats = await queryFirst(
+    'SELECT totalCommission, pendingCommission, currentMonthGMV, balance FROM Agent WHERE id = ?',
+    agentId
+  ) as any;
+  return stats || { totalCommission: 0, pendingCommission: 0, currentMonthGMV: 0, balance: 0 };
 }
 
-export function getCommissionRate(level: string): number {
-  return COMMISSION_RATES[level as keyof typeof COMMISSION_RATES] || 0.30;
+// 获取分润记录列表
+export async function listCommissionRecords(agentId: string, page = 1, pageSize = 20) {
+  const offset = (page - 1) * pageSize;
+  const records = await queryFirst(
+    'SELECT * FROM CommissionRecord WHERE agentId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+    agentId, pageSize, offset
+  ) as any;
+  return records || [];
 }
 
-export function getPlatformRate(level: string): number {
-  return PLATFORM_RATES[level as keyof typeof PLATFORM_RATES] || 0.70;
+// 获取结算周期
+export function getSettlementPeriod(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 }
 
-export function getLevelFromFeatures(features: string[]): 'basic' | 'standard' | 'premium' {
-  if (features.includes('data-export') && features.includes('marketing')) {
+// 格式化周期显示
+export function formatPeriod(period: string): string {
+  if (!period) return '';
+  const [year, month] = period.split('-');
+  if (!year || !month) return period;
+  return `${year}年${parseInt(month)}月`;
+}
+
+// 根据功能列表获取代理等级
+export function getLevelFromFeatures(features: string[]): string {
+  if (!features || !Array.isArray(features)) return 'basic';
+  if (features.includes('bazi') && features.includes('fortune') && features.includes('fengshui')) {
     return 'premium';
   }
-  if (features.includes('marketing')) {
+  if (features.includes('bazi') && features.includes('fortune')) {
     return 'standard';
   }
   return 'basic';
 }
 
-export interface SettlementPeriod {
-  period: string;
-  startDate: Date;
-  endDate: Date;
-}
-
-export function getSettlementPeriod(monthOffset: number = 0): SettlementPeriod {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + monthOffset;
-
-  const periodMonth = month < 1 ? 12 : month;
-  const periodYear = month < 1 ? year - 1 : year;
-
-  const startDate = new Date(periodYear, periodMonth - 1, 1);
-  const endDate = new Date(periodYear, periodMonth, 0, 23, 59, 59);
-
-  return {
-    period: `${periodYear}-${String(periodMonth).padStart(2, '0')}`,
-    startDate,
-    endDate,
+// 计算分润金额
+export function calculateCommission(amount: number, level: string = 'standard') {
+  const rates: Record<string, number> = {
+    basic: 0.2,
+    standard: 0.3,
+    premium: 0.4,
   };
-}
-
-export function formatPeriod(period: string): string {
-  const [year, month] = period.split('-');
-  return `${year}年${parseInt(month)}月`;
+  const commissionRate = rates[level] || 0.3;
+  const agentAmount = Math.round(amount * commissionRate * 100) / 100;
+  const platformAmount = Math.round((amount - agentAmount) * 100) / 100;
+  return {
+    commissionRate,
+    agentAmount,
+    platformAmount,
+    agentId: '',
+  };
 }

@@ -62,12 +62,13 @@ let _articlesCache: KnowledgeArticle[] | null = null;
 let _articlesMap: Map<string, KnowledgeArticle> | null = null;
 
 /**
- * 判断是否在 Workers 环境（无 fs 模块）
+ * 判断是否在 Workers 环境
  */
 function isWorkersEnv(): boolean {
   return typeof process !== 'undefined' && (
     !!(process as any).env?.CF_PAGES ||
-    !!(process as any).env?.CLOUDFLARE_WORKER
+    !!(process as any).env?.CLOUDFLARE_WORKER ||
+    !!(process as any).env?.CF_WORKER
   );
 }
 
@@ -77,9 +78,8 @@ function loadArticles(): KnowledgeArticle[] {
   let articles: KnowledgeArticle[] = [];
 
   if (!isWorkersEnv()) {
-    // 开发环境：从文件系统读取
+    // 开发环境：从文件系统读取（仅在非 Workers 环境执行）
     try {
-      // 动态 require，避免 Worker 构建时打包 fs
       const fsMod = require('fs');
       const pathMod = require('path');
       const knowledgeDir = pathMod.join(process.cwd(), 'data', 'knowledge');

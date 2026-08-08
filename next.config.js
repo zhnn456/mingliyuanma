@@ -1,4 +1,4 @@
-const path = require('path');
+const WebpackObfuscator = require('webpack-obfuscator');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -6,10 +6,23 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
-  // Cloudflare Workers 兼容：把 @panva/hkdf 替换为接受字符串的实现
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.resolve.alias['@panva/hkdf'] = path.resolve(__dirname, 'src/lib/hkdf-polyfill.ts');
+  // 生产环境前端代码混淆（保护源码，防止逆向）
+  webpack: (config, { isServer, dev }) => {
+    // 只在生产环境且客户端构建时混淆
+    if (!dev && !isServer) {
+      config.plugins.push(new WebpackObfuscator({
+        rotateStringArray: true,           // 字符串数组旋转
+        controlFlowFlattening: true,       // 控制流扁平化
+        controlFlowFlatteningThreshold: 0.5, // 50%的代码扁平化（平衡性能）
+        deadCodeInjection: false,          // 不注入死代码（减少体积）
+        stringArray: true,                // 字符串数组化
+        stringArrayEncoding: ['base64'],   // 字符串加密
+        stringArrayThreshold: 0.75,        // 75%的字符串被加密
+        debugProtection: false,            // 不开调试保护（避免影响用户）
+        compact: true,                    // 压缩输出
+        simplify: true,                   // 简化表达式
+        identifierNamesGenerator: 'hexadecimal', // 变量名改为十六进制
+      }, ['vendors*.js', 'manifest*.js', 'polyfills*.js'])); // 排除第三方库
     }
     return config;
   },

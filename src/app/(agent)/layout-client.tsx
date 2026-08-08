@@ -6,16 +6,32 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, getPendingUser } from '@/lib/auth-client';
 import UpdateNotification from '@/components/UpdateNotification';
 
-const menuItems = [
-  { href: '/agent', label: '数据概览', icon: '📊', exact: true },
-  { href: '/agent/dashboard', label: '收益看板', icon: '💰' },
-  { href: '/agent/agent-orders', label: '我的订单', icon: '🧾' },
-  { href: '/agent/commissions', label: '分润明细', icon: '📈' },
-  { href: '/agent/agent-settlements', label: '结算中心', icon: '🏦' },
-  { href: '/agent/customers', label: '客户管理', icon: '👥' },
-  { href: '/agent/settings', label: '代理设置', icon: '⚙️' },
-  { href: '/agent/updates', label: '系统更新', icon: '🔄' },
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: string;
+  exact?: boolean;
+  mode?: 'saas' | 'source' | 'both';
+}
+
+const allMenuItems: MenuItem[] = [
+  { href: '/agent', label: '数据概览', icon: '📊', exact: true, mode: 'both' },
+  { href: '/agent/dashboard', label: '收益看板', icon: '💰', mode: 'both' },
+  { href: '/agent/agent-orders', label: '我的订单', icon: '🧾', mode: 'both' },
+  { href: '/agent/commissions', label: '分润明细', icon: '📈', mode: 'saas' },
+  { href: '/agent/agent-settlements', label: '结算中心', icon: '🏦', mode: 'saas' },
+  { href: '/agent/customers', label: '客户管理', icon: '👥', mode: 'both' },
+  { href: '/agent/invite', label: '邀请管理', icon: '🔗', mode: 'saas' },
+  { href: '/agent/billing', label: '套餐管理', icon: '📦', mode: 'saas' },
+  { href: '/agent/domain', label: '域名设置', icon: '🌐', mode: 'saas' },
+  { href: '/agent/settings', label: '代理设置', icon: '⚙️', mode: 'both' },
+  { href: '/agent/updates', label: '系统更新', icon: '🔄', mode: 'both' },
 ];
+
+// SaaS 代理不能访问的页面（源码部署专属）
+const sourceOnlyPaths = ['/agent/settings'];
+// 源码部署代理不能访问的页面（SaaS 专属）
+const saasOnlyPaths = ['/agent/commissions', '/agent/agent-settlements', '/agent/invite', '/agent/billing', '/agent/domain'];
 
 export default function AgentLayoutClient({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,6 +39,23 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasNewVersion, setHasNewVersion] = useState(false);
+  const [agentLevel, setAgentLevel] = useState<'saas' | 'source' | null>(null);
+
+  // 获取代理商等级
+  useEffect(() => {
+    const fetchAgentLevel = async () => {
+      try {
+        const res = await fetch('/api/agent/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setAgentLevel(data.agent?.level === 'source' ? 'source' : 'saas');
+        }
+      } catch {}
+    };
+    if (user?.role === 'agent') {
+      fetchAgentLevel();
+    }
+  }, [user]);
 
   useEffect(() => {
     const checkVersion = async () => {
@@ -37,6 +70,18 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
     };
     checkVersion();
   }, []);
+
+  // 权限守卫：根据代理类型重定向
+  useEffect(() => {
+    if (!loading && agentLevel) {
+      if (agentLevel === 'saas' && sourceOnlyPaths.some(p => pathname.startsWith(p) && pathname !== '/agent/settings')) {
+        router.replace('/agent');
+      }
+      if (agentLevel === 'source' && saasOnlyPaths.some(p => pathname.startsWith(p))) {
+        router.replace('/agent');
+      }
+    }
+  }, [loading, agentLevel, pathname, router]);
 
   useEffect(() => {
     if (!loading) {
@@ -56,7 +101,19 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
   const effectiveUser = user || getPendingUser();
   if (!effectiveUser || effectiveUser.role !== 'agent') return null;
 
+  // 根据代理类型过滤菜单
+  const menuItems = allMenuItems.filter(item => {
+    if (item.mode === 'both') return true;
+    if (!agentLevel) return true; // 加载中时显示全部
+    if (item.mode === 'saas') return agentLevel === 'saas';
+    if (item.mode === 'source') return agentLevel === 'source';
+    return true;
+  });
+
   const currentMenu = menuItems.find(m => m.exact ? pathname === m.href : pathname.startsWith(m.href));
+
+  const levelLabel = agentLevel === 'source' ? '源码部署' : agentLevel === 'saas' ? 'SaaS代理' : '';
+  const levelColor = agentLevel === 'source' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -65,7 +122,7 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
         <div className="p-5 border-b border-gray-800">
           <Link href="/agent" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-700 flex items-center justify-center text-white font-bold">代</div>
-            <div><div className="font-bold text-white">代理商后台</div><div className="text-xs text-gray-400">命理网</div></div>
+            <div><div className="font-bold text-white">代理商后台</div><div className="text-xs text-gray-400">先知命理网</div></div>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -106,7 +163,7 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
               )}
             </Link>
             <span>{effectiveUser.email}</span>
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">代理商</span>
+            {levelLabel && <span className={`px-2 py-0.5 rounded text-xs font-medium ${levelColor}`}>{levelLabel}</span>}
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>

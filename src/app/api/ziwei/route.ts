@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute } from '@/lib/d1';
 import { astro } from 'iztro';
-import { checkUsageLimit } from '@/lib/rate-limit';
+import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
 import { generateZiweiDetailedAnalysis } from '@/lib/interpretation/ziwei-detailed';
 import { createZiweiEngine } from '@/lib/ziwei/engine';
 import type { SchoolId } from '@/lib/ziwei/interfaces/chart';
@@ -20,12 +20,14 @@ import type { SchoolId } from '@/lib/ziwei/interfaces/chart';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { 
+    const {
       year, month, day, hour, gender, isLunar = false,
       // 新增参数
       school = 'feixing',
       enableEngine = true,
     } = body;
+    const mode = body.mode || 'full'; // 默认 full 向后兼容
+    const useLingzhu = body.useLingzhu || false;
 
     if (!year || !month || !day || hour === undefined) {
       return NextResponse.json(
@@ -33,10 +35,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // 检查使用次数限制
-    const { canUse, session, error } = await checkUsageLimit('ziwei');
-    if (!canUse && error) return error;
 
     // iztro 的时辰索引: 0=子时, 1=丑时, 2=寅时...
     const timeIndex = Math.floor(((hour + 1) % 24) / 2);
@@ -88,6 +86,49 @@ export async function POST(req: NextRequest) {
       earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
       earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
     };
+
+    // === 如果只请求排盘数据，直接返回（不收费） ===
+    if (mode === 'chart') {
+      return NextResponse.json({
+        result: { basic, palaces },
+        mode: 'chart',
+        message: '排盘完成，如需详细解读请升级为完整模式',
+      });
+    }
+
+    // === 解读（收费：每日限免 + 灵珠付费） ===
+    const { canInterpret, session, needLingzhu, cost, error, remainingFree } = await checkInterpretLimit('ziwei', req);
+
+    if (!canInterpret && error) return error;
+
+    if (!canInterpret && needLingzhu) {
+      // 需要灵珠付费
+      if (!useLingzhu) {
+        // 用户还没确认付费，返回付费提示
+        return NextResponse.json({
+          error: '今日免费解读次数已用完',
+          needLingzhu: true,
+          cost: cost || INTERPRET_COST_LINGZHU,
+          module: 'ziwei',
+          message: `本次解读需要消耗 ${cost || INTERPRET_COST_LINGZHU} 灵珠`,
+          result: { basic, palaces }, // 同时返回排盘数据
+        }, { status: 402 }); // 402 Payment Required
+      }
+
+      // 用户确认付费，扣灵珠
+      if (session) {
+        const deductResult = await deductLingzhu(session.sub, cost || INTERPRET_COST_LINGZHU, '紫微解读');
+        if (!deductResult.success) {
+          return NextResponse.json({
+            error: `灵珠不足，需要 ${cost || INTERPRET_COST_LINGZHU} 灵珠，当前余额 ${deductResult.balance} 灵珠`,
+            needLingzhu: true,
+            cost: cost || INTERPRET_COST_LINGZHU,
+            balance: deductResult.balance,
+            result: { basic, palaces },
+          }, { status: 402 });
+        }
+      }
+    }
 
     // V1 原有的详细分析
     const detailedAnalysis = generateZiweiDetailedAnalysis(palaces, basic);
@@ -218,7 +259,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ result });
+    return NextResponse.json({
+      result,
+      mode: 'full',
+      remainingFree: remainingFree ?? undefined,
+    });
   } catch (error) {
     console.error('紫微斗数排盘错误:', error);
     return NextResponse.json(

@@ -14,7 +14,7 @@ const SEED_SUPPLIES: Array<{
   { name: '阿弥陀佛', icon: '🪷', category: 'buddha', price: 188, description: '阿弥陀佛供奉，往生极乐', sortOrder: 2, stock: 100 },
   { name: '药师佛', icon: '🪷', category: 'buddha', price: 188, description: '药师佛供奉，消灾解难', sortOrder: 3, stock: 100 },
   { name: '观音菩萨', icon: '🧘', category: 'buddha', price: 168, description: '观音菩萨供奉，救苦救难', sortOrder: 4, stock: 200 },
-  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，超度亡魂', sortOrder: 5, stock: 200 },
+  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，慈悲护佑', sortOrder: 5, stock: 200 },
   { name: '弥勒佛', icon: '😊', category: 'buddha', price: 158, description: '弥勒佛供奉，笑口常开', sortOrder: 6, stock: 150 },
   { name: '土地公', icon: '🏠', category: 'deity', price: 88, description: '土地公供奉，守护家园', sortOrder: 1, stock: 300 },
   { name: '城隍爷', icon: '⚖️', category: 'deity', price: 128, description: '城隍爷供奉，护佑一方', sortOrder: 2, stock: 200 },
@@ -31,8 +31,8 @@ const SEED_SUPPLIES: Array<{
   { name: '糕点', icon: '🍰', category: 'offering', price: 12, description: '传统糕点，供奉佳品', sortOrder: 3, stock: 600 },
   { name: '茶水', icon: '🍵', category: 'offering', price: 6, description: '好茶供奉，清净自在', sortOrder: 4, stock: 1000 },
   { name: '香烛', icon: '🕯️', category: 'offering', price: 8, description: '天然香烛，供奉燃香', sortOrder: 5, stock: 1000 },
-  { name: '超度牌位', icon: '🪧', category: 'deliverance', price: 88, description: '超度牌位，亡灵安息', sortOrder: 1, stock: 200 },
-  { name: '往生莲花', icon: '🪷', category: 'deliverance', price: 38, description: '往生莲花，接引往生', sortOrder: 2, stock: 300 },
+  { name: '追思牌位', icon: '🪧', category: 'deliverance', price: 88, description: '追思牌位，缅怀先人', sortOrder: 1, stock: 200 },
+  { name: '祈福莲花', icon: '🪷', category: 'deliverance', price: 38, description: '祈福莲花，回向功德', sortOrder: 2, stock: 300 },
   { name: '金元宝', icon: '💰', category: 'deliverance', price: 5, description: '金元宝供奉，冥资供养', sortOrder: 3, stock: 2000 },
 ];
 
@@ -41,7 +41,7 @@ const DEFAULT_CATEGORIES = [
   { value: 'deity', label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700 border-blue-200' },
   { value: 'ritual', label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700 border-purple-200' },
   { value: 'offering', label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-  { value: 'deliverance', label: '超度类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { value: 'deliverance', label: '追思祈福类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
 ];
 
 async function ensureOfferingSupplyTable() {

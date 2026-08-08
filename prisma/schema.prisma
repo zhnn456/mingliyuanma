@@ -52,24 +52,46 @@ model Agent {
   licenseKey      String?   // 当前生效的授权码
   licenseExpiry   DateTime?
   siteConfig      String?   // JSON 格式的站点配置
-  
+
+  // 代理商等级与套餐
+  level           String?   @default("saas") // saas（一级 SaaS 代理）| source（二级源码代理）
+  plan            String?   @default("trial") // trial | monthly | annual | lifetime
+  planExpiry      DateTime? // 套餐到期时间
+  referralCode    String?   @unique // 邀请码（REF 开头）
+  maxCustomers    Int       @default(500) // 最大客户数
+
+  // 佣金与结算
+  commissionRate    Float   @default(0.3) // 佣金比例
+  totalCommission   Float   @default(0) // 累计佣金
+  pendingCommission Float   @default(0) // 待结算佣金
+  currentMonthGMV   Float   @default(0) // 当月 GMV
+  settlementCycle   String? @default("weekly") // weekly | monthly
+  balance           Float   @default(0) // 账户余额
+
+  // 收款信息
+  bankName        String?
+  bankAccount     String?
+  bankAccountName String?
+
   // 同步状态
   lastSyncAt      DateTime?
   lastVersion     String?
   systemStatus    String?   @default("online")
-  
+
   // 关系
   user            User      @relation(fields: [userId], references: [id])
   licenses        AgentLicense[]
   settlements     Settlement[]
   commissionRecords CommissionRecord[]
-  
+
   isActive        Int       @default(1)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  
+
   @@index([domain])
   @@index([isActive])
+  @@index([referralCode])
+  @@index([level])
 }
 
 /// 授权码表 - 代理商授权管理

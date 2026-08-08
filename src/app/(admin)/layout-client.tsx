@@ -102,6 +102,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/admin/licenses', label: '授权码管理', isNew: true },
       { href: '/admin/commission-rules', label: '分润规则', isNew: true },
       { href: '/admin/commission-records', label: '分润记录', isNew: true },
+      { href: '/admin/commissions', label: '分润管理', isNew: true },
     ],
   },
   {
@@ -111,6 +112,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/admin/plans', label: '会员套餐' },
       { href: '/admin/coupons', label: '优惠券' },
       { href: '/admin/points', label: '积分管理' },
+      { href: '/admin/card-keys', label: '卡密管理', isNew: true },
       { href: '/admin/campaigns', label: '活动管理', isNew: true },
       { href: '/admin/channels', label: '推广渠道', isNew: true },
     ],
@@ -152,6 +154,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { href: '/admin/audit', label: '审计日志' },
       { href: '/admin/config', label: '系统设置' },
+      { href: '/admin/payment-config', label: '支付配置', isNew: true },
       { href: '/admin/admins', label: '管理员权限', isNew: true },
       { href: '/admin/msg-templates', label: '消息模板', isNew: true },
       { href: '/admin/versions', label: '版本管理' },

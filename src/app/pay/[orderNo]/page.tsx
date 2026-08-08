@@ -22,6 +22,11 @@ interface PaymentInfo {
   transactionId: string | null;
 }
 
+interface MethodsConfig {
+  wechat: boolean;
+  alipay: boolean;
+}
+
 const TYPE_LABELS: Record<string, string> = {
   membership: '会员套餐',
   offering: '供奉',
@@ -29,7 +34,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_METHODS = [
-  { id: 'mock', name: '模拟支付', icon: '🧪', desc: '开发测试用' },
+  { id: 'mock', name: '模拟支付（测试用）', icon: '🧪', desc: '开发测试用' },
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
 ];
@@ -47,6 +52,13 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
 
+  // 真实支付相关状态
+  const [pollOrderNo, setPollOrderNo] = useState(orderNo);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
+  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false });
+
   // 获取订单信息
   const fetchOrder = useCallback(async () => {
     try {
@@ -57,6 +69,9 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         setPayment(data.payment);
         if (data.order?.status === 'paid') {
           setPaid(true);
+        }
+        if (data.methods) {
+          setMethodsConfig(data.methods);
         }
       } else {
         setError('订单不存在');
@@ -79,7 +94,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
 
     const timer = setInterval(async () => {
       try {
-        const res = await fetch(`/api/payment/status?orderNo=${orderNo}`);
+        const res = await fetch(`/api/payment/status?orderNo=${pollOrderNo}`);
         if (res.ok) {
           const data = await res.json();
           if (data.order?.status === 'paid') {
@@ -87,7 +102,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
             setPaying(false);
             // 跳转到成功页
             setTimeout(() => {
-              router.push(`/payment/result?orderNo=${orderNo}&status=success`);
+              router.push(`/payment/result?orderNo=${pollOrderNo}&status=success`);
             }, 800);
             clearInterval(timer);
           }
@@ -96,16 +111,60 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
     }, 2000);
 
     return () => clearInterval(timer);
-  }, [orderNo, paying, paid, router]);
+  }, [pollOrderNo, paying, paid, router]);
+
+  // 基于现有订单信息构建创建订单请求体
+  const buildCreateBody = (method: string) => {
+    if (!order) return null;
+    const body: Record<string, string> = {
+      type: order.type,
+      method,
+    };
+    if (typeof window !== 'undefined') {
+      body.returnUrl = window.location.href;
+    }
+    if (order.type === 'offering' && order.targetId) {
+      const parts = order.targetId.split(':::');
+      body.targetId = parts[0];
+      if (parts[1]) body.offerType = parts[1];
+    } else if (order.targetId) {
+      body.targetId = order.targetId;
+    }
+    return body;
+  };
+
+  // 调用微信 JSAPI 支付（微信浏览器内）
+  const callWechatJsapi = (params: Record<string, string>) => {
+    if (typeof window === 'undefined') return;
+    const w = window as unknown as { WeixinJSBridge?: { invoke: (name: string, params: Record<string, string>, cb: (res: { err_msg?: string }) => void) => void } };
+    const invoke = () => {
+      if (!w.WeixinJSBridge) return;
+      w.WeixinJSBridge.invoke('getBrandWCPayRequest', params, (res) => {
+        if (res.err_msg && res.err_msg.indexOf('ok') >= 0) {
+          // 支付成功，轮询会自动捕获
+        } else {
+          setError('微信支付未完成或已取消');
+          setPaying(false);
+        }
+      });
+    };
+    if (w.WeixinJSBridge) {
+      invoke();
+    } else {
+      document.addEventListener('WeixinJSBridgeReady', invoke, false);
+    }
+  };
 
   // 确认支付
   const handlePay = async () => {
     if (!order) return;
+    setError('');
+    setQrCode(null);
+    setJsapiParams(null);
 
+    // 模拟支付：保持原有逻辑
     if (selectedMethod === 'mock') {
       setPaying(true);
-      setError('');
-
       try {
         const res = await fetch('/api/payment/mock-confirm', {
           method: 'POST',
@@ -117,7 +176,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         if (res.ok) {
           setPaid(true);
           setTimeout(() => {
-            router.push(`/payment/result?orderNo=${orderNo}&status=success`);
+            router.push(`/payment/result?orderNo=${order.orderNo}&status=success`);
           }, 800);
         } else {
           setError(data.error || '支付失败');
@@ -127,9 +186,115 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         setError('网络错误，请重试');
         setPaying(false);
       }
-    } else {
-      // 微信/支付宝：跳转到支付链接（接入真实网关后实现）
-      setError(`'${selectedMethod === 'wechat' ? '微信' : '支付宝'}'支付尚未接入，请选择模拟支付`);
+      return;
+    }
+
+    // 微信支付
+    if (selectedMethod === 'wechat') {
+      setPaying(true);
+      try {
+        const body = buildCreateBody('wechat');
+        if (!body) {
+          setPaying(false);
+          return;
+        }
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || '创建微信支付失败');
+          setPaying(false);
+          return;
+        }
+        // 更新本地订单为新创建的订单
+        if (data.order?.orderNo) {
+          setPollOrderNo(data.order.orderNo);
+          setOrder((prev) =>
+            prev
+              ? { ...prev, orderNo: data.order.orderNo, amount: data.order.amount ?? prev.amount, paymentMethod: 'wechat' }
+              : prev,
+          );
+        }
+        const pay = data.payment || {};
+        if (pay.jsapiParams) {
+          // 微信浏览器内 JSAPI 支付
+          setJsapiParams(pay.jsapiParams);
+          callWechatJsapi(pay.jsapiParams);
+        } else if (pay.qrCode) {
+          // Native 扫码支付
+          if (pay.qrCode.startsWith('mock://')) {
+            setError('微信支付未配置，请联系管理员或选择模拟支付');
+            setPaying(false);
+            return;
+          }
+          setQrCode(pay.qrCode);
+        } else {
+          setError('未获取到微信支付参数');
+          setPaying(false);
+        }
+      } catch {
+        setError('网络错误，请重试');
+        setPaying(false);
+      }
+      return;
+    }
+
+    // 支付宝支付
+    if (selectedMethod === 'alipay') {
+      setPaying(true);
+      setRedirecting(true);
+      try {
+        const body = buildCreateBody('alipay');
+        if (!body) {
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || '创建支付宝支付失败');
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        if (data.order?.orderNo) {
+          setPollOrderNo(data.order.orderNo);
+          setOrder((prev) =>
+            prev
+              ? { ...prev, orderNo: data.order.orderNo, amount: data.order.amount ?? prev.amount, paymentMethod: 'alipay' }
+              : prev,
+          );
+        }
+        const pay = data.payment || {};
+        if (pay.paymentUrl) {
+          // 检测是否为 mock 降级（未配置时 paymentUrl 为 /pay/xxx）
+          if (pay.paymentUrl.startsWith('/pay/')) {
+            setError('支付宝未配置，请联系管理员或选择模拟支付');
+            setPaying(false);
+            setRedirecting(false);
+            return;
+          }
+          // 跳转到支付宝页面
+          window.location.href = pay.paymentUrl;
+        } else {
+          setError('未获取到支付宝支付链接');
+          setPaying(false);
+          setRedirecting(false);
+        }
+      } catch {
+        setError('网络错误，请重试');
+        setPaying(false);
+        setRedirecting(false);
+      }
+      return;
     }
   };
 
@@ -179,6 +344,19 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
     );
   }
 
+  // 支付宝跳转中状态
+  if (redirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="card max-w-md mx-auto p-8 text-center">
+          <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">正在跳转到支付宝...</h2>
+          <p className="text-gray-500">请稍候，即将跳转到支付宝完成支付</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
       <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -206,34 +384,64 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           </div>
         </div>
 
+        {/* 微信扫码支付二维码 */}
+        {qrCode && (
+          <div className="card mb-6 text-center">
+            <h2 className="card-title">微信扫码支付</h2>
+            <p className="text-gray-500 text-sm mb-4">请用微信扫码支付</p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qrCode)}`}
+              alt="微信支付二维码"
+              className="mx-auto border border-gray-200 rounded-lg"
+              width={240}
+              height={240}
+            />
+            <p className="text-xs text-gray-400 mt-4 break-all">二维码内容: {qrCode}</p>
+            <p className="text-sm text-gray-500 mt-2">支付完成后页面将自动跳转</p>
+          </div>
+        )}
+
         {/* 支付方式 */}
         <div className="card mb-6">
           <h2 className="card-title">选择支付方式</h2>
           <div className="space-y-3 mt-3">
-            {PAYMENT_METHODS.map((method) => (
-              <label
-                key={method.id}
-                className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                  selectedMethod === method.id
-                    ? 'border-red-600 bg-red-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value={method.id}
-                  checked={selectedMethod === method.id}
-                  onChange={() => setSelectedMethod(method.id)}
-                  className="w-4 h-4 text-red-600"
-                />
-                <span className="text-2xl">{method.icon}</span>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{method.name}</div>
-                  <div className="text-xs text-gray-500">{method.desc}</div>
-                </div>
-              </label>
-            ))}
+            {PAYMENT_METHODS.map((method) => {
+              const configured =
+                method.id === 'mock'
+                  ? true
+                  : method.id === 'wechat'
+                    ? methodsConfig.wechat
+                    : methodsConfig.alipay;
+              return (
+                <label
+                  key={method.id}
+                  className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    selectedMethod === method.id
+                      ? 'border-red-600 bg-red-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.id}
+                    checked={selectedMethod === method.id}
+                    onChange={() => setSelectedMethod(method.id)}
+                    className="w-4 h-4 text-red-600"
+                  />
+                  <span className="text-2xl">{method.icon}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 flex items-center gap-2">
+                      {method.name}
+                      {method.id !== 'mock' && !configured && (
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded">未配置</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">{method.desc}</div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
         </div>
 

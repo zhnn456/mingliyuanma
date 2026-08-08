@@ -32,6 +32,8 @@ export default function AgentCommissionsPage() {
   const [pageSize] = useState(20);
   const [filters, setFilters] = useState({ status: '', productType: '', startDate: '', endDate: '' });
   const [loading, setLoading] = useState(true);
+  const [agentLevel, setAgentLevel] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -59,6 +61,16 @@ export default function AgentCommissionsPage() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    fetch('/api/agent/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        setAgentLevel(d.agent?.level || 'saas');
+        setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, []);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const statusMap: Record<string, string> = {
@@ -73,6 +85,18 @@ export default function AgentCommissionsPage() {
   const productTypeMap: Record<string, string> = {
     membership: '会员', offering: '服务', pdf_report: 'PDF报告',
   };
+
+  if (checking) {
+    return <div className="p-6 text-center text-gray-400">加载中...</div>;
+  }
+  if (agentLevel === 'source') {
+    return (
+      <div className="bg-blue-50 rounded-xl border border-blue-200 p-8 text-center">
+        <div className="text-4xl mb-3">🔒</div>
+        <p className="text-blue-700 font-medium">分润明细仅 SaaS 代理可用，源码部署代理收入 100% 归己，无需分润</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

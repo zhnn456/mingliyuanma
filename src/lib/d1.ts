@@ -1,134 +1,89 @@
 /**
- * D1 数据库工具 — 直接操作 Cloudflare D1，不经过 Prisma
- * 所有函数自动获取 D1 binding，兼容 Workers 和 Pages
- * 本地开发模式下自动回退到 Prisma 连接本地 SQLite
+ * MySQL 数据库工具 — 直接操作 MySQL，不经过 Prisma
+ * 所有函数通过 mysql2 连接池执行查询
+ * 自动把 SQLite 语法转换为 MySQL 语法
  */
 
-let _db: any = null;
-let _dbPromise: Promise<any> | null = null;
+import mysql from 'mysql2/promise';
 
-/**
- * 包装 Prisma Client 使其兼容 D1 API（prepare/bind/first/all/run）
- */
-function wrapPrisma(prisma: any): any {
-  return {
-    prepare(sql: string) {
-      return {
-        bind(...params: any[]) {
-          return {
-            async first() {
-              const rows = await prisma.$queryRawUnsafe(sql, ...params);
-              return (rows as any[])[0] || null;
-            },
-            async all() {
-              const results = await prisma.$queryRawUnsafe(sql, ...params);
-              return { results: results as any[] };
-            },
-            async run() {
-              await prisma.$executeRawUnsafe(sql, ...params);
-              return { success: true };
-            },
-          };
-        },
-        async first(...params: any[]) {
-          const rows = await prisma.$queryRawUnsafe(sql, ...params);
-          return (rows as any[])[0] || null;
-        },
-        async all(...params: any[]) {
-          const results = await prisma.$queryRawUnsafe(sql, ...params);
-          return { results: results as any[] };
-        },
-        async run(...params: any[]) {
-          await prisma.$executeRawUnsafe(sql, ...params);
-          return { success: true };
-        },
-      };
-    },
-    batch() {
-      const stmts: any[] = [];
-      return {
-        add(s: any) { stmts.push(s); },
-        async run() {
-          await prisma.$transaction(async (tx: any) => {
-            for (const s of stmts) {
-              await s._run?.(tx);
-            }
-          });
-          return { success: true };
-        },
-      };
-    },
-  };
+let _pool: mysql.Pool | null = null;
+
+function getPool(): mysql.Pool {
+  if (_pool) return _pool;
+  _pool = mysql.createPool({
+    host: process.env.MYSQL_HOST || 'localhost',
+    port: parseInt(process.env.MYSQL_PORT || '3306'),
+    user: process.env.MYSQL_USER || 'ming8',
+    password: process.env.MYSQL_PASSWORD || 'Ming8@2026!',
+    database: process.env.MYSQL_DATABASE || 'ming8_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    charset: 'utf8mb4',
+  });
+  return _pool;
 }
 
-async function getDB(): Promise<any> {
-  if (_db) return _db;
-  if (_dbPromise) return _dbPromise;
-
-  _dbPromise = (async () => {
-    // 尝试 Cloudflare D1 binding
-    try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const ctx = await getCloudflareContext({ async: true });
-      if ((ctx.env as any)?.DB) {
-        _db = (ctx.env as any).DB;
-        return _db;
-      }
-    } catch {
-      // Cloudflare context unavailable — fall through to Prisma
-    }
-
-    // 本地回退：使用 Prisma 连接 SQLite
-    try {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-      console.log('[D1] Using Prisma fallback for local SQLite');
-      _db = wrapPrisma(prisma);
-      return _db;
-    } catch (e: any) {
-      console.error('[D1] Failed to get DB:', e?.message);
-      throw new Error('数据库连接失败');
-    }
-  })();
-
-  return _dbPromise;
+/**
+ * 把 SQLite 语法自动转换为 MySQL 语法
+ */
+function adaptSql(sql: string): string {
+  return sql
+    // PRAGMA table_info('xxx') → SHOW COLUMNS FROM xxx
+    .replace(/PRAGMA table_info\(['"]?(\w+)['"]?\)/g, 'SHOW COLUMNS FROM `$1`')
+    // datetime('now') → NOW()
+    .replace(/datetime\('now'\)/g, 'NOW()')
+    // INSERT OR REPLACE INTO → REPLACE INTO
+    .replace(/INSERT OR REPLACE INTO/g, 'REPLACE INTO')
+    // INSERT OR IGNORE INTO → INSERT IGNORE INTO
+    .replace(/INSERT OR IGNORE INTO/g, 'INSERT IGNORE INTO');
 }
 
 /** 执行查询，返回第一行 */
 export async function queryFirst(sql: string, ...params: any[]) {
-  const db = await getDB();
-  let stmt = db.prepare(sql);
-  if (params.length > 0) stmt = stmt.bind(...params);
-  return await stmt.first();
+  const pool = getPool();
+  const [rows] = await pool.execute(adaptSql(sql), params);
+  return (rows as any[])[0] || null;
 }
 
 /** 执行查询，返回所有行 */
 export async function queryAll(sql: string, ...params: any[]) {
-  const db = await getDB();
-  let stmt = db.prepare(sql);
-  if (params.length > 0) stmt = stmt.bind(...params);
-  const res = await stmt.all();
-  return res.results || [];
+  const pool = getPool();
+  const [rows] = await pool.execute(adaptSql(sql), params);
+  return rows as any[];
 }
 
 /** 执行写入（INSERT/UPDATE/DELETE） */
-export async function execute(sql: string, ...params: any[]) {
-  const db = await getDB();
-  let stmt = db.prepare(sql);
-  if (params.length > 0) stmt = stmt.bind(...params);
-  return await stmt.run();
+export async function execute(sql: string, ...params: any[]): Promise<any> {
+  const pool = getPool();
+  const [result] = await pool.execute(adaptSql(sql), params);
+  // 兼容 D1 API：返回 success + meta（含 changes/last_row_id）
+  const meta = result as any;
+  return {
+    success: true,
+    meta,
+    changes: meta.affectedRows,
+    last_row_id: meta.insertId,
+  };
 }
 
-/** 批量事务执行（D1 事务） */
+/** 批量事务执行 */
 export async function batch(statements: Array<{ sql: string; params?: any[] }>) {
-  const db = await getDB();
-  const batch = db.batch();
-  for (const { sql, params } of statements) {
-    let stmt = db.prepare(sql);
-    if (params && params.length > 0) stmt = stmt.bind(...params);
-    batch.add(stmt);
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const { sql, params } of statements) {
+      await conn.execute(adaptSql(sql), params || []);
+    }
+    await conn.commit();
+    return { success: true };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
   }
-  return await batch.run();
 }
 
 /** 获取用户灵珠余额 */
@@ -216,7 +171,7 @@ export async function createCoupon(body: any) {
   const id = `cp_${Date.now()}`;
   await execute(
     `INSERT INTO Coupon (id, code, name, discountType, discountValue, minAmount, maxDiscount, totalCount, usedCount, expiryDate, isActive, description, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
     id,
     body.code,
     body.name,
@@ -464,7 +419,7 @@ export async function ensureCommissionTables() {
     "newCustomerBonus" REAL DEFAULT 0,
     "maxMarkupRate" REAL DEFAULT 0,
     "isActive" INTEGER DEFAULT 1,
-    "createdAt" TEXT DEFAULT (datetime('now')),
+    "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "cr_agentId_idx" ON "CommissionRule"("agentId")');
@@ -487,7 +442,7 @@ export async function ensureCommissionTables() {
     "settlementId" TEXT,
     "status" TEXT DEFAULT 'pending',
     "clawbackAmount" REAL DEFAULT 0,
-    "createdAt" TEXT DEFAULT (datetime('now')),
+    "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
     "settledAt" TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "crec_agentId_idx" ON "CommissionRecord"("agentId")');
@@ -511,17 +466,17 @@ export async function ensureCommissionTables() {
     "paidAccount" TEXT,
     "auditorId" TEXT,
     "auditRemark" TEXT,
-    "createdAt" TEXT DEFAULT (datetime('now')),
+    "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "sr_agentId_idx" ON "SettlementRecord"("agentId")');
   await execute('CREATE INDEX IF NOT EXISTS "sr_status_idx" ON "SettlementRecord"("status")');
 
   // Agent 表扩展字段
-  const agentCols = await queryAll("PRAGMA table_info('Agent')") as any[];
-  const agentColNames = agentCols.map(c => c.name);
+  const agentCols = await queryAll("SHOW COLUMNS FROM `Agent`") as any[];
+  const agentColNames = agentCols.map(c => c.Field);
   const agentAlters = [
-    ['commissionRate', 'REAL DEFAULT 0.2'],
+    ['commissionRate', 'REAL DEFAULT 0.3'],
     ['totalCommission', 'REAL DEFAULT 0'],
     ['pendingCommission', 'REAL DEFAULT 0'],
     ['currentMonthGMV', 'REAL DEFAULT 0'],
@@ -529,6 +484,12 @@ export async function ensureCommissionTables() {
     ['bankName', 'TEXT'],
     ['bankAccount', 'TEXT'],
     ['bankAccountName', 'TEXT'],
+    ['level', "TEXT DEFAULT 'saas'"],
+    ['plan', "TEXT DEFAULT 'trial'"],
+    ['planExpiry', 'TEXT'],
+    ['balance', 'REAL DEFAULT 0'],
+    ['referralCode', 'TEXT'],
+    ['maxCustomers', 'INTEGER DEFAULT 500'],
   ];
   for (const [col, def] of agentAlters) {
     if (!agentColNames.includes(col)) {
@@ -537,8 +498,8 @@ export async function ensureCommissionTables() {
   }
 
   // Order 表扩展字段
-  const orderCols = await queryAll("PRAGMA table_info('Order')") as any[];
-  const orderColNames = orderCols.map(c => c.name);
+  const orderCols = await queryAll("SHOW COLUMNS FROM `Order`") as any[];
+  const orderColNames = orderCols.map(c => c.Field);
   const orderAlters = [
     ['agentId', 'TEXT'],
     ['agentReferralCode', 'TEXT'],
@@ -554,13 +515,32 @@ export async function ensureCommissionTables() {
   }
 }
 
+/** 确保 Agent 表包含域名相关字段（subdomain, customDomain, customDomainExpiry） */
+export async function ensureAgentDomainFields() {
+  const agentCols = await queryAll("SHOW COLUMNS FROM `Agent`") as any[];
+  const agentColNames = (agentCols || []).map(c => c.Field);
+  const agentAlters: Array<[string, string]> = [
+    ['subdomain', 'TEXT'],
+    ['customDomain', 'TEXT'],
+    ['customDomainExpiry', 'TEXT'],
+  ];
+  for (const [col, def] of agentAlters) {
+    if (!agentColNames.includes(col)) {
+      try { await execute(`ALTER TABLE "Agent" ADD COLUMN "${col}" ${def}`); } catch {}
+    }
+  }
+  // 为子域名和独立域名创建索引，加快中间件查询
+  try { await execute('CREATE INDEX IF NOT EXISTS "Agent_subdomain_idx" ON "Agent"("subdomain")'); } catch {}
+  try { await execute('CREATE INDEX IF NOT EXISTS "Agent_customDomain_idx" ON "Agent"("customDomain")'); } catch {}
+}
+
 export async function ensureReferralCodeTable() {
   await execute(`CREATE TABLE IF NOT EXISTS "ReferralCode" (
     "id" TEXT PRIMARY KEY,
     "agentId" TEXT NOT NULL,
     "code" TEXT NOT NULL UNIQUE,
     "usageCount" INTEGER DEFAULT 0,
-    "createdAt" TEXT DEFAULT (datetime('now'))
+    "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "rc_code_idx" ON "ReferralCode"("code")');
   await execute('CREATE INDEX IF NOT EXISTS "rc_agentId_idx" ON "ReferralCode"("agentId")');
@@ -589,7 +569,7 @@ const SEED_SUPPLIES: Array<{
   { name: '阿弥陀佛', icon: '🪷', category: 'buddha', price: 188, description: '阿弥陀佛供奉，往生极乐', sortOrder: 2, stock: 100 },
   { name: '药师佛', icon: '🪷', category: 'buddha', price: 188, description: '药师佛供奉，消灾解难', sortOrder: 3, stock: 100 },
   { name: '观音菩萨', icon: '🧘', category: 'buddha', price: 168, description: '观音菩萨供奉，救苦救难', sortOrder: 4, stock: 200 },
-  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，超度亡魂', sortOrder: 5, stock: 200 },
+  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，慈悲护佑', sortOrder: 5, stock: 200 },
   { name: '弥勒佛', icon: '😊', category: 'buddha', price: 158, description: '弥勒佛供奉，笑口常开', sortOrder: 6, stock: 150 },
   { name: '土地公', icon: '🏠', category: 'deity', price: 88, description: '土地公供奉，守护家园', sortOrder: 1, stock: 300 },
   { name: '城隍爷', icon: '⚖️', category: 'deity', price: 128, description: '城隍爷供奉，护佑一方', sortOrder: 2, stock: 200 },
@@ -606,18 +586,18 @@ const SEED_SUPPLIES: Array<{
   { name: '糕点', icon: '🍰', category: 'offering', price: 12, description: '传统糕点，供奉佳品', sortOrder: 3, stock: 600 },
   { name: '茶水', icon: '🍵', category: 'offering', price: 6, description: '好茶供奉，清净自在', sortOrder: 4, stock: 1000 },
   { name: '香烛', icon: '🕯️', category: 'offering', price: 8, description: '天然香烛，供奉燃香', sortOrder: 5, stock: 1000 },
-  { name: '超度牌位', icon: '🪧', category: 'deliverance', price: 88, description: '超度牌位，亡灵安息', sortOrder: 1, stock: 200 },
-  { name: '往生莲花', icon: '🪷', category: 'deliverance', price: 38, description: '往生莲花，接引往生', sortOrder: 2, stock: 300 },
+  { name: '追思牌位', icon: '🪧', category: 'deliverance', price: 88, description: '追思牌位，缅怀先人', sortOrder: 1, stock: 200 },
+  { name: '祈福莲花', icon: '🪷', category: 'deliverance', price: 38, description: '祈福莲花，回向功德', sortOrder: 2, stock: 300 },
   { name: '金元宝', icon: '💰', category: 'deliverance', price: 5, description: '金元宝供奉，冥资供养', sortOrder: 3, stock: 2000 },
 ];
 
 export async function ensureOfferingSupplyTable() {
   try {
-    const check = await queryAll("PRAGMA table_info('OfferingSupply')") as any[];
-    const colNames = check.map(c => c.name);
+    const check = await queryAll("SHOW COLUMNS FROM `OfferingSupply`") as any[];
+    const colNames = check.map(c => c.Field);
     if (colNames.includes('isActive') && colNames.length > 0) {
-      const isActiveCol = check.find(c => c.name === 'isActive');
-      if (isActiveCol && isActiveCol.type && isActiveCol.type.toUpperCase().includes('BOOL')) {
+      const isActiveCol = check.find(c => c.Field === 'isActive');
+      if (isActiveCol && isActiveCol.Type && isActiveCol.Type.toUpperCase().includes('BOOL')) {
         await execute('DROP TABLE IF EXISTS OfferingSupply');
       }
     }
@@ -633,12 +613,12 @@ export async function ensureOfferingSupplyTable() {
     "category" TEXT NOT NULL DEFAULT 'general',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isActive" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TEXT NOT NULL DEFAULT (datetime('now')),
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "stock" INTEGER NOT NULL DEFAULT 0
   )`);
 
-  const cols = await queryAll("PRAGMA table_info('OfferingSupply')") as any[];
-  const colNames = cols.map(c => c.name);
+  const cols = await queryAll("SHOW COLUMNS FROM `OfferingSupply`") as any[];
+  const colNames = cols.map(c => c.Field);
   const alters: Array<[string, string]> = [
     ['stock', 'INTEGER NOT NULL DEFAULT 0'],
   ];
@@ -687,6 +667,32 @@ export async function seedDefaultSupplies(force = false) {
   }
   console.log(`Seed supplies done: ${inserted} inserted, ${errors.length} errors`);
   if (errors.length > 0) console.error('Seed errors:', errors);
+}
+
+// ============ 卡密系统表 ============
+
+/** 确保 CardKey 表存在 */
+export async function ensureCardKeyTable() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS "CardKey" (
+      "id" TEXT PRIMARY KEY,
+      "code" TEXT UNIQUE NOT NULL,
+      "type" TEXT NOT NULL DEFAULT 'lingzhu',
+      "value" REAL NOT NULL,
+      "price" REAL NOT NULL DEFAULT 0,
+      "status" TEXT NOT NULL DEFAULT 'unused',
+      "createdBy" TEXT,
+      "usedBy" TEXT,
+      "usedAt" TEXT,
+      "batchId" TEXT,
+      "expiryAt" TEXT,
+      "createdAt" TEXT NOT NULL
+    )`
+  );
+  await execute('CREATE INDEX IF NOT EXISTS "CardKey_code_idx" ON "CardKey"("code")');
+  await execute('CREATE INDEX IF NOT EXISTS "CardKey_status_idx" ON "CardKey"("status")');
+  await execute('CREATE INDEX IF NOT EXISTS "CardKey_batchId_idx" ON "CardKey"("batchId")');
+  await execute('CREATE INDEX IF NOT EXISTS "CardKey_type_idx" ON "CardKey"("type")');
 }
 
 /** 确保 UpdateLog 表存在 */

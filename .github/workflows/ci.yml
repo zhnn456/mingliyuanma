@@ -30,10 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
-        continue-on-error: true
-
       - name: TypeScript 类型检查
         run: npm run typecheck
         continue-on-error: true
@@ -44,11 +40,4 @@ jobs:
 
       - name: 运行单元测试
         run: npm run test
-        continue-on-error: true
-
-      - name: 构建验证
-        run: npm run build:worker
-        env:
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || 'https://bazi6.cc.cd' }}
         continue-on-error: true

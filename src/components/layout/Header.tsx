@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
+import { useBrand } from '@/lib/use-brand';
 import { useState } from 'react';
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const { brand, isAgentSite } = useBrand();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -37,12 +39,16 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-red-700 via-red-800 to-red-900 flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
-              <span className="text-white font-bold text-lg font-kai">命</span>
-              <div className="absolute inset-0 rounded-xl border border-gold/30" />
-            </div>
+            {brand.logo ? (
+              <img src={brand.logo} alt={brand.brandName} className="w-11 h-11 rounded-xl object-cover shadow-md" />
+            ) : (
+              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-red-700 via-red-800 to-red-900 flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
+                <span className="text-white font-bold text-lg font-kai">{brand.brandName.charAt(0)}</span>
+                <div className="absolute inset-0 rounded-xl border border-gold/30" />
+              </div>
+            )}
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900 leading-none font-kai">命理网</span>
+              <span className="text-xl font-bold text-gray-900 leading-none font-kai">{brand.brandName}</span>
               <span className="text-[11px] text-gold tracking-[0.2em] leading-none mt-1">MINGLI</span>
             </div>
           </Link>

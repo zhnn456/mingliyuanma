@@ -16,6 +16,13 @@ const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 let agentSynced = false;
 let lastSyncTime = 0;
 
+// 在线验证缓存（避免每请求都远程验证）
+let licenseValid = true;       // 授权是否有效
+let licenseCheckTime = 0;       // 上次验证时间
+let licenseFailCount = 0;       // 连续失败次数
+const LICENSE_CHECK_INTERVAL = 10 * 60 * 1000; // 10分钟验证一次
+const LICENSE_FAIL_THRESHOLD = 3; // 连续失败3次后锁定
+
 interface RateEntry {
   count: number;
   resetTime: number;
@@ -27,27 +34,16 @@ let _cachedSecret: string | null = null;
 
 async function getSecretKey(): Promise<string> {
   if (_cachedSecret) return _cachedSecret;
-  
-  // 优先从环境变量获取
+
+  // 从环境变量获取（普通服务器通过 process.env 注入）
   try {
     if (process.env?.NEXTAUTH_SECRET) {
       _cachedSecret = process.env.NEXTAUTH_SECRET;
       return _cachedSecret;
     }
   } catch {}
-  
-  // 尝试从 Cloudflare context 获取
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const ctx = await getCloudflareContext({ async: true });
-    const cfSecret = (ctx.env as any)?.NEXTAUTH_SECRET;
-    if (cfSecret && typeof cfSecret === 'string') {
-      _cachedSecret = cfSecret;
-      return _cachedSecret;
-    }
-  } catch {}
-  
-  // 直接使用与 wrangler-deploy.toml 中一致的密钥
+
+  // 回退密钥（与配置文件中保持一致，生产环境务必设置 NEXTAUTH_SECRET）
   _cachedSecret = 'mingli-secret-key-2026-production';
   return _cachedSecret;
 }
@@ -115,11 +111,33 @@ export async function middleware(req: NextRequest) {
   const isAgentProtected = AGENT_PROTECTED_PATHS.some((p) => pathname.startsWith(p));
   const isAgentEnv = !!process.env.APP_LICENSE_KEY && !!process.env.APP_AGENT_ID;
 
+  // 主站环境：解析代理商子域名/独立域名，注入 agentId 到请求头
+  // 仅在主站（非代理商子站）执行，不影响 APP_LICENSE_KEY 域名验证逻辑
+  let resolvedAgentId: string | null = null;
+  if (!isAgentEnv) {
+    try {
+      const host = req.headers.get('host') || '';
+      // 通过内部 API 解析代理商域名，避免在 middleware 中直接导入 mysql2
+      const baseUrl = process.env.NEXTAUTH_URL || `https://${host}`;
+      const res = await fetch(`${baseUrl}/api/internal/agent-domain?host=${encodeURIComponent(host)}`, {
+        headers: { 'x-internal-request': '1' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.agentId) {
+          resolvedAgentId = data.agentId;
+        }
+      }
+    } catch {
+      // 数据库查询失败时不阻断请求
+    }
+  }
+
   // 代理商同步（每 5 分钟同步一次）
   if (isAgentEnv && !agentSynced || (Date.now() - lastSyncTime > 5 * 60 * 1000)) {
     agentSynced = true;
     lastSyncTime = Date.now();
-    
+
     const licenseKey = process.env.APP_LICENSE_KEY || '';
     const agentId = process.env.APP_AGENT_ID || '';
     const centerApi = process.env.CENTER_API || '';
@@ -137,34 +155,109 @@ export async function middleware(req: NextRequest) {
           version,
           status: 'online',
         }),
-        cf: { cacheTtl: 0 },
       };
       await fetch(`${centerApi}/api/agent/sync`, initOptions);
     } catch {}
   }
 
-  // 代理商路由保护：检查 License
-  if (isAgentProtected && isAgentEnv) {
-    const licenseKey = process.env.APP_LICENSE_KEY || '';
-    const centerApi = process.env.CENTER_API || '';
-    const domain = process.env.NEXTAUTH_URL || '';
-
-    try {
-      const params = new URLSearchParams({ license: licenseKey, domain });
-      const initOptions: any = {
-        method: 'GET',
-        cf: { cacheTtl: 300 },
-      };
-      const res = await fetch(`${centerApi}/api/license/verify?${params}`, initOptions);
-      if (!res.ok) {
-        // 远程验证失败，限制敏感功能
-        if (pathname.startsWith('/api/agent/orders') || 
-            pathname.startsWith('/api/agent/update') ||
-            pathname.startsWith('/api/agent/settlements')) {
-          return NextResponse.json({ error: '授权验证失败，请联系管理员' }, { status: 503 });
+  // 域名验证：代理商子站必须使用授权绑定的域名
+  // APP_BOUND_DOMAIN 配置后，运行时校验当前域名是否匹配
+  if (isAgentEnv) {
+    const boundDomain = process.env.APP_BOUND_DOMAIN || '';
+    if (boundDomain) {
+      const currentHost = req.headers.get('host') || '';
+      // 提取主域名（去掉端口和 www 前缀）
+      const currentMain = currentHost.replace(/^www\./, '').split(':')[0];
+      const boundMain = boundDomain.replace(/^https?:\/\//, '').replace(/^www\./, '').split(':')[0];
+      if (currentMain !== boundMain) {
+        // 域名不匹配，锁定核心功能
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json(
+            { error: '授权验证失败：域名不匹配，请联系平台管理员' },
+            { status: 403 }
+          );
+        }
+        // 非 API 页面返回锁定提示页
+        if (!pathname.startsWith('/_next')) {
+          return new NextResponse(
+            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>授权验证失败</title></head>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;background:#fef2f2;">
+            <div style="text-align:center;padding:2rem;">
+            <h1 style="color:#dc2626;">⚠️ 授权验证失败</h1>
+            <p style="color:#7f1d1d;">当前域名未获授权，请联系平台管理员。</p>
+            </div></body></html>`,
+            { status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
         }
       }
-    } catch {}
+    }
+  }
+
+  // 代理商路由保护：检查 License（带缓存机制）
+  if (isAgentEnv) {
+    const now = Date.now();
+    const needCheck = (now - licenseCheckTime) > LICENSE_CHECK_INTERVAL;
+
+    if (needCheck) {
+      licenseCheckTime = now;
+      const licenseKey = process.env.APP_LICENSE_KEY || '';
+      const centerApi = process.env.CENTER_API || '';
+      const domain = process.env.NEXTAUTH_URL || '';
+
+      try {
+        const params = new URLSearchParams({ license: licenseKey, domain });
+        const res = await fetch(`${centerApi}/api/license/verify?${params}`, {
+          method: 'GET',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid) {
+            licenseValid = true;
+            licenseFailCount = 0;
+          } else {
+            licenseFailCount++;
+            if (licenseFailCount >= LICENSE_FAIL_THRESHOLD) {
+              licenseValid = false;
+            }
+          }
+        } else {
+          licenseFailCount++;
+          // 网络错误不立即锁定（可能是临时网络问题）
+          if (licenseFailCount >= LICENSE_FAIL_THRESHOLD + 2) {
+            licenseValid = false;
+          }
+        }
+      } catch {
+        // 网络异常，不立即锁定
+        licenseFailCount++;
+      }
+    }
+
+    // 授权失效后锁定核心功能
+    if (!licenseValid) {
+      // 允许访问的路径：登录页、静态资源、健康检查
+      const allowedPaths = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license'];
+      if (!allowedPaths.some(p => pathname.startsWith(p))) {
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json(
+            { error: '授权已过期，请联系平台续费', code: 'LICENSE_EXPIRED' },
+            { status: 503 }
+          );
+        }
+        if (!pathname.startsWith('/_next')) {
+          return new NextResponse(
+            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>授权已过期</title></head>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;background:#fffbeb;">
+            <div style="text-align:center;padding:2rem;">
+            <h1 style="color:#d97706;">⚠️ 授权已过期</h1>
+            <p style="color:#92400e;">系统授权已过期，请联系平台续费恢复服务。</p>
+            </div></body></html>`,
+            { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
+        }
+      }
+    }
   }
 
   const forwarded = req.headers.get('x-forwarded-for');
@@ -181,7 +274,14 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const response = NextResponse.next();
+  // 创建响应，如已解析到代理商则将 agentId 注入请求头供下游 API 使用
+  const requestHeaders = new Headers(req.headers);
+  if (resolvedAgentId) {
+    requestHeaders.set('x-agent-id', resolvedAgentId);
+  }
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

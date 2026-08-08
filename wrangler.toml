@@ -1,5 +1,5 @@
 # Cloudflare Workers 配置（使用 OpenNext adapter）
-# 部署命令: npx wrangler deploy
+# 部署命令: npm run deploy:worker  或  wrangler deploy
 name = "mingli-yuanma"
 main = ".open-next/worker.js"
 compatibility_date = "2026-07-01"
@@ -24,7 +24,17 @@ id = "758d9485ac404f58bdb29aa249e5a1c8"
 # ============ 环境变量 ============
 [vars]
 NEXTAUTH_URL = "https://bazi6.cc.cd"
+# 授权码（中央服务器验证用）
+APP_LICENSE_KEY = ""
+# 版本号（自动注入，无需手动填写）
+APP_VERSION = "4.0.0"
 
-# ============ 敏感变量（用 wrangler secret put 设置） ============
-# NEXTAUTH_SECRET: wrangler secret put NEXTAUTH_SECRET
-# 不要在这里明文写密钥！
+# ============ 必须通过 wrangler secret 设置的敏感变量 ============
+# 设置命令:
+#   wrangler secret put NEXTAUTH_SECRET
+#   wrangler secret put CENTER_SECRET_KEY
+#   wrangler secret put CENTER_API
+#
+# NEXTAUTH_SECRET  — NextAuth 会话签名密钥
+# CENTER_SECRET_KEY — 中央服务器 HMAC 密钥
+# CENTER_API       — 中央服务器 API 地址

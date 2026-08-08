@@ -37,13 +37,25 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Build + Deploy
+      - name: Generate knowledge base
+        run: npm run generate:knowledge
+
+      - name: Inject version number
+        run: node scripts/version-inject.js
+
+      - name: Build Next.js for Cloudflare
+        run: npx opennextjs-cloudflare build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || 'https://bazi6.cc.cd' }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'mingli-secret-key-2026' }}
-        run: npm run deploy:worker
-        continue-on-error: true
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+        run: npx wrangler deploy --config wrangler.toml
 
-      - name: Output URL
-        run: echo "部署完成 ✅ https://${{ env.WORKER_NAME }}.workers.dev"
+      - name: Output deploy result
+        run: |
+          echo "✅ 部署完成"
+          echo "🌐 https://${{ env.WORKER_NAME }}.workers.dev"

@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate') || '';
     const status = searchParams.get('status') || '';
     const type = searchParams.get('type') || '';
-    const format = searchParams.get('format') || 'csv';
 
     let sql = `SELECT p.id, p.orderId, p.userId, p.method, p.amount, p.status,
                p.transactionId, p.paidAt, p.refundAt, p.refundAmount, p.remark,
@@ -37,38 +36,6 @@ export async function GET(req: NextRequest) {
     const methodMap: Record<string, string> = { wechat: '微信', alipay: '支付宝', points: '灵珠', stripe: 'Stripe' };
     const statusMap: Record<string, string> = { pending: '待支付', paid: '已支付', failed: '失败', refunded: '已退款' };
 
-    if (format === 'excel') {
-      const headers = ['交易ID', '订单号', '用户邮箱', '用户名', '类型', '金额', '支付方式', '状态', '交易号', '支付时间', '退款时间', '退款金额', '备注', '创建时间'];
-      const rows = transactions.map((t: any) => [
-        t.id, t.orderNo || '', t.userEmail || '', t.userName || '',
-        typeMap[t.orderType] || t.orderType || '',
-        t.amount?.toFixed(2) || '0.00',
-        methodMap[t.method] || t.method || '',
-        statusMap[t.status] || t.status || '',
-        t.transactionId || '',
-        t.paidAt ? new Date(t.paidAt).toLocaleString('zh-CN') : '',
-        t.refundAt ? new Date(t.refundAt).toLocaleString('zh-CN') : '',
-        t.refundAmount?.toFixed(2) || '',
-        t.remark || '',
-        t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : '',
-      ]);
-
-      const csvContent = [headers, ...rows]
-        .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-
-      const bom = '\uFEFF';
-      const buffer = Buffer.from(bom + csvContent, 'utf-8');
-
-      return new NextResponse(buffer, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="transactions-${Date.now()}.csv"`,
-          'Content-Length': String(buffer.length),
-        },
-      });
-    }
-
     const headers = ['交易ID', '订单号', '用户邮箱', '用户名', '类型', '金额', '支付方式', '状态', '交易号', '支付时间', '退款时间', '退款金额', '备注', '创建时间'];
     const rows = transactions.map((t: any) => [
       t.id, t.orderNo || '', t.userEmail || '', t.userName || '',
@@ -89,13 +56,12 @@ export async function GET(req: NextRequest) {
       .join('\n');
 
     const bom = '\uFEFF';
-    const buffer = Buffer.from(bom + csvContent, 'utf-8');
+    const fullContent = bom + csvContent;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(fullContent, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="transactions-${Date.now()}.csv"`,
-        'Content-Length': String(buffer.length),
       },
     });
   } catch (error) {

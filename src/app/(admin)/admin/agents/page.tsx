@@ -17,6 +17,11 @@ interface Agent {
   isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
+  plan?: string;
+  planExpiry?: string | null;
+  balance?: number;
+  maxCustomers?: number;
+  level?: string;
   user?: {
     email: string;
     name: string | null;
@@ -27,6 +32,13 @@ interface Agent {
     customers: number;
   };
 }
+
+const PLAN_LABELS: Record<string, { name: string; color: string }> = {
+  trial: { name: '试用版', color: 'bg-gray-100 text-gray-700' },
+  monthly: { name: '月费版', color: 'bg-blue-100 text-blue-700' },
+  yearly: { name: '年费版', color: 'bg-purple-100 text-purple-700' },
+  lifetime: { name: '终身版', color: 'bg-amber-100 text-amber-700' },
+};
 
 const STATUS_OPTIONS = [
   { key: '', label: '全部状态' },
@@ -44,6 +56,10 @@ export default function AdminAgentsPage() {
   const [editing, setEditing] = useState<Agent | null>(null);
   const [detailAgent, setDetailAgent] = useState<Agent | null>(null);
   const [showCreds, setShowCreds] = useState<{ email: string; password: string } | null>(null);
+  const [rechargeAgent, setRechargeAgent] = useState<Agent | null>(null);
+  const [rechargeAmount, setRechargeAmount] = useState('');
+  const [rechargeReason, setRechargeReason] = useState('');
+  const [rechargeLoading, setRechargeLoading] = useState(false);
 
   const [form, setForm] = useState({
     brandName: '',
@@ -92,6 +108,7 @@ export default function AdminAgentsPage() {
     active: agents.filter((a) => a.isActive).length,
     inactive: agents.filter((a) => !a.isActive).length,
     customers: agents.reduce((s, a) => s + (a._count?.customers || 0), 0),
+    totalBalance: agents.reduce((s, a) => s + (Number(a.balance) || 0), 0),
   }), [agents]);
 
   const onSearch = () => { setSearchKeyword(keyword); };
@@ -184,6 +201,37 @@ export default function AdminAgentsPage() {
     }
   };
 
+  const handleRecharge = async () => {
+    if (!rechargeAgent) return;
+    const amount = parseFloat(rechargeAmount);
+    if (!amount || amount === 0) { alert('请输入有效金额'); return; }
+    setRechargeLoading(true);
+    try {
+      const res = await fetch('/api/admin/agent-recharge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: rechargeAgent.id,
+          amount,
+          reason: rechargeReason || '管理员充值',
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        alert(d.message || '充值成功');
+        setRechargeAgent(null);
+        setRechargeAmount('');
+        setRechargeReason('');
+        fetchAgents();
+      } else {
+        alert(d.error || '充值失败');
+      }
+    } catch {
+      alert('网络错误');
+    }
+    setRechargeLoading(false);
+  };
+
   const fmtDate = (s: string | null | undefined) =>
     s ? new Date(s).toLocaleDateString('zh-CN') : '-';
   const fmtDateTime = (s: string | null | undefined) =>
@@ -194,19 +242,24 @@ export default function AdminAgentsPage() {
     try { return JSON.parse(sc); } catch { return null; }
   };
 
+  const getPlanLabel = (plan: string | undefined) => {
+    if (!plan) return { name: '未设置', color: 'bg-gray-100 text-gray-500' };
+    return PLAN_LABELS[plan] || { name: plan, color: 'bg-gray-100 text-gray-700' };
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">代理商管理</h1>
-          <p className="text-sm text-slate-500 mt-1">管理代理商账号、状态与授权</p>
+          <p className="text-sm text-slate-500 mt-1">管理代理商账号、套餐、余额与授权</p>
         </div>
         <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
           + 创建代理商
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="text-sm text-slate-500">总代理商数</div>
           <div className="text-2xl font-bold mt-1 text-slate-900">{stats.total}</div>
@@ -222,6 +275,10 @@ export default function AdminAgentsPage() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="text-sm text-slate-500">总客户数</div>
           <div className="text-2xl font-bold mt-1 text-purple-600">{stats.customers}</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="text-sm text-slate-500">代理商总余额</div>
+          <div className="text-2xl font-bold mt-1 text-amber-600">¥{stats.totalBalance.toFixed(2)}</div>
         </div>
       </div>
 
@@ -253,7 +310,8 @@ export default function AdminAgentsPage() {
                 <th className="px-4 py-3 text-gray-500 font-medium">品牌名称</th>
                 <th className="px-4 py-3 text-gray-500 font-medium">联系人</th>
                 <th className="px-4 py-3 text-gray-500 font-medium">邮箱</th>
-                <th className="px-4 py-3 text-gray-500 font-medium">域名</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">套餐</th>
+                <th className="px-4 py-3 text-gray-500 font-medium">余额</th>
                 <th className="px-4 py-3 text-gray-500 font-medium">客户数</th>
                 <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
                 <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
@@ -261,49 +319,66 @@ export default function AdminAgentsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">暂无数据</td></tr>
-              ) : filtered.map((a) => (
-                <tr key={a.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    <div className="flex items-center gap-2">
-                      {a.logo ? (
-                        <img src={a.logo} alt="" className="w-6 h-6 rounded object-cover" />
-                      ) : (
-                        <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center text-xs text-slate-500">
-                          {(a.brandName || '?').charAt(0)}
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">暂无数据</td></tr>
+              ) : filtered.map((a) => {
+                const planInfo = getPlanLabel(a.plan);
+                const balance = Number(a.balance) || 0;
+                const expiry = a.planExpiry ? new Date(a.planExpiry) : null;
+                const expired = expiry ? expiry.getTime() < Date.now() : false;
+                return (
+                  <tr key={a.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      <div className="flex items-center gap-2">
+                        {a.logo ? (
+                          <img src={a.logo} alt="" className="w-6 h-6 rounded object-cover" />
+                        ) : (
+                          <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center text-xs text-slate-500">
+                            {(a.brandName || '?').charAt(0)}
+                          </div>
+                        )}
+                        {a.brandName || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <div>{a.contactName || '-'}</div>
+                      <div className="text-xs text-gray-400">{a.contactPhone || ''}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{a.user?.email || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded ${planInfo.color}`}>{planInfo.name}</span>
+                      {a.planExpiry && (
+                        <div className={`text-xs mt-1 ${expired ? 'text-red-500' : 'text-gray-400'}`}>
+                          {expired ? '已过期' : `剩 ${Math.max(0, Math.ceil((expiry!.getTime() - Date.now()) / 86400000))} 天`}
                         </div>
                       )}
-                      {a.brandName || '-'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    <div>{a.contactName || '-'}</div>
-                    <div className="text-xs text-gray-400">{a.contactPhone || ''}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{a.user?.email || '-'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{a.domain || '-'}</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">{a._count?.customers || 0}</td>
-                  <td className="px-4 py-3">
-                    {a.isActive ? (
-                      <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">启用</span>
-                    ) : (
-                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">已禁用</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <button onClick={() => setDetailAgent(a)} className="text-slate-600 hover:text-slate-900">详情</button>
-                      <button onClick={() => openEdit(a)} className="text-blue-600 hover:text-blue-800">编辑</button>
-                      <button onClick={() => handleToggle(a)} className={a.isActive ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}>
-                        {a.isActive ? '禁用' : '启用'}
-                      </button>
-                      <button onClick={() => handleDelete(a)} className="text-red-500 hover:text-red-700">删除</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`font-medium ${balance > 0 ? 'text-green-600' : 'text-gray-400'}`}>¥{balance.toFixed(2)}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{a._count?.customers || 0}</td>
+                    <td className="px-4 py-3">
+                      {a.isActive ? (
+                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">启用</span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">已禁用</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <button onClick={() => setDetailAgent(a)} className="text-slate-600 hover:text-slate-900">详情</button>
+                        <button onClick={() => setRechargeAgent(a)} className="text-amber-600 hover:text-amber-800">充值</button>
+                        <button onClick={() => openEdit(a)} className="text-blue-600 hover:text-blue-800">编辑</button>
+                        <button onClick={() => handleToggle(a)} className={a.isActive ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}>
+                          {a.isActive ? '禁用' : '启用'}
+                        </button>
+                        <button onClick={() => handleDelete(a)} className="text-red-500 hover:text-red-700">删除</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -365,6 +440,7 @@ export default function AdminAgentsPage() {
         </div>
       )}
 
+      {/* 代理商详情弹窗 */}
       {detailAgent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
@@ -373,6 +449,7 @@ export default function AdminAgentsPage() {
               <button onClick={() => setDetailAgent(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
             </div>
             <div className="px-6 py-4 space-y-5">
+              {/* 基础信息 */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-500 mb-3">基础信息</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -391,6 +468,41 @@ export default function AdminAgentsPage() {
                 </div>
               </div>
 
+              {/* 套餐信息 */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">套餐信息</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">当前套餐：</span>
+                    {(() => {
+                      const p = getPlanLabel(detailAgent.plan);
+                      return <span className={`text-xs px-2 py-0.5 rounded ${p.color}`}>{p.name}</span>;
+                    })()}
+                  </div>
+                  <div><span className="text-gray-500">套餐到期：</span><span className="text-gray-900">{fmtDate(detailAgent.planExpiry)}</span></div>
+                  <div><span className="text-gray-500">最大客户数：</span><span className="text-gray-900">{detailAgent.maxCustomers || '-'}</span></div>
+                  <div><span className="text-gray-500">代理类型：</span><span className="text-gray-900">{detailAgent.level === 'source' ? '源码部署' : 'SaaS代理'}</span></div>
+                </div>
+              </div>
+
+              {/* 余额信息 */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 mb-3">余额信息</h4>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-amber-600">当前余额</div>
+                    <div className="text-2xl font-bold text-amber-700">¥{(Number(detailAgent.balance) || 0).toFixed(2)}</div>
+                  </div>
+                  <button
+                    onClick={() => { setRechargeAgent(detailAgent); setDetailAgent(null); }}
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700"
+                  >
+                    充值
+                  </button>
+                </div>
+              </div>
+
+              {/* 授权信息 */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-500 mb-3">授权信息</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -405,6 +517,7 @@ export default function AdminAgentsPage() {
                 </div>
               </div>
 
+              {/* 配置信息 */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-500 mb-3">配置信息</h4>
                 {(() => {
@@ -416,6 +529,7 @@ export default function AdminAgentsPage() {
                 })()}
               </div>
 
+              {/* 账号信息 */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-500 mb-3">账号信息</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -423,6 +537,7 @@ export default function AdminAgentsPage() {
                   <div><span className="text-gray-500">用户ID：</span><span className="text-gray-900 font-mono text-xs">{detailAgent.userId}</span></div>
                   <div><span className="text-gray-500">客户数：</span><span className="text-gray-900 font-medium">{detailAgent._count?.customers || 0}</span></div>
                   <div><span className="text-gray-500">创建时间：</span><span className="text-gray-900">{fmtDateTime(detailAgent.createdAt)}</span></div>
+                  <div><span className="text-gray-500">最后更新：</span><span className="text-gray-900">{fmtDateTime(detailAgent.updatedAt)}</span></div>
                 </div>
               </div>
             </div>
@@ -432,6 +547,65 @@ export default function AdminAgentsPage() {
                 {detailAgent.isActive ? '禁用' : '启用'}
               </button>
               <button onClick={() => { handleDelete(detailAgent); setDetailAgent(null); }} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">删除</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 充值弹窗 */}
+      {rechargeAgent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-bold text-gray-900 text-lg mb-1">代理商充值</h3>
+            <p className="text-sm text-gray-500 mb-4">为「{rechargeAgent.brandName}」充值余额</p>
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                <div className="text-xs text-amber-600">当前余额</div>
+                <div className="text-xl font-bold text-amber-700">¥{(Number(rechargeAgent.balance) || 0).toFixed(2)}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">充值金额（元）</label>
+                <input
+                  type="number"
+                  value={rechargeAmount}
+                  onChange={(e) => setRechargeAmount(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  placeholder="如 100、200、500"
+                />
+                <div className="flex gap-2 mt-2">
+                  {[100, 200, 500, 1000].map(amt => (
+                    <button
+                      key={amt}
+                      onClick={() => setRechargeAmount(String(amt))}
+                      className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                    >
+                      ¥{amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">充值原因（可选）</label>
+                <input
+                  value={rechargeReason}
+                  onChange={(e) => setRechargeReason(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  placeholder="如：代理商预充值、测试充值等"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                充值后代理商可在套餐管理页面使用余额升级套餐。支持输入负数进行扣减。
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setRechargeAgent(null); setRechargeAmount(''); setRechargeReason(''); }} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
+              <button
+                onClick={handleRecharge}
+                disabled={rechargeLoading}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 disabled:opacity-50"
+              >
+                {rechargeLoading ? '处理中...' : '确认充值'}
+              </button>
             </div>
           </div>
         </div>

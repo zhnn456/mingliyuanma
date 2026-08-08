@@ -3,7 +3,6 @@ import { requireAgent, requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { verifyLicenseSignature } from '@/lib/license-generator';
 import { calculateCommission, getLevelFromFeatures } from '@/lib/commission-engine';
-import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { calculateBazi, analyzeXiYongShen } from '@/lib/algorithms/bazi';
 import { generateDetailedAnalysis } from '@/lib/interpretation/bazi-detailed';
 import { execute } from '@/lib/d1';
-import { checkUsageLimit } from '@/lib/rate-limit';
+import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
 import type { PaipanFormData } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const body: PaipanFormData = await req.json();
+    const body: PaipanFormData & { mode?: 'chart' | 'full'; useLingzhu?: boolean } = await req.json();
     const { year, month, day, hour, gender, isLunar = false, isLeapMonth = false, hourType } = body;
+    const mode = body.mode || 'full'; // 默认 full 向后兼容
+    const useLingzhu = body.useLingzhu || false;
 
     if (!year || !month || !day) {
       return NextResponse.json(
@@ -17,7 +19,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // hour 为 null 时表示未知时辰（三柱论命），允许通过
     if (hour === undefined) {
       return NextResponse.json(
         { error: '请提供出生时辰或选择未知时辰' },
@@ -25,11 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 检查使用次数限制
-    const { canUse, session, error } = await checkUsageLimit('bazi');
-    if (!canUse && error) return error;
-
-    // 计算八字（传入新参数）
+    // === 排盘（免费不限次） ===
     const result = calculateBazi(
       year, month, day, hour,
       gender || 'male',
@@ -37,7 +34,51 @@ export async function POST(req: NextRequest) {
       isLeapMonth,
       hourType
     );
-    
+
+    // 如果只请求排盘数据，直接返回（不收费）
+    if (mode === 'chart') {
+      // 如果用户已登录，保存记录
+      return NextResponse.json({
+        result,
+        mode: 'chart',
+        message: '排盘完成，如需详细解读请升级为完整模式',
+      });
+    }
+
+    // === 解读（收费：每日限免 + 灵珠付费） ===
+    const { canInterpret, session, needLingzhu, cost, error, remainingFree } = await checkInterpretLimit('bazi', req);
+
+    if (!canInterpret && error) return error;
+
+    if (!canInterpret && needLingzhu) {
+      // 需要灵珠付费
+      if (!useLingzhu) {
+        // 用户还没确认付费，返回付费提示
+        return NextResponse.json({
+          error: '今日免费解读次数已用完',
+          needLingzhu: true,
+          cost: cost || INTERPRET_COST_LINGZHU,
+          module: 'bazi',
+          message: `本次解读需要消耗 ${cost || INTERPRET_COST_LINGZHU} 灵珠`,
+          result, // 同时返回排盘数据
+        }, { status: 402 }); // 402 Payment Required
+      }
+
+      // 用户确认付费，扣灵珠
+      if (session) {
+        const deductResult = await deductLingzhu(session.sub, cost || INTERPRET_COST_LINGZHU, '八字解读');
+        if (!deductResult.success) {
+          return NextResponse.json({
+            error: `灵珠不足，需要 ${cost || INTERPRET_COST_LINGZHU} 灵珠，当前余额 ${deductResult.balance} 灵珠`,
+            needLingzhu: true,
+            cost: cost || INTERPRET_COST_LINGZHU,
+            balance: deductResult.balance,
+            result,
+          }, { status: 402 });
+        }
+      }
+    }
+
     // 分析喜用神
     const xiYongShen = analyzeXiYongShen(result.wuxing, result.fourPillars.day.gan, result.fourPillars.month.zhi);
 
@@ -80,6 +121,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       result,
       xiYongShen,
+      mode: 'full',
+      remainingFree: remainingFree ?? undefined,
     });
   } catch (error) {
     console.error('八字排盘错误:', error);

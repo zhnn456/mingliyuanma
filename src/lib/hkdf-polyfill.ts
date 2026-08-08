@@ -1,19 +1,19 @@
 /**
  * @panva/hkdf 的 Workers 兼容替代实现
  *
- * 原版 @panva/hkdf 在有 crypto.hkdf 时会用它，
- * 但 Workers 的 crypto.hkdf 基于 Web Crypto API，不接受字符串参数，
- * 报 "Code generation from strings disallowed for this context"。
- *
- * 这个实现强制用 createHmac fallback（能接受字符串）。
+ * 使用 Web Crypto API (crypto.subtle) 实现 HKDF，
+ * 兼容 Cloudflare Workers 环境。
  */
-import crypto from 'crypto';
 
-const toBuf = (v: unknown): Buffer | Uint8Array => {
-  if (typeof v === 'string') return Buffer.from(v);
-  if (v instanceof ArrayBuffer) return new Uint8Array(v);
-  return v as Buffer | Uint8Array;
-};
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function toBuf(v: unknown): ArrayBuffer {
+  if (typeof v === 'string') return encoder.encode(v).buffer as ArrayBuffer;
+  if (v instanceof ArrayBuffer) return v;
+  if (v && typeof v === 'object' && 'buffer' in v) return (v as any).buffer;
+  return encoder.encode(String(v)).buffer as ArrayBuffer;
+}
 
 export default async function hkdf(
   digest: string,
@@ -23,30 +23,37 @@ export default async function hkdf(
   keylen: number
 ): Promise<Uint8Array> {
   const ikmBuf = toBuf(ikm);
-  const saltBuf = toBuf(salt) as Uint8Array;
-  const infoBuf = toBuf(info) as Uint8Array;
+  const saltBuf = toBuf(salt);
+  const infoBuf = toBuf(info);
 
-  const hashlen = parseInt(digest.substr(3), 10) >> 3 || 20;
-  const prk = crypto
-    .createHmac(digest, saltBuf.byteLength ? saltBuf : new Uint8Array(hashlen))
-    .update(ikmBuf)
-    .digest();
-  const N = Math.ceil(keylen / hashlen);
-  const T = new Uint8Array(hashlen * N + infoBuf.byteLength + 1);
-  let prev = 0;
-  let start = 0;
-  for (let c = 1; c <= N; c++) {
-    T.set(infoBuf, start);
-    T[start + infoBuf.byteLength] = c;
-    T.set(
-      crypto
-        .createHmac(digest, prk)
-        .update(T.subarray(prev, start + infoBuf.byteLength + 1))
-        .digest(),
-      start
-    );
-    prev = start;
-    start += hashlen;
-  }
-  return T.slice(0, keylen);
+  const hashMap: Record<string, string> = {
+    'sha256': 'SHA-256',
+    'sha384': 'SHA-384',
+    'sha512': 'SHA-512',
+  };
+  const algo = hashMap[digest.toLowerCase()] || 'SHA-256';
+
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    ikmBuf,
+    { name: 'HKDF' },
+    false,
+    ['deriveKey']
+  );
+
+  const derived = await crypto.subtle.deriveKey(
+    {
+      name: 'HKDF',
+      hash: algo,
+      salt: saltBuf,
+      info: infoBuf,
+    },
+    baseKey,
+    { name: 'AES-GCM', length: keylen * 8 },
+    false,
+    ['encrypt']
+  );
+
+  const result = await crypto.subtle.exportKey('raw', derived);
+  return new Uint8Array(result);
 }

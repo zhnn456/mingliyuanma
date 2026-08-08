@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '版权声明 - 命理网',
@@ -16,6 +17,9 @@ export default function CopyrightPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">版权声明</h1>
           <p className="text-gray-600">最后更新日期：2026年7月31日</p>
         </div>
+
+        {/* 代理商授权声明 */}
+        <AgentBrandNotice type="legal" />
 
         {/* 版权信息 */}
         <div className="bg-gradient-to-br from-red-50 to-amber-50 rounded-2xl shadow-sm border border-red-100 p-8 mb-6 text-center">

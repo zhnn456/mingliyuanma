@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { queryFirst, queryAll, execute, ensureAgentDomainFields } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server'
 import { sanitizeString } from '@/lib/security';
 import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 import { generateAgentLicenseAsync } from '@/lib/license-generator';
+import { generateSubdomain } from '@/lib/agent-domain';
 
 export async function GET(req: NextRequest) {
   try {
@@ -117,9 +118,26 @@ export async function POST(req: NextRequest) {
       });
       const licenseKey = signedLicense.raw;
 
+      // 确保域名字段存在
+      await ensureAgentDomainFields();
+
+      // 根据品牌名自动生成唯一子域名
+      let subdomain = generateSubdomain(brandName || companyName || '');
+      if (!subdomain) {
+        // 品牌名不含拉丁字符时，用 agentId 后缀兜底
+        subdomain = `agent-${agentId.slice(-6)}`;
+      }
+      let uniqueSub = subdomain;
+      let suffix = 0;
+      while (await queryFirst('SELECT id FROM Agent WHERE subdomain = ?', uniqueSub)) {
+        suffix++;
+        uniqueSub = `${subdomain}${suffix}`;
+      }
+      subdomain = uniqueSub;
+
       await execute(
-        `INSERT INTO Agent (id, userId, companyName, contactName, contactPhone, domain, brandName, licenseKey, licenseExpiry, siteConfig, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO Agent (id, userId, companyName, contactName, contactPhone, domain, brandName, subdomain, licenseKey, licenseExpiry, siteConfig, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         agentId,
         userId,
         sanitizeString(companyName || ''),
@@ -127,6 +145,7 @@ export async function POST(req: NextRequest) {
         sanitizeString(contactPhone),
         domain || null,
         sanitizeString(brandName || companyName || ''),
+        subdomain,
         licenseKey,
         new Date(expiryTs).toISOString(),
         JSON.stringify({
@@ -162,7 +181,7 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.json({
-        agent: { id: agentId, userId, companyName, brandName, domain, licenseKey, licenseExpiry, isActive: 1 },
+        agent: { id: agentId, userId, companyName, brandName, domain, subdomain, licenseKey, licenseExpiry, isActive: 1 },
         credentials: { email, password },
       });
     }

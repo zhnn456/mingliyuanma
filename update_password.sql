@@ -1,1 +1,1 @@
-UPDATE User SET passwordHash='pbkdf2_100000$5CHhIVsI5tmqCSK67ByZmg==$eNrh/0N1mQVitt5bvInl4xvMtKoPCZAlNO0siTQka3M=' WHERE email='282063152@qq.com';
+UPDATE User SET passwordHash='pbkdf2_100000$osa+xsXuB0uTEpXNmh1W8g==$p6ResatazK4VOZ9v89Kd5DZ49usLLAtuCWl0HLi1lAE=' WHERE email='282063152@qq.com';

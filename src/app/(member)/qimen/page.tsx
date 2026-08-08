@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import { BAMEN_INTERPRETATION, JIUXING_INTERPRETATION, BASHEN_INTERPRETATION, TEN_STEM_PATTERNS, QIMEN_YONGSHEN } from '@/lib/interpretation/qimen';
 import { QUESTION_TYPES, generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
+import { InterpretPaywall } from '@/components/InterpretPaywall';
 import { useToast } from '@/components/Toast';
 import QimenChart from '@/components/QimenChart';
 
@@ -102,7 +103,11 @@ const QIMEN_FACTORS = [
 export default function QimenPage() {
   const { user: session } = useAuth();
   const { addToast } = useToast();
-  const [result, setResult] = useState<QimenResult | null>(null);
+  const [chartData, setChartData] = useState<QimenResult | null>(null);
+  const [interpretData, setInterpretData] = useState<QimenResult | null>(null);
+  const [paywall, setPaywall] = useState<{ status: 401 | 402; cost?: number; balance?: number } | null>(null);
+  const [formData, setFormData] = useState<any>(null);
+  const [loadingInterpret, setLoadingInterpret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useCurrentTime, setUseCurrentTime] = useState(true);
@@ -114,13 +119,31 @@ export default function QimenPage() {
   const [showFactors, setShowFactors] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState<number>(Date.now());
 
+  const displayResult = interpretData || chartData;
+
+  const fetchBalance = async (): Promise<number> => {
+    try {
+      const r = await fetch('/api/user/lingzhu');
+      if (r.ok) {
+        const j = await r.json();
+        return j.balance || 0;
+      }
+    } catch {}
+    return 0;
+  };
+
   useEffect(() => {
     if (session && !initialLoaded) {
       setInitialLoaded(true);
       fetch('/api/user/latest?type=qimen')
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data?.record?.result) setResult(data.record.result);
+          if (data?.record?.result) {
+            setChartData(data.record.result);
+            if (data?.record?.detailedAnalysis) {
+              setInterpretData(data.record.result);
+            }
+          }
         })
         .catch(() => {});
     }
@@ -141,14 +164,18 @@ export default function QimenPage() {
         year = dt.getFullYear(); month = dt.getMonth() + 1; day = dt.getDate();
         hour = dt.getHours(); minute = dt.getMinutes();
       }
+      const reqBody = { year, month, day, hour, minute };
       const response = await fetch('/api/qimen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month, day, hour, minute }),
+        body: JSON.stringify({ ...reqBody, mode: 'chart' }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '排盘失败');
-      setResult(json.result);
+      setChartData(json.result);
+      setInterpretData(null);
+      setPaywall(null);
+      setFormData(reqBody);
       setSelectedPosition(null);
       setCurrentTimestamp(Date.now());
       addToast('success', '奇门遁甲排盘完成！');
@@ -157,6 +184,44 @@ export default function QimenPage() {
       setError(msg);
       addToast('error', msg);
     } finally { setLoading(false); }
+  };
+
+  const handleInterpret = async (useLingzhu: boolean) => {
+    if (!formData) return;
+    setLoadingInterpret(true);
+    try {
+      const response = await fetch('/api/qimen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, mode: 'full', useLingzhu }),
+      });
+      const json = await response.json();
+      if (response.status === 401) {
+        setPaywall({ status: 401 });
+      } else if (response.status === 402) {
+        if (useLingzhu) {
+          setPaywall(null);
+          addToast('error', json.error || '灵珠不足，请充值');
+        } else {
+          const balance = await fetchBalance();
+          setPaywall({ status: 402, cost: json.cost || 50, balance });
+          if (json.result) setChartData(json.result);
+        }
+      } else if (!response.ok) {
+        throw new Error(json.error || '解读失败');
+      } else {
+        setInterpretData(json.result);
+        setPaywall(null);
+        addToast('success', '解读完成');
+      }
+    } catch (err: any) {
+      setPaywall(null);
+      const msg = err.message || '解读失败';
+      setError(msg);
+      addToast('error', msg);
+    } finally {
+      setLoadingInterpret(false);
+    }
   };
 
   // 上一局：往前推1小时
@@ -192,15 +257,19 @@ export default function QimenPage() {
       const day = dt.getDate();
       const hour = dt.getHours();
       const minute = dt.getMinutes();
-      
+      const reqBody = { year, month, day, hour, minute };
+
       const response = await fetch('/api/qimen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year, month, day, hour, minute }),
+        body: JSON.stringify({ ...reqBody, mode: 'chart' }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '排盘失败');
-      setResult(json.result);
+      setChartData(json.result);
+      setInterpretData(null);
+      setPaywall(null);
+      setFormData(reqBody);
       setSelectedPosition(null);
       addToast('success', '排盘更新成功！');
     } catch (err: any) {
@@ -212,7 +281,7 @@ export default function QimenPage() {
 
   // 复制分享链接
   const handleShare = async () => {
-    if (!result) return;
+    if (!displayResult) return;
     try {
       const shareUrl = `${window.location.origin}${window.location.pathname}?t=${currentTimestamp}`;
       await navigator.clipboard.writeText(shareUrl);
@@ -222,16 +291,16 @@ export default function QimenPage() {
     }
   };
 
-  const getPalaceByPosition = (pos: number) => result?.palaces.find(p => p.position === pos);
+  const getPalaceByPosition = (pos: number) => displayResult?.palaces.find(p => p.position === pos);
   const selectedPalace = selectedPosition ? getPalaceByPosition(selectedPosition) : null;
 
   // 分析吉利方位和不利方位
   const directionAnalysis = useMemo(() => {
-    if (!result) return { auspicious: [] as string[], inauspicious: [] as string[] };
+    if (!displayResult) return { auspicious: [] as string[], inauspicious: [] as string[] };
     const auspicious: string[] = [];
     const inauspicious: string[] = [];
-    
-    result.palaces.forEach(p => {
+
+    displayResult.palaces.forEach(p => {
       if (p.position === 5) return;
       const gateInfo = BAMEN_INTERPRETATION[p.gate];
       const dir = TRIGRAM_DIRECTION[p.trigram] || '';
@@ -244,13 +313,13 @@ export default function QimenPage() {
       }
     });
     return { auspicious, inauspicious };
-  }, [result]);
+  }, [displayResult]);
 
   // 深度解读（随问题类型变化）
   const detailedAnalysis = useMemo(() => {
-    if (!result) return null;
-    return generateQimenDetailedAnalysis(result, questionType);
-  }, [result, questionType]);
+    if (!displayResult) return null;
+    return generateQimenDetailedAnalysis(displayResult, questionType);
+  }, [displayResult, questionType]);
 
   // 当前用神类型
   const currentQuestionType = QUESTION_TYPES.find(q => q.key === questionType);
@@ -383,7 +452,7 @@ export default function QimenPage() {
           </div>
         )}
 
-        {result && (
+        {(chartData || interpretData) && displayResult && (
           <div className="space-y-6 animate-fade-in">
             {/* 排盘详细信息 */}
             <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5">
@@ -391,25 +460,25 @@ export default function QimenPage() {
                 <span className="w-1 h-5 bg-red-600 rounded" />
                 排盘信息
               </h3>
-              
+
               {/* 主要信息 - 更大更清晰 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <div className="bg-gradient-to-br from-red-50 to-amber-50 rounded-xl p-3 text-center border border-red-200/50">
                   <div className="text-xs text-gray-500 mb-1">四柱</div>
                   <div className="text-sm font-bold text-gray-900 leading-tight" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-                    {result.fourPillars.year.stem}{result.fourPillars.year.branch}
-                    {result.fourPillars.month.stem}{result.fourPillars.month.branch}
+                    {displayResult.fourPillars.year.stem}{displayResult.fourPillars.year.branch}
+                    {displayResult.fourPillars.month.stem}{displayResult.fourPillars.month.branch}
                   </div>
                   <div className="text-sm font-bold text-gray-900 leading-tight" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-                    {result.fourPillars.day.stem}{result.fourPillars.day.branch}
-                    {result.fourPillars.hour.stem}{result.fourPillars.hour.branch}
+                    {displayResult.fourPillars.day.stem}{displayResult.fourPillars.day.branch}
+                    {displayResult.fourPillars.hour.stem}{displayResult.fourPillars.hour.branch}
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-3 text-center border-2 border-amber-300/50">
                   <div className="text-xs text-amber-700 mb-1">局数</div>
                   <div className="text-2xl font-bold text-red-800" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-                    {result.ju.type}{result.ju.number}
+                    {displayResult.ju.type}{displayResult.ju.number}
                   </div>
                   <div className="text-xs text-gray-500">局</div>
                 </div>
@@ -417,17 +486,17 @@ export default function QimenPage() {
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center border border-blue-200/50">
                   <div className="text-xs text-gray-500 mb-1">值符</div>
                   <div className="text-lg font-bold text-blue-800" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-                    {result.zhiFu.star}
+                    {displayResult.zhiFu.star}
                   </div>
-                  <div className="text-xs text-gray-500">落{result.zhiFu.position}宫</div>
+                  <div className="text-xs text-gray-500">落{displayResult.zhiFu.position}宫</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center border border-green-200/50">
                   <div className="text-xs text-gray-500 mb-1">值使</div>
                   <div className="text-lg font-bold text-green-800" style={{ fontFamily: 'Noto Serif SC, serif' }}>
-                    {result.zhiShi.gate}
+                    {displayResult.zhiShi.gate}
                   </div>
-                  <div className="text-xs text-gray-500">落{result.zhiShi.position}宫</div>
+                  <div className="text-xs text-gray-500">落{displayResult.zhiShi.position}宫</div>
                 </div>
               </div>
 
@@ -435,27 +504,27 @@ export default function QimenPage() {
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 rounded-full">
                   <span className="text-gray-500 mr-1">节气:</span>
-                  <span className="font-medium text-gray-800">{result.timeInfo.solarTerm || '-'}</span>
+                  <span className="font-medium text-gray-800">{displayResult.timeInfo.solarTerm || '-'}</span>
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 bg-amber-100 rounded-full">
                   <span className="text-amber-600 mr-1">元:</span>
-                  <span className="font-medium text-amber-800">{result.yuan}</span>
+                  <span className="font-medium text-amber-800">{displayResult.yuan}</span>
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 bg-purple-100 rounded-full">
                   <span className="text-purple-600 mr-1">旬首:</span>
-                  <span className="font-medium text-purple-800">{result.timeInfo.xunShou}</span>
+                  <span className="font-medium text-purple-800">{displayResult.timeInfo.xunShou}</span>
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 bg-red-100 rounded-full">
                   <span className="text-red-600 mr-1">空亡:</span>
-                  <span className="font-medium text-red-800">{result.timeInfo.voidness?.join('、') || '无'}</span>
+                  <span className="font-medium text-red-800">{displayResult.timeInfo.voidness?.join('、') || '无'}</span>
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 rounded-full">
                   <span className="text-blue-600 mr-1">阳历:</span>
-                  <span className="font-medium text-blue-800">{result.timeInfo.solarDate}</span>
+                  <span className="font-medium text-blue-800">{displayResult.timeInfo.solarDate}</span>
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 bg-green-100 rounded-full">
                   <span className="text-green-600 mr-1">农历:</span>
-                  <span className="font-medium text-green-800">{result.timeInfo.lunarDate}</span>
+                  <span className="font-medium text-green-800">{displayResult.timeInfo.lunarDate}</span>
                 </span>
               </div>
             </div>
@@ -498,7 +567,7 @@ export default function QimenPage() {
             {/* 奇门盘面 - SVG */}
             <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5 overflow-x-auto">
               {/* 盘面控制栏 */}
-              {result && (
+              {displayResult && (
                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
                   <div className="flex items-center gap-2">
                     <button
@@ -558,7 +627,7 @@ export default function QimenPage() {
               )}
               
               <QimenChart
-                result={result as any}
+                result={displayResult as any}
                 selectedPosition={selectedPosition}
                 onSelectPosition={setSelectedPosition}
               />
@@ -727,26 +796,26 @@ export default function QimenPage() {
             </div>
 
             {/* 格局分析 */}
-            {result.specialPatterns && (
+            {displayResult.specialPatterns && (
               <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-6">
                 <h3 className="text-xl font-bold text-red-900 mb-5 flex items-center gap-2">
                   <span className="w-1.5 h-6 bg-red-600 rounded" />
                   格局分析
                 </h3>
-                {result.specialPatterns.fuYinFanYin?.description && (
+                {displayResult.specialPatterns.fuYinFanYin?.description && (
                   <div className="mb-5 p-5 bg-purple-50 rounded-xl border border-purple-200">
                     <h4 className="font-bold text-purple-800 text-base mb-3">伏吟/反吟</h4>
-                    {result.specialPatterns.fuYinFanYin.description.map((d, i) => (
+                    {displayResult.specialPatterns.fuYinFanYin.description.map((d, i) => (
                       <p key={i} className="text-sm text-purple-700 leading-relaxed mb-1">{d}</p>
                     ))}
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.specialPatterns.auspiciousPatterns && result.specialPatterns.auspiciousPatterns.length > 0 && (
+                  {displayResult.specialPatterns.auspiciousPatterns && displayResult.specialPatterns.auspiciousPatterns.length > 0 && (
                     <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
                       <h4 className="font-bold text-green-700 text-base mb-3">🏆 吉格</h4>
                       <div className="flex flex-wrap gap-3">
-                        {result.specialPatterns.auspiciousPatterns.map((p, i) => (
+                        {displayResult.specialPatterns.auspiciousPatterns.map((p, i) => (
                           <span key={i} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium border border-green-200">
                             {p.name}
                           </span>
@@ -754,11 +823,11 @@ export default function QimenPage() {
                       </div>
                     </div>
                   )}
-                  {result.specialPatterns.inauspiciousPatterns && result.specialPatterns.inauspiciousPatterns.length > 0 && (
+                  {displayResult.specialPatterns.inauspiciousPatterns && displayResult.specialPatterns.inauspiciousPatterns.length > 0 && (
                     <div className="p-5 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200">
                       <h4 className="font-bold text-red-700 text-base mb-3">⚠️ 凶格</h4>
                       <div className="flex flex-wrap gap-3">
-                        {result.specialPatterns.inauspiciousPatterns.map((p, i) => (
+                        {displayResult.specialPatterns.inauspiciousPatterns.map((p, i) => (
                           <span key={i} className="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-medium border border-red-200">
                             {p.name}
                           </span>
@@ -771,7 +840,7 @@ export default function QimenPage() {
             )}
 
             {/* ===== 深度解读 ===== */}
-            {detailedAnalysis && (
+            {interpretData && detailedAnalysis && (
               <>
                 {/* 用神分析 - 根据问事类型 */}
                 {detailedAnalysis.yongshenAnalysis && (
@@ -873,7 +942,36 @@ export default function QimenPage() {
                 )}
               </>
             )}
+
+            {/* 查看详细解读按钮 */}
+            {!interpretData && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-red-600 to-amber-500 p-[2px] shadow-xl">
+                <div className="bg-white rounded-2xl px-6 py-5 text-center">
+                  <div className="text-3xl mb-2">📖</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">查看奇门遁甲详细解读</h3>
+                  <p className="text-sm text-gray-500 mb-4">解锁用神分析、格局深度分析、综合断局等深度内容</p>
+                  <button
+                    onClick={() => handleInterpret(false)}
+                    disabled={loadingInterpret}
+                    className="px-8 py-3 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {loadingInterpret ? '加载中...' : '查看详细解读'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        {paywall && (
+          <InterpretPaywall
+            status={paywall.status}
+            cost={paywall.cost}
+            balance={paywall.balance}
+            moduleLabel="奇门遁甲"
+            onConfirmPay={() => handleInterpret(true)}
+            onClose={() => setPaywall(null)}
+          />
         )}
       </div>
     </div>

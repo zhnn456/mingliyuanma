@@ -6,7 +6,7 @@ const CATEGORY_META: Record<string, { label: string; icon: string; color: string
   deity: { label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700' },
   ritual: { label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700' },
   offering: { label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700' },
-  deliverance: { label: '超度类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700' },
+  deliverance: { label: '追思祈福类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700' },
 };
 
 function formatSupply(s: any) {

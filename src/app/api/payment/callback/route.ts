@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, batch } from '@/lib/d1';
 import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
+import { grantLingzhu, MEMBERSHIP_GIFT_LINGZHU } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,6 +87,26 @@ export async function POST(req: NextRequest) {
     }
 
     await batch(batchStatements);
+
+    // 分润处理 - 用户消费时自动分润给代理商
+    try {
+      const { processCommission } = await import('@/lib/commission-engine');
+      await processCommission(order.id, order.userId, order.amount);
+    } catch (err) {
+      console.error('分润处理失败:', err);
+    }
+
+    // 会员开通赠送灵珠
+    if (order.type === 'membership') {
+      const giftAmount = MEMBERSHIP_GIFT_LINGZHU[order.targetId] || 0;
+      if (giftAmount > 0) {
+        try {
+          await grantLingzhu(order.userId, giftAmount, `开通会员赠送${giftAmount}灵珠`);
+        } catch (err) {
+          console.error('会员赠送灵珠失败:', err);
+        }
+      }
+    }
 
     await auditLog({
       userId: order.userId,

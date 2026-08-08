@@ -27,6 +27,12 @@ export async function GET(req: NextRequest) {
       order.id
     ) as any;
 
+    // 暴露各支付方式配置状态（供前端展示"未配置"标记）
+    const methods = {
+      wechat: !!(process.env.WECHAT_APP_ID && process.env.WECHAT_MCH_ID && process.env.WECHAT_PRIVATE_KEY),
+      alipay: !!(process.env.ALIPAY_APP_ID && process.env.ALIPAY_PRIVATE_KEY && process.env.ALIPAY_PUBLIC_KEY),
+    };
+
     return NextResponse.json({
       order: {
         orderNo: order.orderNo,
@@ -43,6 +49,7 @@ export async function GET(req: NextRequest) {
           status: payment.status,
         } : null,
       },
+      methods,
     });
   } catch (error: any) {
     console.error('查询订单状态失败:', error?.message);

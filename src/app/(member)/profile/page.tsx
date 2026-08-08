@@ -442,6 +442,15 @@ export default function ProfilePage() {
 	          </Link>
 	        </div>
 
+	        {/* 卡密兑换入口 */}
+	        <div className="px-3 pb-2">
+	          <Link href="/profile/redeem"
+	            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 font-medium hover:from-amber-100 hover:to-amber-200 transition-colors border border-amber-200">
+	            <span>🎟️</span>
+	            <span>卡密兑换</span>
+	          </Link>
+	        </div>
+
 	        {/* 底部 */}
         <div className="p-3 border-t">
           <Link href="/" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">

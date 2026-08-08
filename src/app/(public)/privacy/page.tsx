@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '隐私政策 - 命理网',
@@ -16,6 +17,9 @@ export default function PrivacyPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">隐私政策</h1>
           <p className="text-gray-600">最后更新日期：2026年7月31日</p>
         </div>
+
+        {/* 代理商授权声明 */}
+        <AgentBrandNotice type="legal" />
 
         {/* 引言 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">

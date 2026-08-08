@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
         params: ['paid', transactionId, now, now, order.id],
       },
       {
-        sql: 'INSERT INTO Payment (id, orderId, userId, method, amount, status, transactionId, paidAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        params: [`pay_${Date.now()}`, order.id, order.userId, 'mock', order.amount, 'success', transactionId, now, now],
+        sql: 'INSERT INTO Payment (id, orderId, userId, method, amount, status, transactionId, paidAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        params: [`pay_${Date.now()}`, order.id, order.userId, 'mock', order.amount, 'success', transactionId, now, now, now],
       },
     ];
 
@@ -68,6 +68,14 @@ export async function POST(req: NextRequest) {
     }
 
     await batch(batchStatements);
+
+    // 分润处理 - 用户消费时自动分润给代理商
+    try {
+      const { processCommission } = await import('@/lib/commission-engine');
+      await processCommission(order.id, order.userId, order.amount);
+    } catch (err) {
+      console.error('分润处理失败:', err);
+    }
 
     await auditLog({
       userId: order.userId,

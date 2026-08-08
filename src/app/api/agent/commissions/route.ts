@@ -24,14 +24,27 @@ export async function GET(req: NextRequest) {
       getAgentCommissionStats(agent.id),
     ]);
 
+    // BigInt 序列化转换
+    const serialize = (obj: any) => {
+      if (obj === null || obj === undefined) return obj;
+      if (typeof obj === 'bigint') return Number(obj);
+      if (Array.isArray(obj)) return obj.map(serialize);
+      if (typeof obj === 'object') {
+        const out: any = {};
+        for (const [k, v] of Object.entries(obj)) out[k] = serialize(v);
+        return out;
+      }
+      return obj;
+    };
+
     return NextResponse.json({
-      records: result.records,
-      total: result.total,
+      records: serialize(result.records),
+      total: Number(result.total || 0),
       stats: {
-        pendingCommission: stats.pendingCommission,
-        settledCommission: stats.settledCommission,
-        monthCommission: stats.monthCommission,
-        totalCommission: stats.totalCommission,
+        pendingCommission: Number(stats.pendingCommission || 0),
+        settledCommission: Number(stats.settledCommission || 0),
+        monthCommission: Number(stats.monthCommission || 0),
+        totalCommission: Number(stats.totalCommission || 0),
       },
     });
   } catch (error) {

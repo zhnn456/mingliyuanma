@@ -77,7 +77,11 @@ export default function RechargePage() {
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 text-center mt-6">充值即表示同意服务协议 · 灵珠仅限本平台使用</p>
+      <p className="text-xs text-gray-400 text-center mt-6">
+        充值即表示同意
+        <a href="/terms" target="_blank" className="text-amber-600 hover:text-amber-700 underline mx-0.5">服务协议</a>
+        · 灵珠仅限本平台使用
+      </p>
     </div>
   );
 }

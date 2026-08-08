@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useBrand } from '@/lib/use-brand';
 
 export function Footer() {
   const pathname = usePathname();
+  const { brand } = useBrand();
 
   // 管理后台不显示前台 Footer
   if (pathname.startsWith('/admin') || pathname.startsWith('/agent')) {
@@ -19,11 +21,15 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-sm font-kai">命</span>
-              </div>
+              {brand.logo ? (
+                <img src={brand.logo} alt={brand.brandName} className="w-9 h-9 rounded-lg object-cover shadow-md" />
+              ) : (
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center shadow-md">
+                  <span className="text-white font-bold text-sm font-kai">{brand.brandName.charAt(0)}</span>
+                </div>
+              )}
               <div className="flex flex-col">
-                <span className="text-lg font-bold chinese-gold leading-none font-kai">命理网</span>
+                <span className="text-lg font-bold chinese-gold leading-none font-kai">{brand.brandName}</span>
                 <span className="text-[10px] text-gold/60 tracking-[0.2em] leading-none mt-1">MINGLI</span>
               </div>
             </div>
@@ -40,7 +46,7 @@ export function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm tracking-wide">关于我们</h4>
             <ul className="space-y-3">
-              {[{ href: '/about', label: '关于命理网' }, { href: '/membership', label: '会员中心' }, { href: '/offering', label: '在线供奉' }, { href: '/contact', label: '联系我们' }].map(item => (
+              {[{ href: '/about', label: `关于${brand.brandName}` }, { href: '/membership', label: '会员中心' }, { href: '/offering', label: '在线供奉' }, { href: '/contact', label: '联系我们' }].map(item => (
                 <li key={item.href}><Link href={item.href} className="text-gray-400 hover:text-gold text-sm transition-colors">{item.label}</Link></li>
               ))}
             </ul>
@@ -55,7 +61,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-800 mt-12 pt-10 text-center space-y-3">
-          <p className="text-gray-500 text-sm">© 2026 命理网 · 传承经典，启迪智慧</p>
+          <p className="text-gray-500 text-sm">© 2026 {brand.brandName} · 传承经典，启迪智慧</p>
           <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
             <Link href="/about" className="hover:text-gray-400 transition-colors">关于我们</Link>
             <span>|</span>

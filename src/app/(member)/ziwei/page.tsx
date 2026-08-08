@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import { generateZiweiInterpretation, PALACE_MEANING, MAIN_STAR_INTERPRETATION } from '@/lib/interpretation/ziwei';
 import { PaipanForm } from '@/components/PaipanForm';
+import { InterpretPaywall } from '@/components/InterpretPaywall';
 import { useToast } from '@/components/Toast';
 import ZiweiChart, { ViewMode, TimeMode } from '@/components/ZiweiChart';
 
@@ -213,7 +214,11 @@ function detectCombinations(palaces: Palace[]): string[] {
 export default function ZiweiPage() {
   const { user: session } = useAuth();
   const { addToast } = useToast();
-  const [result, setResult] = useState<ZiweiResult | null>(null);
+  const [chartData, setChartData] = useState<ZiweiResult | null>(null);
+  const [interpretData, setInterpretData] = useState<ZiweiResult | null>(null);
+  const [paywall, setPaywall] = useState<{ status: 401 | 402; cost?: number; balance?: number } | null>(null);
+  const [formData, setFormData] = useState<any>(null);
+  const [loadingInterpret, setLoadingInterpret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPalaceIdx, setSelectedPalaceIdx] = useState<number | null>(null);
@@ -222,6 +227,19 @@ export default function ZiweiPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('sanhe');
   const [timeMode, setTimeMode] = useState<TimeMode>('base');
 
+  const displayResult = interpretData || chartData;
+
+  const fetchBalance = async (): Promise<number> => {
+    try {
+      const r = await fetch('/api/user/lingzhu');
+      if (r.ok) {
+        const j = await r.json();
+        return j.balance || 0;
+      }
+    } catch {}
+    return 0;
+  };
+
   useEffect(() => {
     if (session && !initialLoaded) {
       setInitialLoaded(true);
@@ -229,7 +247,10 @@ export default function ZiweiPage() {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.record?.result) {
-            setResult(data.record.result);
+            setChartData(data.record.result);
+            if (data.record.interpretData?.detailedAnalysis) {
+              setInterpretData(data.record.result);
+            }
           }
         })
         .catch(() => {});
@@ -243,16 +264,20 @@ export default function ZiweiPage() {
       if (data.hour === null) {
         throw new Error('紫微斗数排盘需要出生时辰，暂不支持未知时辰。请在表单中选择具体时辰。');
       }
+      const reqBody = { year: data.year, month: data.month, day: data.day, hour: data.hour, gender: data.gender, isLunar: data.isLunar };
       const response = await fetch('/api/ziwei', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year: data.year, month: data.month, day: data.day, hour: data.hour, gender: data.gender, isLunar: data.isLunar }),
+        body: JSON.stringify({ ...reqBody, mode: 'chart' }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '排盘失败');
-      setResult(json.result);
+      setChartData(json.result);
+      setInterpretData(null);
+      setPaywall(null);
+      setFormData(reqBody);
       setSelectedPalaceIdx(null);
-      setShowInterpretation(true);
+      setShowInterpretation(false);
       addToast('success', '紫微斗数排盘完成！');
     } catch (err: any) {
       const msg = err.message || '排盘失败';
@@ -263,27 +288,66 @@ export default function ZiweiPage() {
     }
   };
 
+  const handleInterpret = async (useLingzhu: boolean) => {
+    if (!formData) return;
+    setLoadingInterpret(true);
+    try {
+      const response = await fetch('/api/ziwei', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, mode: 'full', useLingzhu }),
+      });
+      const json = await response.json();
+      if (response.status === 401) {
+        setPaywall({ status: 401 });
+      } else if (response.status === 402) {
+        if (useLingzhu) {
+          setPaywall(null);
+          addToast('error', json.error || '灵珠不足，请充值');
+        } else {
+          const balance = await fetchBalance();
+          setPaywall({ status: 402, cost: json.cost || 50, balance });
+          if (json.result) setChartData(json.result);
+        }
+      } else if (!response.ok) {
+        throw new Error(json.error || '解读失败');
+      } else {
+        setInterpretData(json.result);
+        setPaywall(null);
+        setShowInterpretation(true);
+        addToast('success', '解读完成');
+      }
+    } catch (err: any) {
+      setPaywall(null);
+      const msg = err.message || '解读失败';
+      setError(msg);
+      addToast('error', msg);
+    } finally {
+      setLoadingInterpret(false);
+    }
+  };
+
   // 使用API返回的decadal数据
   const ageLimits = useMemo(() => {
-    if (!result) return [];
-    return result.palaces.map(p => p.decadal?.range || null);
-  }, [result]);
+    if (!displayResult) return [];
+    return displayResult.palaces.map(p => p.decadal?.range || null);
+  }, [displayResult]);
 
   // 三方四正
   const sanfangPalaces = useMemo(() => {
-    if (selectedPalaceIdx === null || !result) return [];
+    if (selectedPalaceIdx === null || !displayResult) return [];
     return SANFANG[selectedPalaceIdx] || [];
-  }, [selectedPalaceIdx, result]);
+  }, [selectedPalaceIdx, displayResult]);
 
   // 星曜组合
   const combinations = useMemo(() => {
-    if (!result) return [];
-    return detectCombinations(result.palaces);
-  }, [result]);
+    if (!displayResult) return [];
+    return detectCombinations(displayResult.palaces);
+  }, [displayResult]);
 
-  const interpretation = result ? generateZiweiInterpretation(result.palaces, result.basic) : null;
+  const interpretation = displayResult ? generateZiweiInterpretation(displayResult.palaces, displayResult.basic) : null;
 
-  const selectedPalace = selectedPalaceIdx !== null ? result?.palaces.find(p => p.index === selectedPalaceIdx) : null;
+  const selectedPalace = selectedPalaceIdx !== null ? displayResult?.palaces.find(p => p.index === selectedPalaceIdx) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
@@ -312,7 +376,7 @@ export default function ZiweiPage() {
           </div>
         )}
 
-        {result && (
+        {(chartData || interpretData) && displayResult && (
           <div className="space-y-6 animate-fade-in">
             {/* 功能切换 */}
             <div className="tab-nav">
@@ -333,14 +397,14 @@ export default function ZiweiPage() {
             {/* 命盘基本信息 - 古卷风格 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: '农历', value: result.basic.lunarDate, color: '' },
-                { label: '四柱八字', value: result.basic.chineseDate, color: '' },
-                { label: '五行局', value: result.basic.fiveElementsClass, color: 'text-[#9B2C2C]' },
-                { label: '生肖', value: result.basic.zodiac, color: '' },
-                { label: '命主', value: result.basic.soul || '--', color: 'text-amber-700' },
-                { label: '身主', value: result.basic.body || '--', color: 'text-indigo-700' },
-                { label: '命宫', value: result.basic.earthlyBranchOfSoulPalace || '--', color: 'text-yellow-700' },
-                { label: '身宫', value: result.basic.earthlyBranchOfBodyPalace || '--', color: 'text-emerald-700' },
+                { label: '农历', value: displayResult.basic.lunarDate, color: '' },
+                { label: '四柱八字', value: displayResult.basic.chineseDate, color: '' },
+                { label: '五行局', value: displayResult.basic.fiveElementsClass, color: 'text-[#9B2C2C]' },
+                { label: '生肖', value: displayResult.basic.zodiac, color: '' },
+                { label: '命主', value: displayResult.basic.soul || '--', color: 'text-amber-700' },
+                { label: '身主', value: displayResult.basic.body || '--', color: 'text-indigo-700' },
+                { label: '命宫', value: displayResult.basic.earthlyBranchOfSoulPalace || '--', color: 'text-yellow-700' },
+                { label: '身宫', value: displayResult.basic.earthlyBranchOfBodyPalace || '--', color: 'text-emerald-700' },
               ].map((item) => (
                 <div key={item.label} className="card !p-3 text-center bg-gradient-to-br from-[#FDF6E3] to-[#F5E6C8] border-amber-200/60">
                   <div className="text-xs text-amber-800/70 mb-1 tracking-wider">{item.label}</div>
@@ -433,7 +497,7 @@ export default function ZiweiPage() {
 
             {/* 十二宫命盘 - 使用新组件 */}
             <ZiweiChart
-              data={result}
+              data={displayResult}
               viewMode={viewMode}
               timeMode={timeMode}
               selectedPalaceIdx={selectedPalaceIdx}
@@ -531,7 +595,7 @@ export default function ZiweiPage() {
                       <h4 className="text-xs font-bold text-yellow-800 mb-1">三方四正</h4>
                       <div className="text-xs text-yellow-700">
                         {sanfangPalaces.map(idx => {
-                          const p = result?.palaces.find(pa => pa.index === idx);
+                          const p = displayResult?.palaces.find(pa => pa.index === idx);
                           return p ? `${p.name}宫` : '';
                         }).filter(Boolean).join(' · ') || '无'}
                       </div>
@@ -657,7 +721,7 @@ export default function ZiweiPage() {
                       { key: '夫妻', icon: '❤️', color: 'border-pink-300 bg-pink-50' },
                       { key: '迁移', icon: '🚀', color: 'border-green-300 bg-green-50' },
                     ].map((item) => {
-                      const palace = result.palaces.find(p => p.name.includes(item.key));
+                      const palace = displayResult.palaces.find(p => p.name.includes(item.key));
                       if (!palace) return null;
                       return (
                         <div key={item.key} className={`p-4 rounded-lg border ${item.color}`}>
@@ -689,24 +753,24 @@ export default function ZiweiPage() {
                 </div>
 
                 {/* ===== 深度解读 ===== */}
-                {result.detailedAnalysis && (
+                {interpretData?.detailedAnalysis && (
                   <>
                     {/* 综合总评 */}
-                    {result.detailedAnalysis.overallSummary && (
+                    {interpretData?.detailedAnalysis.overallSummary && (
                       <div className="card bg-gradient-to-br from-red-50 via-white to-yellow-50 border border-red-200">
                         <h2 className="card-title chinese-red">命盘深度总评</h2>
                         <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                          {result.detailedAnalysis.overallSummary}
+                          {interpretData?.detailedAnalysis.overallSummary}
                         </div>
                       </div>
                     )}
 
                     {/* 格局深度分析 */}
-                    {result.detailedAnalysis.patterns.length > 0 && (
+                    {interpretData?.detailedAnalysis.patterns.length > 0 && (
                       <div className="card border-l-4 border-l-purple-500">
                         <h2 className="card-title">格局深度分析</h2>
                         <div className="space-y-4">
-                          {result.detailedAnalysis.patterns.map((p, i) => (
+                          {interpretData?.detailedAnalysis.patterns.map((p, i) => (
                             <div key={i} className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                               <div className="flex items-center gap-2 mb-3">
                                 <span className="text-lg font-bold text-purple-800">{p.name}</span>
@@ -740,11 +804,11 @@ export default function ZiweiPage() {
                     )}
 
                     {/* 四化飞星总论 */}
-                    {result.detailedAnalysis.sihuaOverview.length > 0 && (
+                    {interpretData?.detailedAnalysis.sihuaOverview.length > 0 && (
                       <div className="card">
                         <h2 className="card-title">四化飞星总论</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {result.detailedAnalysis.sihuaOverview.map((s, i) => (
+                          {interpretData?.detailedAnalysis.sihuaOverview.map((s, i) => (
                             <div key={i} className={`p-3 rounded-lg border ${
                               s.mutagen === '化禄' ? 'bg-green-50 border-green-200' :
                               s.mutagen === '化权' ? 'bg-blue-50 border-blue-200' :
@@ -768,23 +832,23 @@ export default function ZiweiPage() {
                     )}
 
                     {/* 命身宫关系 */}
-                    {result.detailedAnalysis.mingShenAnalysis.analysis && (
+                    {interpretData?.detailedAnalysis.mingShenAnalysis.analysis && (
                       <div className="card border-l-4 border-l-gold-500">
                         <h2 className="card-title">命身宫关系</h2>
                         <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                          {result.detailedAnalysis.mingShenAnalysis.analysis}
+                          {interpretData?.detailedAnalysis.mingShenAnalysis.analysis}
                         </p>
-                        <p className="text-xs text-gray-500">建议：{result.detailedAnalysis.mingShenAnalysis.advice}</p>
+                        <p className="text-xs text-gray-500">建议：{interpretData?.detailedAnalysis.mingShenAnalysis.advice}</p>
                       </div>
                     )}
 
                     {/* 大限运势分析 */}
-                    {result.detailedAnalysis.decadalAnalysis.length > 0 && (
+                    {interpretData?.detailedAnalysis.decadalAnalysis.length > 0 && (
                       <div className="card">
                         <h2 className="card-title">大限运势详析</h2>
                         <p className="text-xs text-gray-500 mb-4">每步大限十年，以下为各步大限的运势分析</p>
                         <div className="space-y-3">
-                          {result.detailedAnalysis.decadalAnalysis.map((d, i) => (
+                          {interpretData?.detailedAnalysis.decadalAnalysis.map((d, i) => (
                             <div key={i} className="p-3 bg-parchment-50 rounded-lg border border-parchment-200">
                               <div className="flex items-center gap-3 mb-2">
                                 <span className="text-sm font-bold text-red-700 bg-red-100 px-2 py-1 rounded">
@@ -806,7 +870,7 @@ export default function ZiweiPage() {
                     <div className="card">
                       <h2 className="card-title">十二宫逐一详析</h2>
                       <div className="space-y-4">
-                        {result.detailedAnalysis.palaceDetails.map((pd, i) => (
+                        {interpretData?.detailedAnalysis.palaceDetails.map((pd, i) => (
                           <div key={i} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                             <div className="flex items-center gap-2 mb-3">
                               <span className="font-bold text-gray-800">{pd.palaceName}</span>
@@ -867,7 +931,36 @@ export default function ZiweiPage() {
                 )}
               </div>
             )}
+
+            {/* 查看详细解读按钮 */}
+            {!interpretData && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-red-600 to-amber-500 p-[2px] shadow-xl">
+                <div className="bg-white rounded-2xl px-6 py-5 text-center">
+                  <div className="text-3xl mb-2">📖</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">查看紫微斗数详细解读</h3>
+                  <p className="text-sm text-gray-500 mb-4">解锁命盘综合解析、格局深度分析、四化飞星总论等深度内容</p>
+                  <button
+                    onClick={() => handleInterpret(false)}
+                    disabled={loadingInterpret}
+                    className="px-8 py-3 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {loadingInterpret ? '加载中...' : '查看详细解读'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        {paywall && (
+          <InterpretPaywall
+            status={paywall.status}
+            cost={paywall.cost}
+            balance={paywall.balance}
+            moduleLabel="紫微斗数"
+            onConfirmPay={() => handleInterpret(true)}
+            onClose={() => setPaywall(null)}
+          />
         )}
       </div>
     </div>

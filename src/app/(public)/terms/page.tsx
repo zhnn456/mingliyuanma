@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '服务条款 - 命理网',
@@ -16,6 +17,9 @@ export default function TermsPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">服务条款</h1>
           <p className="text-gray-600">最后更新日期：2026年7月31日</p>
         </div>
+
+        {/* 代理商授权声明 */}
+        <AgentBrandNotice type="legal" />
 
         {/* 重要提示 */}
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 mb-6">
@@ -127,7 +131,21 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">3.3 退款政策</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">3.3 灵珠充值与使用规则</h3>
+              <ul className="pl-5 list-disc space-y-1">
+                <li>灵珠为本平台虚拟货币，1元人民币 = 10灵珠</li>
+                <li>灵珠仅限在本平台内用于排盘解读、供奉、合盘等功能消费</li>
+                <li>灵珠不可提现、不可转账、不可兑换人民币或其他货币</li>
+                <li>灵珠不可跨平台使用，不同代理商站点之间灵珠余额独立计算</li>
+                <li>充值成功后灵珠即时到账，如遇延迟请联系客服处理</li>
+                <li>灵珠账户余额长期有效，暂无过期时间限制</li>
+                <li>请确认充值金额后再支付，因用户自身操作失误导致的误充值，平台不承担责任</li>
+                <li>如发现利用漏洞非法获取灵珠，平台有权冻结相关账户及灵珠余额</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-2">3.4 退款政策</h3>
               <ul className="pl-5 list-disc space-y-1">
                 <li>虚拟商品一经售出，不支持7天无理由退款</li>
                 <li>如因系统故障导致服务无法使用，我们将根据实际情况处理退款</li>

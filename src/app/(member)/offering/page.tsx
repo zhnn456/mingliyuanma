@@ -108,6 +108,28 @@ export default function OfferingPage() {
     } catch { setMsg('网络错误，请重试'); } finally { setLoading(false); }
   };
 
+  const handleSubscribe = async (offerType: 'monthly' | 'yearly') => {
+    if (!user) { alert('请先登录'); return; }
+    const cost = offerType === 'monthly' ? 3000 : 30000;
+    if (balance < cost) { alert(`灵珠不足！需要${cost}灵珠，当前${balance}灵珠`); window.location.href = '/profile/recharge'; return; }
+
+    setLoading(true); setMsg(''); setSuccess('');
+    try {
+      const res = await fetch('/api/payment/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'offering', method: 'mock', offerType }),
+      });
+      const d = await res.json();
+      if (res.ok && d.success) {
+        setBalance(d.balance);
+        setSuccess(`✅ ${offerType === 'monthly' ? '月供' : '年供'}供奉成功！功德无量 🙏`);
+        loadRecords();
+      } else {
+        setMsg(d.error || '供奉失败');
+      }
+    } catch { setMsg('网络错误，请重试'); } finally { setLoading(false); }
+  };
+
   const rankIcon = (r: number) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `${r}`;
 
   return (
@@ -212,7 +234,7 @@ export default function OfferingPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               {categories.map(cat => (
                 <button key={cat.value} onClick={() => { setSelectedCat(cat.value); setSelectedSupplyId(''); }}
-                  className={`card text-center p-4 hover:shadow-md transition-all cursor-pointer border border-stone-200 ${selectedCat === cat.value ? 'ring-2 ring-amber-600 shadow-md bg-amber-50/50' : 'bg-white'}`}>
+                  className={`card text-center p-4 hover:shadow-md transition-all cursor-pointer border-2 ${selectedCat === cat.value ? 'border-teal-500 ring-1 ring-teal-400 shadow-md bg-teal-50' : 'border-stone-200 bg-white hover:border-stone-300'}`}>
                   <div className="text-4xl mb-2">{cat.icon}</div>
                   <h3 className="text-sm font-bold text-stone-800">{cat.label}</h3>
                   <p className="text-xs text-stone-500 mt-1">{cat.supplies.length} 种供品</p>
@@ -225,7 +247,7 @@ export default function OfferingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 {supplies.map(item => (
                   <button key={item.id} onClick={() => setSelectedSupplyId(item.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${selectedSupplyId === item.id ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-stone-200 hover:border-stone-300 bg-white'}`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${selectedSupplyId === item.id ? 'border-teal-500 bg-teal-50 shadow-md ring-1 ring-teal-400' : 'border-stone-200 hover:border-stone-300 bg-white'}`}>
                     <div className="text-3xl mb-2">{item.icon}</div>
                     <div className="font-medium text-stone-800 text-sm">{item.name}</div>
                     <div className="text-sm text-amber-700 font-bold mt-1">{item.price} 💎</div>
@@ -299,6 +321,36 @@ export default function OfferingPage() {
                 </p>
               </div>
             )}
+
+            {/* 长期供奉（月供/年供）- 灵珠支付 */}
+            <div className="bg-gradient-to-r from-purple-50 via-amber-50 to-purple-50 rounded-xl p-6 border border-purple-200">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">📿</span>
+                <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>长期供奉</span>
+                <span className="text-xs text-stone-400 ml-auto">灵珠订阅 · 功德绵长</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-stone-200 text-center">
+                  <div className="text-sm text-stone-500 mb-1">月供</div>
+                  <div className="text-2xl font-bold text-purple-700 mb-1">3000<span className="text-sm font-normal text-stone-500"> 灵珠/月</span></div>
+                  <div className="text-xs text-stone-400 mb-3">每月供奉，功德不断</div>
+                  <button onClick={() => handleSubscribe('monthly')} disabled={loading || !user}
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-purple-700 transition-colors">
+                    {loading ? '供奉中...' : '订阅月供'}
+                  </button>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-stone-200 text-center">
+                  <div className="text-sm text-stone-500 mb-1">年供</div>
+                  <div className="text-2xl font-bold text-purple-700 mb-1">30000<span className="text-sm font-normal text-stone-500"> 灵珠/年</span></div>
+                  <div className="text-xs text-stone-400 mb-3">全年供奉，福泽绵长</div>
+                  <button onClick={() => handleSubscribe('yearly')} disabled={loading || !user}
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-purple-700 transition-colors">
+                    {loading ? '供奉中...' : '订阅年供'}
+                  </button>
+                </div>
+              </div>
+              {!user && <p className="text-center text-sm text-stone-500 mt-3">请先 <Link href="/login" className="text-purple-700 hover:underline">登录</Link> 后订阅</p>}
+            </div>
           </>)}
 
         {/* ======== 记录 Tab ======== */}

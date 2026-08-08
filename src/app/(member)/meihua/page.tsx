@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-client';
 import { generateMeihuaInterpretation } from '@/lib/interpretation/meihua';
 import { MEIHUA_QUESTION_TYPES, type MeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { HexagramLookup } from '@/components/HexagramLookup';
+import { InterpretPaywall } from '@/components/InterpretPaywall';
 import { useToast } from '@/components/Toast';
 
 interface MeihuaResult {
@@ -63,7 +64,11 @@ function HexagramLines({ lines, dongYao, label, size = 'normal' }: { lines: numb
 
 export default function MeihuaPage() {
   const { user: session } = useAuth();
-  const [result, setResult] = useState<MeihuaResult | null>(null);
+  const [chartData, setChartData] = useState<MeihuaResult | null>(null);
+  const [interpretData, setInterpretData] = useState<MeihuaResult | null>(null);
+  const [paywall, setPaywall] = useState<{ status: 401 | 402; cost?: number; balance?: number } | null>(null);
+  const [formData, setFormData] = useState<any>(null);
+  const [loadingInterpret, setLoadingInterpret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<MethodType>('number');
@@ -79,7 +84,7 @@ export default function MeihuaPage() {
   const [detailedAnalysis, setDetailedAnalysis] = useState<MeihuaDetailedAnalysis | null>(null);
   const { addToast } = useToast();
   const [initialLoaded, setInitialLoaded] = useState(false);
-  
+
   // 新增状态：报数、方位、颜色、声音、姓名起卦
   const [reportNums, setReportNums] = useState<string[]>(['', '', '']);
   const [upperDir, setUpperDir] = useState('乾');
@@ -92,6 +97,19 @@ export default function MeihuaPage() {
   const [surname, setSurname] = useState('');
   const [givenName, setGivenName] = useState('');
 
+  const displayResult = interpretData || chartData;
+
+  const fetchBalance = async (): Promise<number> => {
+    try {
+      const r = await fetch('/api/user/lingzhu');
+      if (r.ok) {
+        const j = await r.json();
+        return j.balance || 0;
+      }
+    } catch {}
+    return 0;
+  };
+
   useEffect(() => {
     if (session && !initialLoaded) {
       setInitialLoaded(true);
@@ -99,9 +117,10 @@ export default function MeihuaPage() {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.record?.result) {
-            setResult(data.record.result);
+            setChartData(data.record.result);
             // 尝试从保存的数据中恢复深度解读
             if (data.record.detailedAnalysis) {
+              setInterpretData(data.record.result);
               setDetailedAnalysis(data.record.detailedAnalysis);
             }
           }
@@ -145,14 +164,17 @@ export default function MeihuaPage() {
       const response = await fetch('/api/meihua', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, mode: 'chart' }),
       });
 
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '起卦失败');
-      setResult(json.result);
-      setDetailedAnalysis(json.detailedAnalysis || null);
-      setShowInterpretation(true);
+      setChartData(json.result);
+      setInterpretData(null);
+      setDetailedAnalysis(null);
+      setPaywall(null);
+      setFormData(body);
+      setShowInterpretation(false);
       addToast('success', '起卦完成！');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '起卦失败';
@@ -163,7 +185,47 @@ export default function MeihuaPage() {
     }
   };
 
-  const interpretation = result ? generateMeihuaInterpretation(result) : null;
+  const handleInterpret = async (useLingzhu: boolean) => {
+    if (!formData) return;
+    setLoadingInterpret(true);
+    try {
+      const response = await fetch('/api/meihua', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, mode: 'full', useLingzhu }),
+      });
+      const json = await response.json();
+      if (response.status === 401) {
+        setPaywall({ status: 401 });
+      } else if (response.status === 402) {
+        if (useLingzhu) {
+          setPaywall(null);
+          addToast('error', json.error || '灵珠不足，请充值');
+        } else {
+          const balance = await fetchBalance();
+          setPaywall({ status: 402, cost: json.cost || 50, balance });
+          if (json.result) setChartData(json.result);
+        }
+      } else if (!response.ok) {
+        throw new Error(json.error || '解读失败');
+      } else {
+        setInterpretData(json.result);
+        setDetailedAnalysis(json.detailedAnalysis || null);
+        setPaywall(null);
+        setShowInterpretation(true);
+        addToast('success', '解读完成');
+      }
+    } catch (err) {
+      setPaywall(null);
+      const msg = err instanceof Error ? err.message : '解读失败';
+      setError(msg);
+      addToast('error', msg);
+    } finally {
+      setLoadingInterpret(false);
+    }
+  };
+
+  const interpretation = displayResult ? generateMeihuaInterpretation(displayResult) : null;
 
   const getLevelColor = (level: string) => {
     if (level === '大吉') return 'bg-green-100 text-green-800 border-green-300';
@@ -562,20 +624,20 @@ export default function MeihuaPage() {
 
             {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
 
-            {result && (
+            {(chartData || interpretData) && displayResult && (
               <div className="space-y-6 animate-fade-in">
                 {/* 卦象展示 */}
                 <div className="card">
                   <h2 className="card-title text-center">卦象</h2>
                   <div className="grid grid-cols-3 gap-8 mb-6">
-                    <HexagramLines lines={result.benGua.lines} dongYao={result.dongYao} label={`本卦：${result.benGua.name}`} size="large" />
-                    <HexagramLines lines={result.huGua.lines} label={`互卦：${result.huGua.name}`} size="large" />
-                    <HexagramLines lines={result.bianGua.lines} label={`变卦：${result.bianGua.name}`} size="large" />
+                    <HexagramLines lines={displayResult.benGua.lines} dongYao={displayResult.dongYao} label={`本卦：${displayResult.benGua.name}`} size="large" />
+                    <HexagramLines lines={displayResult.huGua.lines} label={`互卦：${displayResult.huGua.name}`} size="large" />
+                    <HexagramLines lines={displayResult.bianGua.lines} label={`变卦：${displayResult.bianGua.name}`} size="large" />
                   </div>
                   <div className="text-center text-sm text-gray-600 space-y-1 bg-gray-50 rounded-lg p-4">
-                    <p><span className="font-bold">本卦：</span>{result.benGua.name} — {result.benGua.meaning}</p>
-                    <p><span className="font-bold">互卦：</span>{result.huGua.name} — {result.huGua.meaning}</p>
-                    <p><span className="font-bold">变卦：</span>{result.bianGua.name} — {result.bianGua.meaning}</p>
+                    <p><span className="font-bold">本卦：</span>{displayResult.benGua.name} — {displayResult.benGua.meaning}</p>
+                    <p><span className="font-bold">互卦：</span>{displayResult.huGua.name} — {displayResult.huGua.meaning}</p>
+                    <p><span className="font-bold">变卦：</span>{displayResult.bianGua.name} — {displayResult.bianGua.meaning}</p>
                   </div>
                 </div>
 
@@ -584,22 +646,22 @@ export default function MeihuaPage() {
                   <h2 className="card-title">卦象分析</h2>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="text-center p-6 bg-gradient-to-b from-blue-50 to-white rounded-lg border border-blue-200">
-                      <div className="text-5xl mb-3">{result.upperGua.symbol}</div>
-                      <div className="font-bold text-xl">{result.upperGua.name}</div>
-                      <div className="text-sm text-gray-500 mt-1">{result.upperGua.nature} · {result.upperGua.element}</div>
+                      <div className="text-5xl mb-3">{displayResult.upperGua.symbol}</div>
+                      <div className="font-bold text-xl">{displayResult.upperGua.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{displayResult.upperGua.nature} · {displayResult.upperGua.element}</div>
                       <div className="text-xs text-blue-600 mt-2 bg-blue-100 rounded-full px-3 py-0.5 inline-block">上卦</div>
                     </div>
                     <div className="text-center p-6 bg-gradient-to-b from-green-50 to-white rounded-lg border border-green-200">
-                      <div className="text-5xl mb-3">{result.lowerGua.symbol}</div>
-                      <div className="font-bold text-xl">{result.lowerGua.name}</div>
-                      <div className="text-sm text-gray-500 mt-1">{result.lowerGua.nature} · {result.lowerGua.element}</div>
+                      <div className="text-5xl mb-3">{displayResult.lowerGua.symbol}</div>
+                      <div className="font-bold text-xl">{displayResult.lowerGua.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{displayResult.lowerGua.nature} · {displayResult.lowerGua.element}</div>
                       <div className="text-xs text-green-600 mt-2 bg-green-100 rounded-full px-3 py-0.5 inline-block">下卦</div>
                     </div>
                   </div>
                   <div className="mt-4 text-center p-3 bg-red-50 rounded-lg">
                     <span className="text-sm text-gray-500">动爻：</span>
-                    <span className="font-bold text-red-700 text-lg">第 {result.dongYao} 爻</span>
-                    <span className="text-xs text-gray-400 ml-2">（{methodLabels[result.method as MethodType] || result.method}起卦）</span>
+                    <span className="font-bold text-red-700 text-lg">第 {displayResult.dongYao} 爻</span>
+                    <span className="text-xs text-gray-400 ml-2">（{methodLabels[displayResult.method as MethodType] || displayResult.method}起卦）</span>
                   </div>
                 </div>
 
@@ -609,15 +671,15 @@ export default function MeihuaPage() {
                   <div className="grid grid-cols-3 gap-4 text-center mb-4">
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="text-xs text-gray-500 mb-1">体卦</div>
-                      <div className="text-xl font-bold text-blue-700">{result.tiYong.ti}</div>
+                      <div className="text-xl font-bold text-blue-700">{displayResult.tiYong.ti}</div>
                     </div>
-                    <div className={`p-4 rounded-lg border ${getLevelColor(result.tiYong.relation)}`}>
+                    <div className={`p-4 rounded-lg border ${getLevelColor(displayResult.tiYong.relation)}`}>
                       <div className="text-xs text-gray-500 mb-1">关系</div>
-                      <div className="text-lg font-bold">{result.tiYong.relation}</div>
+                      <div className="text-lg font-bold">{displayResult.tiYong.relation}</div>
                     </div>
                     <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                       <div className="text-xs text-gray-500 mb-1">用卦</div>
-                      <div className="text-xl font-bold text-green-700">{result.tiYong.yong}</div>
+                      <div className="text-xl font-bold text-green-700">{displayResult.tiYong.yong}</div>
                     </div>
                   </div>
                 </div>
@@ -635,7 +697,7 @@ export default function MeihuaPage() {
                 </div>
 
                 {/* 详细解析 */}
-                {showInterpretation && interpretation && (
+                {showInterpretation && interpretData && interpretation && (
                   <div className="space-y-6">
                     {/* 吉凶等级 */}
                     {interpretation.tiyongDetail && (
@@ -654,7 +716,7 @@ export default function MeihuaPage() {
                     {/* 动爻解析 */}
                     {interpretation.dongYaoData && (
                       <div className="card border-2 border-orange-200 bg-orange-50/30">
-                        <h2 className="card-title chinese-red">动爻解析：第{result.dongYao}爻</h2>
+                        <h2 className="card-title chinese-red">动爻解析：第{displayResult.dongYao}爻</h2>
                         <div className="p-4 bg-white rounded-lg border border-orange-200 mb-3">
                           <p className="text-sm text-gray-800 leading-relaxed font-medium">{interpretation.dongYaoData.yaoCi}</p>
                         </div>
@@ -668,7 +730,7 @@ export default function MeihuaPage() {
                     {/* 本卦详解 */}
                     {interpretation.benDetail && (
                       <div className="card">
-                        <h2 className="card-title">本卦详解：{result.benGua.name}</h2>
+                        <h2 className="card-title">本卦详解：{displayResult.benGua.name}</h2>
                         <div className="p-3 bg-red-50 rounded-lg border border-red-200 mb-3">
                           <p className="text-sm text-gray-800"><span className="font-bold">卦辞：</span>{interpretation.benDetail.guaCi}</p>
                         </div>
@@ -701,9 +763,9 @@ export default function MeihuaPage() {
                     )}
 
                     {/* 变卦详解 */}
-                    {interpretation.bianDetail && result.bianGua.name !== result.benGua.name && (
+                    {interpretation.bianDetail && displayResult.bianGua.name !== displayResult.benGua.name && (
                       <div className="card">
-                        <h2 className="card-title">变卦详解：{result.bianGua.name}</h2>
+                        <h2 className="card-title">变卦详解：{displayResult.bianGua.name}</h2>
                         <div className="p-3 bg-red-50 rounded-lg border border-red-200 mb-3">
                           <p className="text-sm text-gray-800"><span className="font-bold">卦辞：</span>{interpretation.bianDetail.guaCi}</p>
                         </div>
@@ -856,7 +918,36 @@ export default function MeihuaPage() {
                     )}
                   </div>
                 )}
+
+                {/* 查看详细解读按钮 */}
+                {!interpretData && (
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-red-600 to-amber-500 p-[2px] shadow-xl">
+                    <div className="bg-white rounded-2xl px-6 py-5 text-center">
+                      <div className="text-3xl mb-2">📖</div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">查看梅花易数详细解读</h3>
+                      <p className="text-sm text-gray-500 mb-4">解锁吉凶等级、动爻解析、体用深度分析、应期推断等深度内容</p>
+                      <button
+                        onClick={() => handleInterpret(false)}
+                        disabled={loadingInterpret}
+                        className="px-8 py-3 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                      >
+                        {loadingInterpret ? '加载中...' : '查看详细解读'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
+
+            {paywall && (
+              <InterpretPaywall
+                status={paywall.status}
+                cost={paywall.cost}
+                balance={paywall.balance}
+                moduleLabel="梅花易数"
+                onConfirmPay={() => handleInterpret(true)}
+                onClose={() => setPaywall(null)}
+              />
             )}
           </>
         )}

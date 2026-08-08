@@ -38,6 +38,8 @@ export default function AgentSettlementsPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [agentLevel, setAgentLevel] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -56,6 +58,16 @@ export default function AgentSettlementsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    fetch('/api/agent/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        setAgentLevel(d.agent?.level || 'saas');
+        setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -100,6 +112,18 @@ export default function AgentSettlementsPage() {
   const methodMap: Record<string, string> = {
     bank: '银行卡', alipay: '支付宝', wechat: '微信',
   };
+
+  if (checking) {
+    return <div className="p-6 text-center text-gray-400">加载中...</div>;
+  }
+  if (agentLevel === 'source') {
+    return (
+      <div className="bg-blue-50 rounded-xl border border-blue-200 p-8 text-center">
+        <div className="text-4xl mb-3">🔒</div>
+        <p className="text-blue-700 font-medium">结算中心仅 SaaS 代理可用，源码部署代理收入直接进入自己的账户，无需结算</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

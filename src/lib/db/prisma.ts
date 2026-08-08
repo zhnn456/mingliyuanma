@@ -7,19 +7,8 @@ export async function getPrisma(): Promise<PrismaClient> {
   if (prismaClient) return prismaClient;
   if (initPromise) return initPromise;
 
+  // 普通服务器环境：直接使用 PrismaClient（通过 DATABASE_URL 连接数据库）
   initPromise = (async () => {
-    try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const { PrismaD1 } = await import('@prisma/adapter-d1');
-      const ctx = await getCloudflareContext({ async: true });
-      if ((ctx?.env as any)?.DB) {
-        prismaClient = new PrismaClient({ adapter: new PrismaD1((ctx.env as any).DB) as any });
-        return prismaClient;
-      }
-    } catch {
-      // 不在 Cloudflare Workers 环境
-    }
-
     prismaClient = new PrismaClient();
     return prismaClient;
   })();
