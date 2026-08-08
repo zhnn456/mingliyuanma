@@ -43,15 +43,15 @@ export default function CityPicker({ value, onChange }: CityPickerProps) {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+        <div className="absolute z-[200] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-[28rem] overflow-hidden flex flex-col">
           {/* 地区标签页 */}
-          <div className="flex border-b border-gray-100 overflow-x-auto">
+          <div className="flex border-b border-gray-100 overflow-x-auto px-1 pt-1 flex-shrink-0">
             {CITY_REGIONS.map(region => (
               <button
                 key={region}
                 type="button"
                 onClick={() => setActiveRegion(region)}
-                className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
                   activeRegion === region
                     ? 'border-amber-500 text-amber-700 font-medium'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
