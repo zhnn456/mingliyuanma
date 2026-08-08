@@ -325,24 +325,18 @@ export default function QimenPage() {
   const currentQuestionType = QUESTION_TYPES.find(q => q.key === questionType);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#fef9f0] via-[#fdf4e3] to-[#fef9f0] py-8">
-      {/* 背景纹理 */}
-      <div className="fixed inset-0 opacity-[0.03] pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-      }} />
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
+      {/* 页面装饰背景 */}
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* 页面标题 */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-16 h-[2px] bg-gradient-to-r from-transparent to-red-600" />
-            <span className="text-red-700 text-sm tracking-[0.3em] font-medium">QI MEN DUN JIA</span>
-            <div className="w-16 h-[2px] bg-gradient-to-l from-transparent to-red-600" />
-          </div>
-          <h1 className="text-4xl font-bold text-red-900 mb-2" style={{ fontFamily: 'Noto Serif SC, STSong, SimSun, serif' }}>
-            奇门遁甲
+        <div className="page-header">
+          <div className="section-label justify-center">QI MEN DUN JIA</div>
+          <h1 className="page-header-title">
+            <span>奇门遁甲</span>
           </h1>
-          <p className="text-gray-600 text-sm">时家奇门排盘 · 观天时地利 · 断吉凶休咎</p>
+          <p className="page-header-subtitle">时家奇门排盘 · 观天时地利 · 断吉凶休咎</p>
         </div>
 
         {/* 输入表单 */}
