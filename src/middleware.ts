@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW = 60_000;
-const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license/verify', '/api/watermark', '/api/features'];
+const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license/verify', '/api/watermark', '/api/features', '/api/internal'];
 const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 
 // 代理商同步状态
