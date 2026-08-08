@@ -16,6 +16,10 @@ const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 let agentSynced = false;
 let lastSyncTime = 0;
 
+// 域名→代理商解析缓存（避免每请求都 fetch）
+const agentDomainCache = new Map<string, { agentId: string | null; expireAt: number }>();
+const DOMAIN_CACHE_TTL = 5 * 60 * 1000; // 5分钟
+
 // 在线验证缓存（避免每请求都远程验证）
 let licenseValid = true;       // 授权是否有效
 let licenseCheckTime = 0;       // 上次验证时间
@@ -115,21 +119,28 @@ export async function middleware(req: NextRequest) {
   // 仅在主站（非代理商子站）执行，不影响 APP_LICENSE_KEY 域名验证逻辑
   let resolvedAgentId: string | null = null;
   if (!isAgentEnv) {
-    try {
-      const host = req.headers.get('host') || '';
-      // 通过内部 API 解析代理商域名，避免在 middleware 中直接导入 mysql2
-      const baseUrl = process.env.NEXTAUTH_URL || `https://${host}`;
-      const res = await fetch(`${baseUrl}/api/internal/agent-domain?host=${encodeURIComponent(host)}`, {
-        headers: { 'x-internal-request': '1' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.agentId) {
-          resolvedAgentId = data.agentId;
+    const host = req.headers.get('host') || '';
+    // 检查内存缓存
+    const cached = agentDomainCache.get(host);
+    if (cached && Date.now() < cached.expireAt) {
+      resolvedAgentId = cached.agentId;
+    } else {
+      try {
+        // 用 localhost 直接调用，避免 HTTPS 往返（NEXTAUTH_URL 是 https:// 会回到 Nginx）
+        const res = await fetch(`http://localhost:3001/api/internal/agent-domain?host=${encodeURIComponent(host)}`, {
+          headers: { 'x-internal-request': '1' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.agentId) {
+            resolvedAgentId = data.agentId;
+          }
         }
+        // 缓存结果（包括无代理商的情况，避免重复查询）
+        agentDomainCache.set(host, { agentId: resolvedAgentId, expireAt: Date.now() + DOMAIN_CACHE_TTL });
+      } catch {
+        // 数据库查询失败时不阻断请求
       }
-    } catch {
-      // 数据库查询失败时不阻断请求
     }
   }
 
