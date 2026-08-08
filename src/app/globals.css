@@ -345,7 +345,7 @@ input:focus, select:focus, textarea:focus,
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.02);
   padding: 2.5rem;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .form-card::before {
