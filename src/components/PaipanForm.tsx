@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { CITIES, calcSolarTimeOffset, applySolarTimeCorrection } from '@/lib/cities';
+import { calcSolarTimeOffset, applySolarTimeCorrection } from '@/lib/cities';
+import CityPicker from './CityPicker';
 import type { PaipanFormData } from '@/types';
 
 interface PaipanFormProps {
@@ -333,17 +334,7 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
         </div>
         {trueSolarTime && (
           <div>
-            <select
-              value={birthCity}
-              onChange={(e) => setBirthCity(e.target.value)}
-            >
-              <option value="">请选择城市</option>
-              {CITIES.map((city) => (
-                <option key={city.name} value={city.name}>
-                  {city.nameEn ? `${city.name} ${city.nameEn}` : city.name}（经度 {city.longitude}°，校正 {city.offset > 0 ? '+' : ''}{city.offset}分钟）
-                </option>
-              ))}
-            </select>
+            <CityPicker value={birthCity} onChange={setBirthCity} />
             <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
