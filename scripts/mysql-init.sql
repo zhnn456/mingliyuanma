@@ -255,6 +255,19 @@ CREATE TABLE IF NOT EXISTS `OfferingSupply` (
 -- ALTER TABLE ADD INDEX (see below) `OfferingSupply_isActive_idx` ON `OfferingSupply`(`isActive`);
 
 -- ============================================================
+-- 11b. 供奉分类表 OfferingCategory
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `OfferingCategory` (
+  `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `name` VARCHAR(255) NOT NULL,
+  `icon` VARCHAR(50),
+  `description` VARCHAR(500),
+  `sortOrder` INT NOT NULL DEFAULT 0,
+  `isActive` INT NOT NULL DEFAULT 1,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
 -- 12. 工单表 Ticket
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `Ticket` (
@@ -546,6 +559,7 @@ CALL add_index_if_missing('OfferingRecord', 'OfferingRecord_userId_idx', '`userI
 CALL add_index_if_missing('OfferingRecord', 'OfferingRecord_status_idx', '`status`');
 CALL add_index_if_missing('OfferingSupply', 'OfferingSupply_category_idx', '`category`');
 CALL add_index_if_missing('OfferingSupply', 'OfferingSupply_isActive_idx', '`isActive`');
+CALL add_index_if_missing('OfferingCategory', 'OfferingCategory_isActive_idx', '`isActive`');
 CALL add_index_if_missing('Ticket', 'Ticket_userId_idx', '`userId`');
 CALL add_index_if_missing('Ticket', 'Ticket_status_idx', '`status`');
 CALL add_index_if_missing('SiteConfig', 'SiteConfig_category_idx', '`category`');
@@ -602,6 +616,14 @@ INSERT IGNORE INTO `SiteConfig` (`key`, `value`, `category`, `updatedAt`) VALUES
 ('brandName', '玄机阁', 'general', NOW()),
 ('logo', '', 'general', NOW()),
 ('tagline', '传承千年智慧，融合现代科技', 'general', NOW());
+
+-- 供奉分类
+INSERT IGNORE INTO `OfferingCategory` (`id`, `name`, `icon`, `description`, `sortOrder`, `isActive`, `createdAt`) VALUES
+('cat_buddha',      '佛菩萨', '🪷', '供养佛菩萨，祈福消灾', 1, 1, NOW()),
+('cat_deity',       '神明',   '⛩️', '供奉神明，护佑平安',   2, 1, NOW()),
+('cat_ritual',      '法器',   '🕯️', '供奉法器，庄严道场',   3, 1, NOW()),
+('cat_offering',    '供品',   '🍎', '鲜花水果，清香供奉',   4, 1, NOW()),
+('cat_deliverance', '超度',   '🪧', '追思超度，回向功德',   5, 1, NOW());
 
 -- 默认供奉供品（从 d1.ts 的 SEED_SUPPLIES 复制）
 INSERT IGNORE INTO `OfferingSupply` (`id`, `name`, `icon`, `image`, `price`, `description`, `category`, `sortOrder`, `isActive`, `createdAt`, `stock`) VALUES
