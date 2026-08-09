@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `Agent` (
   `brandName` VARCHAR(255),
   `logo` VARCHAR(500),
   `siteConfig` TEXT,
-  `licenseKey` VARCHAR(255),
+  `licenseKey` VARCHAR(500),
   `licenseExpiry` DATETIME,
   `level` VARCHAR(50) DEFAULT 'saas',
   `plan` VARCHAR(50) DEFAULT 'trial',
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS `Agent` (
 CREATE TABLE IF NOT EXISTS `AgentLicense` (
   `id` VARCHAR(255) NOT NULL PRIMARY KEY,
   `agentId` VARCHAR(255) NOT NULL,
-  `licenseKey` VARCHAR(255) NOT NULL,
+  `licenseKey` VARCHAR(500) NOT NULL,
   `domain` VARCHAR(255),
   `issuedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expiryAt` DATETIME,

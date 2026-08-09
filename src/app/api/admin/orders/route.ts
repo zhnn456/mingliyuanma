@@ -14,8 +14,9 @@ export async function GET(req: NextRequest) {
     let countSql = `SELECT COUNT(*) as total FROM "Order" WHERE 1=1`;
     const params: any[] = [];
     if (status) { sql += ' AND o.status = ?'; countSql += ' AND status = ?'; params.push(status); }
-    sql += ' ORDER BY o.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    // mysql2 prepared statement 不支持 LIMIT ? OFFSET ?，用整数拼接（已 parseInt 安全）
+    const offset = (page - 1) * pageSize;
+    sql += ` ORDER BY o.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
     const orders = await queryAll(sql, ...params);
     const total = (await queryFirst(countSql, ...(status ? [status] : [])) as any)?.total || 0;
     return NextResponse.json({ orders, total, page, pageSize });

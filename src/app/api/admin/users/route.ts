@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
-    let sql = "SELECT id, email, name, phone, role, memberLevel, memberExpiry, dailyUsage, lastUsageDate, createdAt FROM User";
+    let sql = "SELECT id, email, name, phone, role, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate, createdAt FROM User";
     let countSql = "SELECT COUNT(*) as total FROM User";
     const params: any[] = [];
 
@@ -25,8 +25,9 @@ export async function GET(req: NextRequest) {
       params.push(like, like, like);
     }
 
-    sql += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    // mysql2 prepared statement 不支持 LIMIT ? OFFSET ?，用整数拼接（已 parseInt 安全）
+    const offset = (page - 1) * pageSize;
+    sql += ` ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
 
     const users = await queryAll(sql, ...params) as any[];
     const totalRow = await queryFirst(countSql, ...(keyword ? [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`] : [])) as any;
@@ -72,7 +73,7 @@ export async function PUT(req: NextRequest) {
       params.push(role);
     }
     if (memberExpiry !== undefined) {
-      updates.push('memberExpiry = ?');
+      updates.push('memberExpiryAt = ?');
       params.push(memberExpiry ? new Date(memberExpiry).toISOString() : null);
     }
 
@@ -86,7 +87,7 @@ export async function PUT(req: NextRequest) {
     if (!existing) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
 
     await execute(`UPDATE User SET ${updates.join(', ')} WHERE id = ?`, ...params);
-    const user = await queryFirst('SELECT id, email, name, role, memberLevel, memberExpiry FROM User WHERE id = ?', userId);
+    const user = await queryFirst('SELECT id, email, name, role, memberLevel, memberExpiryAt FROM User WHERE id = ?', userId);
 
     return NextResponse.json({ user });
   } catch (error) {
