@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { CITIES, calcSolarTimeOffset, applySolarTimeCorrection } from '@/lib/cities';
+import { CITIES, applySolarTimeCorrection } from '@/lib/cities';
 import CityPicker from './CityPicker';
 import type { PaipanFormData } from '@/types';
 
@@ -68,9 +68,9 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const y = parseInt(year);
-    const m = parseInt(month);
-    const d = parseInt(day);
+    let y = parseInt(year);
+    let m = parseInt(month);
+    let d = parseInt(day);
     if (!y || !m || !d) { alert('请填写完整的出生日期'); return; }
     if (y < 1900 || y > 2100) { alert('年份请在1900-2100之间'); return; }
 
@@ -95,9 +95,11 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
       if (trueSolarTime && birthCity) {
         const city = CITIES.find(c => c.name === birthCity);
         if (city) {
-          const offset = calcSolarTimeOffset(city.longitude);
           const baseDate = new Date(y, m - 1, d, hour, 0);
-          const corrected = applySolarTimeCorrection(baseDate, offset);
+          const corrected = applySolarTimeCorrection(baseDate, city.offset);
+          y = corrected.getFullYear();
+          m = corrected.getMonth() + 1;
+          d = corrected.getDate();
           hour = corrected.getHours();
         }
       }

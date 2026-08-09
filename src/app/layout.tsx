@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Providers } from '@/components/Providers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AnnouncementBar from '@/components/AnnouncementBar';
 
 export const metadata: Metadata = {
   title: {
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="min-h-screen flex flex-col bg-parchment-100">
         <Providers>
+          <AnnouncementBar />
           <Header />
           <main className="flex-1">
             <ErrorBoundary>
