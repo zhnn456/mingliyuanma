@@ -297,6 +297,25 @@ CREATE TABLE IF NOT EXISTS `SiteConfig` (
 -- ALTER TABLE ADD INDEX (see below) `SiteConfig_category_idx` ON `SiteConfig`(`category`);
 
 -- ============================================================
+-- 13b. 公告表 Announcement（多公告队列，支持已读追踪）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `Announcement` (
+  `id` VARCHAR(32) NOT NULL PRIMARY KEY,
+  `icon` VARCHAR(16) NOT NULL DEFAULT '📢',
+  `badge` VARCHAR(64) NOT NULL DEFAULT '公告',
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT,
+  `link` VARCHAR(255) NOT NULL DEFAULT '',
+  `linkText` VARCHAR(64) NOT NULL DEFAULT '查看详情',
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `sortOrder` INT NOT NULL DEFAULT 0,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ALTER TABLE ADD INDEX (see below) `Announcement_enabled_sort_idx` ON `Announcement`(`enabled`, `sortOrder`, `createdAt`);
+
+-- ============================================================
 -- 14. 用户标签关系表 UserTagRelation
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `UserTagRelation` (
@@ -563,6 +582,7 @@ CALL add_index_if_missing('OfferingCategory', 'OfferingCategory_isActive_idx', '
 CALL add_index_if_missing('Ticket', 'Ticket_userId_idx', '`userId`');
 CALL add_index_if_missing('Ticket', 'Ticket_status_idx', '`status`');
 CALL add_index_if_missing('SiteConfig', 'SiteConfig_category_idx', '`category`');
+CALL add_index_if_missing('Announcement', 'Announcement_enabled_sort_idx', '`enabled`, `sortOrder`, `createdAt`');
 CALL add_index_if_missing('UserTagRelation', 'UserTagRelation_userId_idx', '`userId`');
 CALL add_index_if_missing('UserTagRelation', 'UserTagRelation_tagId_idx', '`tagId`');
 CALL add_index_if_missing('Withdrawal', 'Withdrawal_userId_idx', '`userId`');

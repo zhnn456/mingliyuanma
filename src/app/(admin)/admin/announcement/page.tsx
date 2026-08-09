@@ -2,254 +2,429 @@
 
 import { useState, useEffect } from 'react';
 
-interface AnnouncementConfig {
-  enabled: boolean;
+interface Announcement {
+  id: string;
   icon: string;
   badge: string;
   title: string;
   content: string;
   link: string;
   linkText: string;
-  dismissHours: number;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt?: string;
 }
 
-const DEFAULT: AnnouncementConfig = {
+const ICONS = ['🎁', '📢', '🎉', '✨', '🔥', '💎', '🚀', '🙏', '⭐', '🧧', '📜', '💸'];
+
+const EMPTY: Partial<Announcement> = {
+  icon: '📢',
+  badge: '公告',
+  title: '',
+  content: '',
+  link: '',
+  linkText: '查看详情',
   enabled: true,
-  icon: '🎁',
-  badge: '新用户福利',
-  title: '注册即送 100 灵珠',
-  content: '灵珠可用于八字排盘、奇门遁甲、紫微斗数等全部功能，免费体验专业命理测算。',
-  link: '/register',
-  linkText: '立即注册',
-  dismissHours: 24,
+  sortOrder: 0,
 };
 
-const ICONS = ['🎁', '📢', '🎉', '✨', '🔥', '💎', '🙏', '⭐', '🧧', '📜'];
-
 export default function AdminAnnouncementPage() {
-  const [config, setConfig] = useState<AnnouncementConfig>(DEFAULT);
+  const [list, setList] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Partial<Announcement> | null>(null);
+  const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
 
-  const fetchConfig = async () => {
+  const fetchList = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/announcement');
       if (res.ok) {
         const d = await res.json();
-        if (d.announcement) setConfig({ ...DEFAULT, ...d.announcement });
+        setList(d.announcements || []);
       }
-    } catch {} finally {
+    } catch {
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchConfig();
+    fetchList();
   }, []);
 
+  const handleNew = () => {
+    setEditing({ ...EMPTY });
+    setIsNew(true);
+  };
+
+  const handleEdit = (a: Announcement) => {
+    setEditing({ ...a });
+    setIsNew(false);
+  };
+
+  const handleCancel = () => {
+    setEditing(null);
+    setIsNew(false);
+  };
+
+  const update = (key: keyof Announcement, value: any) => {
+    setEditing(prev => (prev ? { ...prev, [key]: value } : prev));
+  };
+
   const handleSave = async () => {
+    if (!editing) return;
     setSaving(true);
     try {
       const res = await fetch('/api/admin/announcement', {
-        method: 'PUT',
+        method: isNew ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify(editing),
       });
       if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setSavedMsg(isNew ? '✓ 已创建' : '✓ 已保存');
+        setTimeout(() => setSavedMsg(''), 2000);
+        setEditing(null);
+        setIsNew(false);
+        fetchList();
       }
-    } catch {} finally {
+    } catch {
+    } finally {
       setSaving(false);
     }
   };
 
-  const update = (key: keyof AnnouncementConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+  const handleDelete = async (id: string) => {
+    if (!confirm('确认删除该公告？删除后用户将不再看到此公告。')) return;
+    await fetch(`/api/admin/announcement?id=${id}`, { method: 'DELETE' });
+    if (editing?.id === id) {
+      setEditing(null);
+      setIsNew(false);
+    }
+    fetchList();
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-gray-400">加载中...</div>
-      </div>
-    );
-  }
+  const toggleEnabled = async (a: Announcement) => {
+    await fetch('/api/admin/announcement', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id, enabled: !a.enabled }),
+    });
+    fetchList();
+  };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* 顶部 */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">公告管理</h1>
-          <p className="text-sm text-gray-500 mt-1">管理网站右下角弹出的公告浮层，修改后即时生效</p>
+          <p className="text-sm text-gray-500 mt-1">
+            多公告队列 · 用户已读不再显示 · 新公告会再次弹出
+          </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-medium transition"
-        >
-          {saving ? '保存中...' : saved ? '✓ 已保存' : '保存修改'}
-        </button>
+        <div className="flex items-center gap-3">
+          {savedMsg && (
+            <span className="text-sm text-green-600 font-medium">{savedMsg}</span>
+          )}
+          {!editing && (
+            <button
+              onClick={handleNew}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg font-medium transition"
+            >
+              + 新建公告
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 说明条 */}
+      <div className="mb-5 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 leading-relaxed">
+        💡 新旧公告并存：用户访问时，未读公告会按顺序逐条弹出（右下角）。用户看过即标记已读，刷新后不再打扰。
+        管理员新增公告后，因新公告 id 不在用户已读列表，会自动再次弹出。
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 左侧：编辑表单 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          {/* 启用开关 */}
-          <div className="flex items-center justify-between">
-            <label className="font-medium text-gray-700">启用公告</label>
+        {/* 左侧：公告列表 */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-800 text-sm">
+              公告列表（{list.length}）
+            </h2>
             <button
-              onClick={() => update('enabled', !config.enabled)}
-              className={`relative w-12 h-6 rounded-full transition ${config.enabled ? 'bg-amber-500' : 'bg-gray-300'}`}
+              onClick={fetchList}
+              className="text-xs text-gray-400 hover:text-gray-600"
             >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition ${config.enabled ? 'translate-x-6' : ''}`} />
+              刷新
             </button>
           </div>
 
-          {/* 图标选择 */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-2">图标</label>
-            <div className="flex flex-wrap gap-2">
-              {ICONS.map(ic => (
-                <button
-                  key={ic}
-                  onClick={() => update('icon', ic)}
-                  className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center border-2 transition ${
-                    config.icon === ic ? 'border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-gray-300'
+          {loading ? (
+            <div className="text-center text-gray-400 py-10 text-sm">加载中...</div>
+          ) : list.length === 0 ? (
+            <div className="text-center text-gray-400 py-10 text-sm">
+              暂无公告，点击右上角"新建公告"
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {list.map(a => (
+                <div
+                  key={a.id}
+                  className={`border rounded-lg p-3 transition cursor-pointer ${
+                    editing?.id === a.id
+                      ? 'border-amber-400 bg-amber-50'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
+                  onClick={() => handleEdit(a)}
                 >
-                  {ic}
-                </button>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <span className="text-xl flex-shrink-0">{a.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                            {a.badge}
+                          </span>
+                          {!a.enabled && (
+                            <span className="text-xs text-gray-400">已停用</span>
+                          )}
+                          <span className="text-xs text-gray-300">#{a.sortOrder}</span>
+                        </div>
+                        <div className="font-medium text-gray-900 text-sm truncate">
+                          {a.title}
+                        </div>
+                        <div className="text-xs text-gray-400 truncate mt-0.5">
+                          {a.content}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          toggleEnabled(a);
+                        }}
+                        className={`w-9 h-5 rounded-full relative transition ${
+                          a.enabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
+                        title={a.enabled ? '点击停用' : '点击启用'}
+                      >
+                        <span
+                          className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition ${
+                            a.enabled ? 'left-4' : 'left-0.5'
+                          }`}
+                        />
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDelete(a.id);
+                        }}
+                        className="text-gray-400 hover:text-red-500 px-1 text-sm"
+                        title="删除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* 标签文字 */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">标签文字</label>
-            <input
-              type="text"
-              value={config.badge}
-              onChange={e => update('badge', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
-              placeholder="如：新用户福利"
-            />
-          </div>
-
-          {/* 标题 */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">标题</label>
-            <input
-              type="text"
-              value={config.title}
-              onChange={e => update('title', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
-              placeholder="如：注册即送 100 灵珠"
-            />
-          </div>
-
-          {/* 内容 */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">内容描述</label>
-            <textarea
-              value={config.content}
-              onChange={e => update('content', e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400 resize-none"
-              placeholder="公告详细内容"
-            />
-          </div>
-
-          {/* 链接 + 按钮文字 */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">跳转链接</label>
-              <input
-                type="text"
-                value={config.link}
-                onChange={e => update('link', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
-                placeholder="/register"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">按钮文字</label>
-              <input
-                type="text"
-                value={config.linkText}
-                onChange={e => update('linkText', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
-                placeholder="立即注册"
-              />
-            </div>
-          </div>
-
-          {/* 关闭记忆时长 */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              关闭后 {config.dismissHours} 小时内不再弹出
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="168"
-              value={config.dismissHours}
-              onChange={e => update('dismissHours', parseInt(e.target.value))}
-              className="w-full accent-amber-500"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>1小时</span>
-              <span>24小时</span>
-              <span>7天</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* 右侧：实时预览 */}
+        {/* 右侧：编辑表单 / 预览 */}
         <div>
-          <div className="text-sm font-medium text-gray-500 mb-3">实时预览</div>
-          <div className="bg-gray-100 rounded-xl p-6 min-h-[400px] relative">
-            <div className="text-xs text-gray-400 mb-4">用户访问网站 2 秒后看到的效果：</div>
+          {!editing ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+              <div className="text-4xl mb-3">📋</div>
+              <div className="text-gray-500 text-sm mb-1">
+                选择左侧公告进行编辑
+              </div>
+              <div className="text-gray-400 text-xs">或点击右上角"新建公告"</div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-semibold text-gray-800 text-sm">
+                  {isNew ? '新建公告' : '编辑公告'}
+                </h2>
+                <span className="text-xs text-gray-400">
+                  {isNew ? '新公告' : `ID: ${editing.id}`}
+                </span>
+              </div>
 
-            {/* 预览浮层 */}
-            {config.enabled ? (
-              <div className="w-80 bg-white rounded-xl shadow-2xl border border-amber-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-white">
-                    <span className="text-base">{config.icon}</span>
-                    <span className="font-semibold text-sm">{config.badge}</span>
-                  </div>
-                  <span className="text-white/70 text-lg leading-none">×</span>
+              {/* 图标 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  图标
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {ICONS.map(ic => (
+                    <button
+                      key={ic}
+                      onClick={() => update('icon', ic)}
+                      className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center border transition ${
+                        editing.icon === ic
+                          ? 'border-amber-400 bg-amber-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {ic}
+                    </button>
+                  ))}
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-1 text-sm">{config.title}</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed mb-3">{config.content}</p>
-                  <div className="flex gap-2">
-                    <span className="flex-1 bg-amber-500 text-white text-center py-2 rounded-lg text-sm font-medium">
-                      {config.linkText}
-                    </span>
-                    <span className="px-4 py-2 text-gray-500 text-sm">稍后</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    标签
+                  </label>
+                  <input
+                    type="text"
+                    value={editing.badge || ''}
+                    onChange={e => update('badge', e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                    placeholder="如：限时优惠"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    排序（越小越靠前）
+                  </label>
+                  <input
+                    type="number"
+                    value={editing.sortOrder ?? 0}
+                    onChange={e => update('sortOrder', parseInt(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  标题
+                </label>
+                <input
+                  type="text"
+                  value={editing.title || ''}
+                  onChange={e => update('title', e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                  placeholder="如：源码部署 · 贴牌开户"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  内容描述
+                </label>
+                <textarea
+                  value={editing.content || ''}
+                  onChange={e => update('content', e.target.value)}
+                  rows={3}
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400 resize-none"
+                  placeholder="公告详细内容"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    跳转链接
+                  </label>
+                  <input
+                    type="text"
+                    value={editing.link || ''}
+                    onChange={e => update('link', e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                    placeholder="/register 或 /contact"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    按钮文字
+                  </label>
+                  <input
+                    type="text"
+                    value={editing.linkText || ''}
+                    onChange={e => update('linkText', e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                    placeholder="立即咨询"
+                  />
+                </div>
+              </div>
+
+              {/* 启用开关 */}
+              <div className="flex items-center justify-between py-1">
+                <label className="text-xs font-medium text-gray-600">
+                  启用此公告
+                </label>
+                <button
+                  onClick={() => update('enabled', !editing.enabled)}
+                  className={`relative w-11 h-5 rounded-full transition ${
+                    editing.enabled ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition ${
+                      editing.enabled ? 'left-6' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* 预览 */}
+              <div className="pt-2">
+                <div className="text-xs text-gray-400 mb-1.5">用户端预览</div>
+                <div className="w-72 max-w-full bg-white rounded-xl shadow-lg border border-amber-200 overflow-hidden">
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-white">
+                      <span className="text-base">{editing.icon}</span>
+                      <span className="font-semibold text-sm">
+                        {editing.badge || '标签'}
+                      </span>
+                    </div>
+                    <span className="text-white/70 text-lg leading-none">×</span>
+                  </div>
+                  <div className="p-3.5">
+                    <h3 className="font-semibold text-gray-900 mb-1 text-sm">
+                      {editing.title || '公告标题'}
+                    </h3>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                      {editing.content || '公告内容描述...'}
+                    </p>
+                    <div className="flex gap-2">
+                      {editing.link && (
+                        <span className="flex-1 bg-amber-500 text-white text-center py-1.5 rounded-lg text-sm font-medium">
+                          {editing.linkText || '查看详情'}
+                        </span>
+                      )}
+                      <span className="px-4 py-1.5 text-gray-500 text-sm">稍后</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="text-center text-gray-400 py-20">
-                <div className="text-3xl mb-2">🔕</div>
-                <div className="text-sm">公告已关闭，用户不会看到弹窗</div>
-              </div>
-            )}
 
-            {/* 说明 */}
-            <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>• 修改后点击"保存修改"即时生效，无需重新部署</div>
-                <div>• 用户关闭公告后 {config.dismissHours} 小时内不再弹出</div>
-                <div>• 公告在所有页面都会显示（右下角）</div>
+              {/* 操作按钮 */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !editing.title}
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition"
+                >
+                  {saving ? '保存中...' : isNew ? '创建公告' : '保存修改'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-5 py-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition"
+                >
+                  取消
+                </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,80 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';
+import {
+  listAllAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  type Announcement,
+} from '@/lib/announcement';
 
-const DEFAULT_ANNOUNCEMENT = {
-  enabled: true,
-  icon: '🎁',
-  badge: '新用户福利',
-  title: '注册即送 100 灵珠',
-  content: '灵珠可用于八字排盘、奇门遁甲、紫微斗数等全部功能，免费体验专业命理测算。',
-  link: '/register',
-  linkText: '立即注册',
-  dismissHours: 24,
-};
-
-/** 获取当前公告配置 */
+/** 获取所有公告（含禁用） */
 export async function GET(req: NextRequest) {
   try {
     const { allowed } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
-
-    const row = await queryFirst(
-      "SELECT value FROM SiteConfig WHERE `key` = 'announcement_floating'"
-    ) as any;
-
-    const config = row?.value ? JSON.parse(row.value) : DEFAULT_ANNOUNCEMENT;
-    return NextResponse.json({ announcement: config });
+    const announcements = await listAllAnnouncements();
+    return NextResponse.json({ announcements });
   } catch (error) {
-    console.error('获取公告配置失败:', error);
+    console.error('获取公告列表失败:', error);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
 }
 
-/** 更新公告配置 */
+/** 新建公告 */
+export async function POST(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+    const body = (await req.json()) as Partial<Announcement>;
+    const created = await createAnnouncement(body);
+    if (!created) {
+      return NextResponse.json({ error: '创建失败' }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, announcement: created });
+  } catch (error) {
+    console.error('创建公告失败:', error);
+    return NextResponse.json({ error: '创建失败' }, { status: 500 });
+  }
+}
+
+/** 更新公告（body 需含 id） */
 export async function PUT(req: NextRequest) {
   try {
     const { allowed } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
-
-    const body = await req.json();
-    const config = {
-      enabled: !!body.enabled,
-      icon: body.icon || '🎁',
-      badge: body.badge || '公告',
-      title: body.title || '',
-      content: body.content || '',
-      link: body.link || '',
-      linkText: body.linkText || '查看详情',
-      dismissHours: body.dismissHours || 24,
-    };
-
-    const value = JSON.stringify(config);
-    const now = new Date().toISOString();
-
-    const existing = await queryFirst(
-      "SELECT id FROM SiteConfig WHERE `key` = 'announcement_floating'"
-    ) as any;
-
-    if (existing) {
-      await execute(
-        "UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE `key` = 'announcement_floating'",
-        value, now
-      );
-    } else {
-      await execute(
-        "INSERT INTO SiteConfig (id, `key`, value, category, description, updatedAt) VALUES (?, ?, ?, 'notification', '右下角公告浮层', ?)",
-        `cfg_announcement_${Date.now()}`, 'announcement_floating', value, now
-      );
+    const body = (await req.json()) as Partial<Announcement> & { id: string };
+    if (!body.id) {
+      return NextResponse.json({ error: '缺少 id' }, { status: 400 });
     }
-
-    return NextResponse.json({ success: true, announcement: config });
+    const ok = await updateAnnouncement(body.id, body);
+    if (!ok) {
+      return NextResponse.json({ error: '更新失败' }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('更新公告配置失败:', error);
+    console.error('更新公告失败:', error);
     return NextResponse.json({ error: '更新失败' }, { status: 500 });
+  }
+}
+
+/** 删除公告（body 需含 id） */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: '缺少 id' }, { status: 400 });
+    }
+    const ok = await deleteAnnouncement(id);
+    if (!ok) {
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('删除公告失败:', error);
+    return NextResponse.json({ error: '删除失败' }, { status: 500 });
   }
 }
