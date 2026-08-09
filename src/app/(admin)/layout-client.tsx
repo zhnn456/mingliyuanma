@@ -153,6 +153,7 @@ const menuGroups: MenuGroup[] = [
     icon: 'system',
     items: [
       { href: '/admin/audit', label: '审计日志' },
+      { href: '/admin/announcement', label: '公告管理', isNew: true },
       { href: '/admin/config', label: '系统设置' },
       { href: '/admin/payment-config', label: '支付配置', isNew: true },
       { href: '/admin/admins', label: '管理员权限', isNew: true },
