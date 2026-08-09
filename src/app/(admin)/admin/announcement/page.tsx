@@ -375,33 +375,65 @@ export default function AdminAnnouncementPage() {
                 </button>
               </div>
 
-              {/* 预览 */}
+              {/* 预览（居中弹窗样式，与用户端一致） */}
               <div className="pt-2">
-                <div className="text-xs text-gray-400 mb-1.5">用户端预览</div>
-                <div className="w-72 max-w-full bg-white rounded-xl shadow-lg border border-amber-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-white">
-                      <span className="text-base">{editing.icon}</span>
-                      <span className="font-semibold text-sm">
+                <div className="text-xs text-gray-400 mb-1.5">用户端预览（居中弹窗）</div>
+                <div className="relative w-72 max-w-full mx-auto rounded-2xl border border-amber-500/30 bg-gradient-to-b from-[#14141c] to-[#0a0a0f] shadow-2xl overflow-hidden">
+                  {/* banner */}
+                  <div
+                    className="relative h-20 flex items-center justify-center border-b border-amber-500/20"
+                    style={{
+                      background:
+                        'radial-gradient(circle at 50% 50%, rgba(212,145,106,0.3) 0%, transparent 70%), linear-gradient(135deg, #2a1a14 0%, #14141c 100%)',
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                      style={{
+                        background: 'linear-gradient(135deg, #D4916A, #b8704f)',
+                        boxShadow: '0 0 20px rgba(212,145,106,0.5)',
+                      }}
+                    >
+                      {editing.icon}
+                    </div>
+                    <span className="absolute right-2.5 top-2.5 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 text-xs text-white/60">
+                      ×
+                    </span>
+                  </div>
+                  {/* body */}
+                  <div className="px-4 py-4">
+                    <div className="flex justify-center mb-2">
+                      <span
+                        className="rounded px-2 py-0.5 text-[10px] font-medium"
+                        style={{ background: 'rgba(212,145,106,0.12)', color: '#E8B589' }}
+                      >
                         {editing.badge || '标签'}
                       </span>
                     </div>
-                    <span className="text-white/70 text-lg leading-none">×</span>
-                  </div>
-                  <div className="p-3.5">
-                    <h3 className="font-semibold text-gray-900 mb-1 text-sm">
+                    <h3
+                      className="text-center text-base font-bold mb-1"
+                      style={{ fontFamily: "'KaiTi', 'STKaiti', '楷体', serif", color: '#E8B589' }}
+                    >
                       {editing.title || '公告标题'}
                     </h3>
-                    <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                    <p className="text-center text-xs text-gray-300 leading-relaxed mb-4">
                       {editing.content || '公告内容描述...'}
                     </p>
                     <div className="flex gap-2">
                       {editing.link && (
-                        <span className="flex-1 bg-amber-500 text-white text-center py-1.5 rounded-lg text-sm font-medium">
+                        <span
+                          className="flex-1 text-center py-1.5 rounded-lg text-xs font-semibold"
+                          style={{
+                            background: 'linear-gradient(135deg, #D4916A, #b8704f)',
+                            color: '#1a0f08',
+                          }}
+                        >
                           {editing.linkText || '查看详情'}
                         </span>
                       )}
-                      <span className="px-4 py-1.5 text-gray-500 text-sm">稍后</span>
+                      <span className="px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-300 text-xs">
+                        知道了
+                      </span>
                     </div>
                   </div>
                 </div>

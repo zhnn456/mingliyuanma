@@ -1,13 +1,13 @@
 /**
  * 代理商域名解析工具
- * - 子域名模式：{subdomain}.bazi6.cc.cd（主站主域名从 NEXTAUTH_URL 解析）
+ * - 子域名模式：{subdomain}.ming8.online（主站主域名从 NEXTAUTH_URL 解析）
  * - 独立域名模式：代理商自行绑定并配置 CNAME 指向主站
  */
 import { queryFirst } from '@/lib/d1';
 
 /**
  * 获取主站域名（从 NEXTAUTH_URL 环境变量解析）
- * 例如 https://bazi6.cc.cd → bazi6.cc.cd
+ * 例如 https://ming8.online → ming8.online
  */
 export function getMainDomain(): string {
   try {
@@ -31,7 +31,7 @@ export type ParsedAgentDomain =
 
 /**
  * 从 Host 头解析代理商域名信息
- * @param host Host 头（如 xxx.bazi6.cc.cd 或独立域名 www.example.com）
+ * @param host Host 头（如 xxx.ming8.online 或独立域名 www.example.com）
  * @returns 子域名信息 / 独立域名信息，主站返回 null
  */
 export function parseAgentDomain(host: string): ParsedAgentDomain {
@@ -48,7 +48,7 @@ export function parseAgentDomain(host: string): ParsedAgentDomain {
     return null;
   }
 
-  // 子域名模式：xxx.bazi6.cc.cd
+  // 子域名模式：xxx.ming8.online
   if (hostname.endsWith(`.${mainDomain}`)) {
     const subdomain = hostname.slice(0, -(mainDomain.length + 1));
     // www 已处理，过滤空值

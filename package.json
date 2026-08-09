@@ -12,15 +12,10 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "build:worker": "node scripts/version-inject.js && npm run generate:knowledge && npx opennextjs-cloudflare build",
-    "preview:worker": "npx wrangler dev",
-    "deploy:worker": "npm run build:worker && npx wrangler deploy --config wrangler.toml",
     "build:server": "node scripts/version-inject.js && npm run generate:knowledge && next build",
     "deploy:server": "npm run build:server && pm2 reload deploy/ecosystem.config.js",
     "db:init": "mysql -u ming8 -pMing8@2026! ming8_db < scripts/mysql-init.sql",
     "precheck": "node scripts/precheck.mjs",
-    "db:migrate:d1": "npx wrangler d1 execute yuanmamingli --remote --file=prisma/migrations.sql",
-    "db:migrate:d1:local": "npx wrangler d1 execute yuanmamingli --local --file=prisma/migrations.sql",
     "generate:types": "npx prisma generate && node scripts/sync-types.js",
     "sync:types": "node scripts/sync-types.js",
     "sync:db": "npx prisma db push",
@@ -32,7 +27,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run tests/",
     "verify": "npm run typecheck && npm run lint && npm run test:e2e",
-    "predeploy": "npm run verify && npm run build:worker",
+    "predeploy": "npm run verify && npm run build:server",
     "prepare": "husky"
   },
   "dependencies": {
@@ -49,8 +44,6 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.1",
-    "@prisma/adapter-d1": "^7.9.1",
     "@types/node": "^20.19.43",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
@@ -67,7 +60,6 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.10",
-    "webpack-obfuscator": "^3.6.1",
-    "wrangler": "^4.114.0"
+    "webpack-obfuscator": "^3.6.1"
   }
 }
