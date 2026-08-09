@@ -1,5 +1,5 @@
 /**
- * 构建时版本注入脚本
+ * 构建时版本注入脚本（CommonJS 语法，兼容无 type:module 的项目）
  *
  * 执行流程：
  * 1. 读取 package.json 版本号
@@ -8,15 +8,13 @@
  * 4. 注入到 src/lib/version.ts（APP_VERSION / BUILD_TIME / GIT_COMMIT）
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+const { readFileSync, writeFileSync } = require('fs');
+const { resolve } = require('path');
+const { execSync } = require('child_process');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
-function gitShortHash(): string {
+function gitShortHash() {
   try {
     return execSync('git rev-parse --short HEAD', { cwd: projectRoot })
       .toString()
@@ -51,9 +49,8 @@ function injectVersion() {
 
   writeFileSync(versionTsPath, versionTs, 'utf-8');
 
-  console.log(`[version-inject] ✅ 版本已注入: ${version} (${gitCommit})`);
-  console.log(`[version-inject] 📄 src/lib/version.ts`);
-  console.log(`[version-inject] 🕐 buildTime: ${buildTime}`);
+  console.log(`[version-inject] 版本已注入: ${version} (${gitCommit})`);
+  console.log(`[version-inject] buildTime: ${buildTime}`);
 }
 
 injectVersion();
