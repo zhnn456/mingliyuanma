@@ -89,9 +89,23 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate') || '';
 
     const validTypes: RecordType[] = ['bazi', 'ziwei', 'qimen', 'meihua'];
-    const tables = (type && validTypes.includes(type as RecordType))
+    const requestedTypes = (type && validTypes.includes(type as RecordType))
       ? [type as RecordType]
       : validTypes;
+
+    // 检查哪些排盘表实际存在（紫微/奇门/梅花功能未上线时表可能未建）
+    const existRows = await queryAll(
+      `SELECT TABLE_NAME as t FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('BaziRecord','ZiweiRecord','QimenRecord','MeihuaRecord')`
+    ) as any[];
+    const existingTables = new Set(existRows.map(r => r.t));
+
+    const tables = requestedTypes.filter(t => existingTables.has(typeMeta[t].table));
+
+    // 如果请求的表都不存在，直接返回空
+    if (tables.length === 0) {
+      return NextResponse.json({ records: [], total: 0, page, pageSize });
+    }
 
     const { sql, params, countParts } = buildUnionSql(tables, startDate, endDate);
 
