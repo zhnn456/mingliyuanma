@@ -11,15 +11,24 @@ export async function GET(req: NextRequest) {
 
     const today = new Date().toISOString().split('T')[0];
 
+    // 容错查询：表不存在时返回 0（紫微/奇门/梅花功能未上线时表可能未建）
+    const safeCount = async (table: string): Promise<number> => {
+      try {
+        const r = await queryFirst(`SELECT COUNT(*) as c FROM ${table}`) as any;
+        return r?.c || 0;
+      } catch {
+        return 0;
+      }
+    };
+
     const [
       totalUsers,
       totalOrders,
-      totalBazi,
-      totalZiwei,
-      totalQimen,
-      totalMeihua,
+      baziCount,
+      ziweiCount,
+      qimenCount,
+      meihuaCount,
       totalOffering,
-      totalPaipan,
       paidAgg,
       todayOrders,
       todayUsers,
@@ -27,12 +36,11 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       queryFirst('SELECT COUNT(*) as c FROM User'),
       queryFirst('SELECT COUNT(*) as c FROM "Order"'),
-      queryFirst('SELECT COUNT(*) as c FROM BaziRecord'),
-      queryFirst('SELECT COUNT(*) as c FROM ZiweiRecord'),
-      queryFirst('SELECT COUNT(*) as c FROM QimenRecord'),
-      queryFirst('SELECT COUNT(*) as c FROM MeihuaRecord'),
-      queryFirst('SELECT COUNT(*) as c FROM OfferingRecord'),
-      queryFirst('SELECT COUNT(*) as c FROM BaziRecord') as any,
+      safeCount('BaziRecord'),
+      safeCount('ZiweiRecord'),
+      safeCount('QimenRecord'),
+      safeCount('MeihuaRecord'),
+      safeCount('OfferingRecord'),
       queryFirst('SELECT SUM(amount) as total FROM "Order" WHERE status = ?', 'paid'),
       queryFirst("SELECT COUNT(*) as c FROM \"Order\" WHERE DATE(createdAt) = ?", today),
       queryFirst("SELECT COUNT(*) as c FROM User WHERE DATE(createdAt) = ?", today),
@@ -40,10 +48,6 @@ export async function GET(req: NextRequest) {
     ] as any[]);
 
     // 排盘总数 = 四种排盘类型之和
-    const baziCount = (totalBazi as any)?.c || 0;
-    const ziweiCount = (totalZiwei as any)?.c || 0;
-    const qimenCount = (totalQimen as any)?.c || 0;
-    const meihuaCount = (totalMeihua as any)?.c || 0;
     const totalPaipanRecords = baziCount + ziweiCount + qimenCount + meihuaCount;
 
     const totalRevenue = paidAgg?.total || 0;
@@ -92,8 +96,8 @@ export async function GET(req: NextRequest) {
         todayUsers: (todayUsers as any)?.c || 0,
         totalPaipan: totalPaipanRecords,
         totalPaipanRecords,
-        totalOffering: (totalOffering as any)?.c || 0,
-        totalOfferingRecords: (totalOffering as any)?.c || 0,
+        totalOffering: totalOffering,
+        totalOfferingRecords: totalOffering,
         totalPoints: (totalPoints as any)?.total || 0,
         memberStats: memberRows.map((m: any) => ({ level: m.memberLevel, count: m.count })),
         paipanTypeStats,
