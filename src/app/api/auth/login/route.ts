@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     let user;
     try {
       user = await queryFirst(
-        'SELECT id, email, name, passwordHash, role, memberLevel, memberExpiry FROM User WHERE email = ?',
+        'SELECT id, email, name, passwordHash, role, memberLevel, memberExpiryAt FROM User WHERE email = ?',
         normalizedEmail
       ) as any;
     } catch (dbErr: any) {

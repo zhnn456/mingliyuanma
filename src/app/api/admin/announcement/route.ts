@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     const row = await queryFirst(
-      "SELECT value FROM SiteConfig WHERE key = 'announcement_floating'"
+      "SELECT value FROM SiteConfig WHERE `key` = 'announcement_floating'"
     ) as any;
 
     const config = row?.value ? JSON.parse(row.value) : DEFAULT_ANNOUNCEMENT;
@@ -57,17 +57,17 @@ export async function PUT(req: NextRequest) {
     const now = new Date().toISOString();
 
     const existing = await queryFirst(
-      "SELECT id FROM SiteConfig WHERE key = 'announcement_floating'"
+      "SELECT id FROM SiteConfig WHERE `key` = 'announcement_floating'"
     ) as any;
 
     if (existing) {
       await execute(
-        "UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE key = 'announcement_floating'",
+        "UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE `key` = 'announcement_floating'",
         value, now
       );
     } else {
       await execute(
-        "INSERT INTO SiteConfig (id, key, value, category, description, updatedAt) VALUES (?, ?, ?, 'notification', '右下角公告浮层', ?)",
+        "INSERT INTO SiteConfig (id, `key`, value, category, description, updatedAt) VALUES (?, ?, ?, 'notification', '右下角公告浮层', ?)",
         `cfg_announcement_${Date.now()}`, 'announcement_floating', value, now
       );
     }

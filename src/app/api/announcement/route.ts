@@ -8,7 +8,7 @@ import { queryFirst } from '@/lib/d1';
 export async function GET() {
   try {
     const row = await queryFirst(
-      "SELECT value FROM SiteConfig WHERE key = 'announcement_floating'"
+      "SELECT value FROM SiteConfig WHERE `key` = 'announcement_floating'"
     ) as any;
 
     if (!row || !row.value) {
