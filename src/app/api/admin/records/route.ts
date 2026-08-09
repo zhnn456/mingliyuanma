@@ -109,15 +109,17 @@ export async function GET(req: NextRequest) {
 
     const { sql, params, countParts } = buildUnionSql(tables, startDate, endDate);
 
-    const pagedSql = `${sql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
-    const pagedParams = [...params, pageSize, (page - 1) * pageSize];
+    // 注意：mysql2 prepared statement 模式下 LIMIT ? OFFSET ? 会报 ER_WRONG_ARGUMENTS，
+    // pageSize 和 offset 已 parseInt 为整数，直接拼接安全
+    const offset = (page - 1) * pageSize;
+    const pagedSql = `${sql} ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
 
     const totalResults = await Promise.all(
       countParts.map(cp => queryFirst(cp.sql, ...cp.params) as Promise<any>)
     );
     const total = totalResults.reduce((sum, r) => sum + (r?.total || 0), 0);
 
-    const records = await queryAll(pagedSql, ...pagedParams);
+    const records = await queryAll(pagedSql, ...params);
 
     return NextResponse.json({ records, total, page, pageSize });
   } catch (error) {
