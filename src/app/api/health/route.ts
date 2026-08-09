@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getSystemVersion } from '@/lib/version';
 
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    ...getSystemVersion(),
   });
 }

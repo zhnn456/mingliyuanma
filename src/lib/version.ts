@@ -1,17 +1,25 @@
 /**
  * 系统版本信息
- * 构建时会自动注入版本号
+ *
+ * APP_VERSION / APP_CODENAME 由 version-inject.js 构建时从 package.json 注入
+ * BUILD_TIME / GIT_COMMIT 由 version-inject.js 构建时注入
+ * 未构建时（开发模式）使用占位符，getSystemVersion() 会回退到运行时值
  */
 
 export const APP_VERSION = '4.0.0';
 export const APP_NAME = '先知命理网';
 export const APP_CODENAME = '商源';
 
+// 构建时注入（version-inject.js 替换占位符）
+export const BUILD_TIME = '__BUILD_TIME__';
+export const GIT_COMMIT = '__GIT_COMMIT__';
+
 export interface SystemVersion {
   version: string;
   name: string;
   codename: string;
   buildTime: string;
+  gitCommit: string;
   nodeEnv: string;
 }
 
@@ -20,7 +28,8 @@ export function getSystemVersion(): SystemVersion {
     version: APP_VERSION,
     name: APP_NAME,
     codename: APP_CODENAME,
-    buildTime: new Date().toISOString(),
+    buildTime: BUILD_TIME !== '__BUILD_TIME__' ? BUILD_TIME : new Date().toISOString(),
+    gitCommit: GIT_COMMIT !== '__GIT_COMMIT__' ? GIT_COMMIT : 'dev',
     nodeEnv: process.env.NODE_ENV || 'production',
   };
 }

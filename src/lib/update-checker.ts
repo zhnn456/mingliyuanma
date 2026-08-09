@@ -5,7 +5,7 @@
  * 定时执行（每 30 分钟）或手动触发
  */
 
-const CENTER_API = process.env.CENTER_API || 'https://mingli-yuanma.zhnn456.workers.dev';
+const CENTER_API = process.env.CENTER_API || 'https://ming8.online';
 const LICENSE_KEY = process.env.APP_LICENSE_KEY || '';
 const CURRENT_VERSION = process.env.APP_VERSION || 'v4.0.0';
 const CURRENT_DOMAIN = process.env.NEXTAUTH_URL || '';

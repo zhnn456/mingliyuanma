@@ -480,6 +480,10 @@ CREATE TABLE IF NOT EXISTS `UpdateLog` (
   `tag` VARCHAR(255),
   `status` VARCHAR(50) NOT NULL DEFAULT 'success',
   `rollbackVersion` VARCHAR(50),
+  `category` VARCHAR(50) DEFAULT '改进',
+  `isCurrent` TINYINT(1) NOT NULL DEFAULT 0,
+  `isLatest` TINYINT(1) NOT NULL DEFAULT 0,
+  `createdBy` VARCHAR(255),
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -609,6 +613,36 @@ CALL add_index_if_missing('UpdateLog', 'UpdateLog_status_idx', '`status`');
 CALL add_index_if_missing('Payment', 'Payment_userId_idx', '`userId`');
 CALL add_index_if_missing('Payment', 'Payment_status_idx', '`status`');
 CALL add_index_if_missing('DivinationRule', 'DivinationRule_cat_type_agent_idx', '`category`,`ruleType`,`agentId`');
+
+-- 安全加列存储过程（幂等，支持重复执行）
+DROP PROCEDURE IF EXISTS `add_column_if_missing`;
+DELIMITER //
+CREATE PROCEDURE `add_column_if_missing`(
+  IN p_table VARCHAR(64),
+  IN p_column VARCHAR(64),
+  IN p_definition VARCHAR(500)
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = p_table
+    AND COLUMN_NAME = p_column
+  ) THEN
+    SET @sql = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN `', p_column, '` ', p_definition);
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END//
+DELIMITER ;
+
+CALL add_column_if_missing('UpdateLog', 'category', "VARCHAR(50) DEFAULT '改进'");
+CALL add_column_if_missing('UpdateLog', 'isCurrent', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('UpdateLog', 'isLatest', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('UpdateLog', 'createdBy', 'VARCHAR(255)');
+
+DROP PROCEDURE IF EXISTS `add_column_if_missing`;
 
 DROP PROCEDURE IF EXISTS `add_index_if_missing`;
 
