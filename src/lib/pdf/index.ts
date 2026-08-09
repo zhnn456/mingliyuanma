@@ -89,7 +89,7 @@ export function generateReportId(): string {
 export function generateWatermark(userId: string, reportId: string): string {
   const userPart = userId.slice(-6).toUpperCase();
   const reportPart = reportId.slice(-6);
-  return `命理网 · ${userPart}-${reportPart}`;
+  return `先知命理网 · ${userPart}-${reportPart}`;
 }
 
 /**

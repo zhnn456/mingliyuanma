@@ -50,7 +50,7 @@ export default function ContactPage() {
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-lg flex-shrink-0">💬</div>
                   <div>
                     <div className="font-medium text-gray-900">微信公众号</div>
-                    <div className="text-gray-500">命理网</div>
+                    <div className="text-gray-500">先知命理网</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">

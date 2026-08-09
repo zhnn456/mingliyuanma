@@ -3,8 +3,8 @@ import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
-  title: '隐私政策 - 命理网',
-  description: '命理网隐私政策，了解我们如何保护您的个人信息和隐私安全。',
+  title: '隐私政策 - 先知命理网',
+  description: '先知命理网隐私政策，了解我们如何保护您的个人信息和隐私安全。',
 };
 
 export default function PrivacyPage() {
@@ -24,9 +24,9 @@ export default function PrivacyPage() {
         {/* 引言 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <p className="text-gray-700 leading-relaxed">
-            命理网（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的要求，采取相应的安全保护措施，
-            努力保护您的个人信息安全可控。鉴于此，我们制定了本《命理网隐私政策》（下称"本政策"），特向您说明
-            在使用命理网相关服务时，我们如何收集、使用、保存和保护您的个人信息。
+            先知命理网（以下简称"我们"）深知个人信息对您的重要性，我们将按照法律法规的要求，采取相应的安全保护措施，
+            努力保护您的个人信息安全可控。鉴于此，我们制定了本《先知命理网隐私政策》（下称"本政策"），特向您说明
+            在使用先知命理网相关服务时，我们如何收集、使用、保存和保护您的个人信息。
           </p>
         </div>
 

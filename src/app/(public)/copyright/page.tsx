@@ -3,8 +3,8 @@ import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
-  title: '版权声明 - 命理网',
-  description: '命理网版权声明，了解网站内容的知识产权归属和使用规定。',
+  title: '版权声明 - 先知命理网',
+  description: '先知命理网版权声明，了解网站内容的知识产权归属和使用规定。',
 };
 
 export default function CopyrightPage() {
@@ -24,7 +24,7 @@ export default function CopyrightPage() {
         {/* 版权信息 */}
         <div className="bg-gradient-to-br from-red-50 to-amber-50 rounded-2xl shadow-sm border border-red-100 p-8 mb-6 text-center">
           <div className="text-4xl mb-4">©</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">命理网 MingLiWang</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">先知命理网 MingLiWang</h2>
           <p className="text-gray-600 mb-4">传承千年智慧 · 融合现代科技</p>
           <p className="text-sm text-gray-500">本网站所有内容受相关法律法规保护</p>
         </div>
@@ -34,7 +34,7 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">1. 版权归属</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              命理网（域名：bazi6.cc.cd）的所有内容，除非另有说明，其知识产权均归命理网运营团队所有，
+              先知命理网（域名：ming8.online）的所有内容，除非另有说明，其知识产权均归先知命理网运营团队所有，
               受《中华人民共和国著作权法》《中华人民共和国知识产权法》及相关国际条约的保护。
             </p>
             <p>受版权保护的内容包括但不限于：</p>
@@ -53,7 +53,7 @@ export default function CopyrightPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">2. 禁止行为</h2>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>未经命理网书面授权，任何单位和个人不得以任何形式使用本网站内容，包括但不限于：</p>
+            <p>未经先知命理网书面授权，任何单位和个人不得以任何形式使用本网站内容，包括但不限于：</p>
             <ul className="pl-5 list-disc space-y-2">
               <li><strong>复制转载：</strong>未经授权将本网站内容复制、转载到其他平台</li>
               <li><strong>商业使用：</strong>将本网站内容用于任何商业目的</li>
@@ -77,7 +77,7 @@ export default function CopyrightPage() {
               <li><strong>评论说明：</strong>在评论、介绍本网站时引用少量文字或图片</li>
             </ul>
             <p className="bg-gray-50 p-3 rounded mt-3">
-              <strong>注明要求：</strong>合理使用时，请注明"出处：命理网（bazi6.cc.cd）"。
+              <strong>注明要求：</strong>合理使用时，请注明"出处：先知命理网（ming8.online）"。
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-amber-900 mb-4">4. 开源项目致谢</h2>
           <div className="space-y-4 text-sm text-amber-900">
             <p>
-              命理网的开发过程中，参考和借鉴了以下 GitHub 开源项目的算法逻辑和实现思路。
+              先知命理网的开发过程中，参考和借鉴了以下 GitHub 开源项目的算法逻辑和实现思路。
               在此向所有开源社区贡献者表示最诚挚的感谢！
             </p>
 
@@ -171,8 +171,8 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">7. 法律声明</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              本版权声明的最终解释权归命理网运营团队所有。本声明的制定、执行和解释均适用中华人民共和国法律。
-              如因本声明产生争议，双方应友好协商解决；协商不成的，任何一方均可向命理网所在地有管辖权的人民法院提起诉讼。
+              本版权声明的最终解释权归先知命理网运营团队所有。本声明的制定、执行和解释均适用中华人民共和国法律。
+              如因本声明产生争议，双方应友好协商解决；协商不成的，任何一方均可向先知命理网所在地有管辖权的人民法院提起诉讼。
             </p>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function CopyrightPage() {
           <p className="text-sm opacity-90 mb-4">如有任何版权相关问题，欢迎随时联系我们：</p>
           <div className="space-y-2 text-sm">
             <p>📧 邮箱：copyright@mingliwang.com</p>
-            <p>💬 微信公众号：命理网</p>
+            <p>💬 微信公众号：先知命理网</p>
             <p>🕐 工作时间：工作日 9:00 - 18:00</p>
           </div>
         </div>

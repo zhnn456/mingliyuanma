@@ -9,7 +9,7 @@ interface BrandInfo {
 }
 
 const DEFAULT_BRAND: BrandInfo = {
-  brandName: '命理网',
+  brandName: '先知命理网',
   logo: null,
   isActive: true,
 };
@@ -17,7 +17,7 @@ const DEFAULT_BRAND: BrandInfo = {
 /**
  * 获取当前站点品牌信息
  * 代理商子站：从 API 获取品牌名称和 Logo
- * 主站：返回默认值"命理网"
+ * 主站：返回默认值"先知命理网"
  */
 export function useBrand() {
   const [brand, setBrand] = useState<BrandInfo>(DEFAULT_BRAND);

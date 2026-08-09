@@ -70,7 +70,7 @@ export default function RegisterPage() {
             <span className="text-white font-bold text-2xl font-kai">命</span>
             <div className="absolute inset-0 rounded-2xl border border-gold/30" />
           </div>
-          <h1 className="text-3xl font-bold chinese-red font-kai">命理网</h1>
+          <h1 className="text-3xl font-bold chinese-red font-kai">先知命理网</h1>
           <div className="flex items-center justify-center gap-2 mt-2">
             <div className="h-px w-8 bg-gold/40" />
             <span className="text-xs text-gold tracking-widest">MINGLI</span>

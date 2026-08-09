@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (type === 'membership') {
       const plan = MEMBERSHIP_PLANS.find(p => p.level === targetId);
       if (!plan) return NextResponse.json({ error: '无效的会员套餐' }, { status: 400 });
-      amount = plan.price; title = `命理网${plan.name}`; targetType = 'membership';
+      amount = plan.price; title = `先知命理网${plan.name}`; targetType = 'membership';
     } else if (type === 'offering') {
       let item = await queryFirst('SELECT * FROM OfferingItem WHERE id = ?', targetId) as any;
       if (!item) item = await queryFirst('SELECT * FROM OfferingItem WHERE name = ?', targetId) as any;

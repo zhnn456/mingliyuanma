@@ -8,17 +8,17 @@ import AnnouncementBar from '@/components/AnnouncementBar';
 
 export const metadata: Metadata = {
   title: {
-    default: '命理网 - 专业命理测算平台',
-    template: '%s - 命理网',
+    default: '先知命理网 - 专业命理测算平台',
+    template: '%s - 先知命理网',
   },
   description: '提供四柱八字、紫微斗数、奇门遁甲、梅花易数等专业命理测算服务，传承千年智慧，融合现代科技。',
   keywords: ['八字', '紫微斗数', '奇门遁甲', '梅花易数', '命理', '排盘', '算命', '占卜'],
   openGraph: {
-    title: '命理网 - 专业命理测算平台',
+    title: '先知命理网 - 专业命理测算平台',
     description: '提供四柱八字、紫微斗数、奇门遁甲、梅花易数等专业命理测算服务',
     type: 'website',
     locale: 'zh_CN',
-    siteName: '命理网',
+    siteName: '先知命理网',
   },
 };
 

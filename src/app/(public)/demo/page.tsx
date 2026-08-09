@@ -167,7 +167,7 @@ function HeroVariantA({ theme }: { theme: typeof themes[0] }) {
             </div>
           </div>
           <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-wide">
-            <span className={theme.hero.titleGrad}>命理网</span>
+            <span className={theme.hero.titleGrad}>先知命理网</span>
           </h1>
           <p className={`text-2xl md:text-3xl ${theme.hero.subtitle} mb-6 font-kai tracking-widest`}>
             传承千年智慧 · 解读命运密码
@@ -302,7 +302,7 @@ function HeroVariantC() {
           </span>
         </div>
         <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gray-800 tracking-wide">
-          命理网
+          先知命理网
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-4 font-kai tracking-widest">
           传承千年智慧 · 解读命运密码

@@ -77,7 +77,7 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-wide">
-              <span className="text-gradient-gold">命理网</span>
+              <span className="text-gradient-gold">先知命理网</span>
             </h1>
             <p className="text-2xl md:text-3xl text-red-100 mb-6 font-kai tracking-widest">
               传承千年智慧 · 解读命运密码

@@ -3,8 +3,8 @@ import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
-  title: '关于我们 - 命理网',
-  description: '命理网致力于传承中华传统命理文化，融合现代科技，提供专业、精准的四柱八字、紫微斗数、奇门遁甲、梅花易数等命理测算服务。',
+  title: '关于我们 - 先知命理网',
+  description: '先知命理网致力于传承中华传统命理文化，融合现代科技，提供专业、精准的四柱八字、紫微斗数、奇门遁甲、梅花易数等命理测算服务。',
 };
 
 export default function AboutPage() {
@@ -16,7 +16,7 @@ export default function AboutPage() {
         <div className="page-header">
           <div className="section-label justify-center">ABOUT US</div>
           <h1 className="page-header-title">
-            <span>关于命理网</span>
+            <span>关于先知命理网</span>
           </h1>
           <p className="page-header-subtitle">传承千年智慧 · 融合现代科技</p>
         </div>
@@ -29,7 +29,7 @@ export default function AboutPage() {
           <h2 className="card-title">品牌故事</h2>
           <div className="prose max-w-none text-gray-700 space-y-4">
             <p>
-              命理网成立于2024年，是一群热爱中国传统文化的技术团队和命理学研究者共同打造的在线测算平台。
+              先知命理网成立于2024年，是一群热爱中国传统文化的技术团队和命理学研究者共同打造的在线测算平台。
               我们坚信，千年传承的命理智慧不应仅存于古籍之中，而应该借助现代科技的力量，让更多人了解、学习和受益。
             </p>
             <p>
@@ -203,7 +203,7 @@ export default function AboutPage() {
             <p>如果您有任何问题、建议或合作意向，欢迎通过以下方式与我们联系。</p>
             <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
               <p><span className="font-medium text-gray-800">邮箱：</span>support@mingliwang.com</p>
-              <p><span className="font-medium text-gray-800">微信公众号：</span>命理网</p>
+              <p><span className="font-medium text-gray-800">微信公众号：</span>先知命理网</p>
               <p><span className="font-medium text-gray-800">在线时间：</span>工作日 9:00 - 18:00</p>
             </div>
             <p className="text-xs text-gray-400 mt-4">* 命理分析仅供娱乐参考，请理性看待</p>

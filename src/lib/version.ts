@@ -4,7 +4,7 @@
  */
 
 export const APP_VERSION = '4.0.0';
-export const APP_NAME = '命理网';
+export const APP_NAME = '先知命理网';
 export const APP_CODENAME = '商源';
 
 export interface SystemVersion {
