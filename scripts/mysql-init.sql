@@ -655,10 +655,33 @@ BEGIN
 END//
 DELIMITER ;
 
+CALL add_column_if_missing('UpdateLog', 'version', 'VARCHAR(50) NOT NULL DEFAULT ""');
+CALL add_column_if_missing('UpdateLog', 'title', 'VARCHAR(255) NOT NULL DEFAULT ""');
+CALL add_column_if_missing('UpdateLog', 'content', 'TEXT');
+CALL add_column_if_missing('UpdateLog', 'type', "VARCHAR(50) NOT NULL DEFAULT 'update'");
+CALL add_column_if_missing('UpdateLog', 'isMajor', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('UpdateLog', 'changes', 'TEXT');
+CALL add_column_if_missing('UpdateLog', 'operatorId', 'VARCHAR(255)');
+CALL add_column_if_missing('UpdateLog', 'operatorName', 'VARCHAR(255)');
+CALL add_column_if_missing('UpdateLog', 'tag', 'VARCHAR(255)');
+CALL add_column_if_missing('UpdateLog', 'status', "VARCHAR(50) NOT NULL DEFAULT 'success'");
+CALL add_column_if_missing('UpdateLog', 'rollbackVersion', 'VARCHAR(50)');
 CALL add_column_if_missing('UpdateLog', 'category', "VARCHAR(50) DEFAULT '改进'");
 CALL add_column_if_missing('UpdateLog', 'isCurrent', 'TINYINT(1) NOT NULL DEFAULT 0');
 CALL add_column_if_missing('UpdateLog', 'isLatest', 'TINYINT(1) NOT NULL DEFAULT 0');
 CALL add_column_if_missing('UpdateLog', 'createdBy', 'VARCHAR(255)');
+CALL add_column_if_missing('UpdateLog', 'createdAt', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+
+CALL add_column_if_missing('Version', 'version', 'VARCHAR(50) NOT NULL DEFAULT ""');
+CALL add_column_if_missing('Version', 'title', 'VARCHAR(255)');
+CALL add_column_if_missing('Version', 'category', 'VARCHAR(50)');
+CALL add_column_if_missing('Version', 'changelog', 'TEXT');
+CALL add_column_if_missing('Version', 'downloadUrl', 'VARCHAR(500)');
+CALL add_column_if_missing('Version', 'checksum', 'VARCHAR(255)');
+CALL add_column_if_missing('Version', 'isLatest', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('Version', 'isDeprecated', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('Version', 'releaseAt', 'DATETIME');
+CALL add_column_if_missing('Version', 'createdAt', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
 
 DROP PROCEDURE IF EXISTS `add_column_if_missing`;
 

@@ -12,13 +12,25 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const offset = (page - 1) * pageSize;
 
-    const logs = await queryAll(
-      `SELECT * FROM "UpdateLog" ORDER BY "createdAt" DESC LIMIT ${pageSize} OFFSET ${offset}`
-    );
+    let logs: any[] = [];
+    let total = 0;
 
-    const countRow = await queryFirst('SELECT COUNT(*) as total FROM "UpdateLog"') as any;
+    try {
+      logs = await queryAll(
+        `SELECT * FROM UpdateLog ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`
+      );
+      const countRow = await queryFirst('SELECT COUNT(*) as total FROM UpdateLog') as any;
+      total = countRow?.total || 0;
+    } catch (dbErr: any) {
+      console.error('[updates/GET] 数据库错误:', dbErr?.message);
+      // 表或字段不存在时返回空列表，不抛500
+      if (dbErr?.message && (dbErr.message.includes("doesn't exist") || dbErr.message.includes('Unknown column'))) {
+        return NextResponse.json({ logs: [], total: 0, page, pageSize, warning: '表尚未初始化，请运行 npm run db:init' });
+      }
+      throw dbErr;
+    }
 
-    return NextResponse.json({ logs, total: countRow?.total || 0, page, pageSize });
+    return NextResponse.json({ logs, total, page, pageSize });
   } catch (error) {
     console.error('查询更新日志失败:', error);
     return NextResponse.json({ error: '查询失败' }, { status: 500 });
@@ -39,14 +51,14 @@ export async function POST(req: NextRequest) {
     const id = `upd_${Date.now()}`;
 
     if (isCurrent) {
-      await execute('UPDATE "UpdateLog" SET "isCurrent" = false WHERE "isCurrent" = true');
+      await execute('UPDATE UpdateLog SET isCurrent = 0 WHERE isCurrent = 1');
     }
     if (isLatest) {
-      await execute('UPDATE "UpdateLog" SET "isLatest" = false WHERE "isLatest" = true');
+      await execute('UPDATE UpdateLog SET isLatest = 0 WHERE isLatest = 1');
     }
 
     await execute(
-      `INSERT INTO "UpdateLog" (id, version, title, category, content, "isCurrent", "isLatest", "createdAt", "createdBy")
+      `INSERT INTO UpdateLog (id, version, title, category, content, isCurrent, isLatest, createdAt, createdBy)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id, version, title, category || '改进', content,
       isCurrent ? 1 : 0, isLatest ? 1 : 0, now, session?.id || null
@@ -68,10 +80,10 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ error: '缺少 id 参数' }, { status: 400 });
 
     if (isCurrent !== undefined && isCurrent) {
-      await execute('UPDATE "UpdateLog" SET "isCurrent" = false WHERE id != ? AND "isCurrent" = true', id);
+      await execute('UPDATE UpdateLog SET isCurrent = 0 WHERE id != ? AND isCurrent = 1', id);
     }
     if (isLatest !== undefined && isLatest) {
-      await execute('UPDATE "UpdateLog" SET "isLatest" = false WHERE id != ? AND "isLatest" = true', id);
+      await execute('UPDATE UpdateLog SET isLatest = 0 WHERE id != ? AND isLatest = 1', id);
     }
 
     const fields: string[] = [];
@@ -81,15 +93,15 @@ export async function PUT(req: NextRequest) {
     if (title !== undefined) { fields.push('title = ?'); params.push(title); }
     if (category !== undefined) { fields.push('category = ?'); params.push(category); }
     if (content !== undefined) { fields.push('content = ?'); params.push(content); }
-    if (isCurrent !== undefined) { fields.push('"isCurrent" = ?'); params.push(isCurrent ? 1 : 0); }
-    if (isLatest !== undefined) { fields.push('"isLatest" = ?'); params.push(isLatest ? 1 : 0); }
+    if (isCurrent !== undefined) { fields.push('isCurrent = ?'); params.push(isCurrent ? 1 : 0); }
+    if (isLatest !== undefined) { fields.push('isLatest = ?'); params.push(isLatest ? 1 : 0); }
 
     if (fields.length === 0) {
       return NextResponse.json({ error: '无更新字段' }, { status: 400 });
     }
 
     params.push(id);
-    await execute(`UPDATE "UpdateLog" SET ${fields.join(', ')} WHERE id = ?`, ...params);
+    await execute(`UPDATE UpdateLog SET ${fields.join(', ')} WHERE id = ?`, ...params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -112,9 +124,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (id) {
-      await execute('DELETE FROM "UpdateLog" WHERE id = ?', id);
+      await execute('DELETE FROM UpdateLog WHERE id = ?', id);
     } else {
-      await execute('DELETE FROM "UpdateLog" WHERE version = ?', version!);
+      await execute('DELETE FROM UpdateLog WHERE version = ?', version!);
     }
 
     return NextResponse.json({ success: true });

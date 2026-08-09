@@ -84,9 +84,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
-    const versions = await queryAll(
-      'SELECT id, version, title, category, changelog, downloadUrl, checksum, isLatest, isDeprecated, releaseAt, createdAt FROM Version ORDER BY releaseAt DESC'
-    ) as any[];
+    let versions: any[] = [];
+
+    try {
+      versions = await queryAll(
+        'SELECT id, version, title, category, changelog, downloadUrl, checksum, isLatest, isDeprecated, releaseAt, createdAt FROM Version ORDER BY releaseAt DESC'
+      ) as any[];
+    } catch (dbErr: any) {
+      console.error('[version/release/GET] 数据库错误:', dbErr?.message);
+      // 表不存在时返回空列表，不抛500
+      if (dbErr?.message && (dbErr.message.includes("doesn't exist") || dbErr.message.includes('Unknown column'))) {
+        return NextResponse.json({
+          versions: [],
+          total: 0,
+          warning: 'Version表尚未初始化，请运行 npm run db:init',
+        });
+      }
+      throw dbErr;
+    }
 
     return NextResponse.json({
       versions: versions.map((v: any) => ({
@@ -96,6 +111,7 @@ export async function GET(req: NextRequest) {
       total: versions.length,
     });
   } catch (err: any) {
+    console.error('[version/release/GET] 错误:', err?.message);
     return NextResponse.json({ error: err?.message || '查询失败' }, { status: 500 });
   }
 }

@@ -56,18 +56,37 @@ export async function GET(req: NextRequest) {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // 查询总数
-    const countResult = await queryFirst(
-      `SELECT COUNT(*) as total FROM UpdateLog ${whereClause}`,
-      ...params
-    ) as any;
-    const total = countResult?.total || 0;
+    let logs: any[] = [];
+    let total = 0;
 
-    // 查询列表
-    const logs = await queryAll(
-      `SELECT * FROM UpdateLog ${whereClause} ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
-      ...params
-    );
+    try {
+      // 查询总数
+      const countResult = await queryFirst(
+        `SELECT COUNT(*) as total FROM UpdateLog ${whereClause}`,
+        ...params
+      ) as any;
+      total = countResult?.total || 0;
+
+      // 查询列表
+      logs = await queryAll(
+        `SELECT * FROM UpdateLog ${whereClause} ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+        ...params
+      );
+    } catch (dbErr: any) {
+      console.error('[update-logs/GET] 数据库错误:', dbErr?.message);
+      // 表或字段不存在时返回空列表，不抛500
+      if (dbErr?.message && (dbErr.message.includes("doesn't exist") || dbErr.message.includes('Unknown column'))) {
+        return NextResponse.json({
+          logs: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+          warning: '表尚未初始化，请运行 npm run db:init',
+        });
+      }
+      throw dbErr;
+    }
 
     return NextResponse.json({
       logs,

@@ -28,8 +28,8 @@ export function getSystemVersion(): SystemVersion {
     version: APP_VERSION,
     name: APP_NAME,
     codename: APP_CODENAME,
-    buildTime: BUILD_TIME !== '__BUILD_TIME__' ? BUILD_TIME : new Date().toISOString(),
-    gitCommit: GIT_COMMIT !== '__GIT_COMMIT__' ? GIT_COMMIT : 'dev',
+    buildTime: !BUILD_TIME.startsWith('__') ? BUILD_TIME : new Date().toISOString(),
+    gitCommit: !GIT_COMMIT.startsWith('__') ? GIT_COMMIT : 'dev',
     nodeEnv: process.env.NODE_ENV || 'production',
   };
 }
