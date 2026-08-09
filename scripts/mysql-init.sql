@@ -487,6 +487,24 @@ CREATE TABLE IF NOT EXISTS `UpdateLog` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `Version` (
+  `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `version` VARCHAR(50) NOT NULL,
+  `title` VARCHAR(255),
+  `category` VARCHAR(50),
+  `changelog` TEXT,
+  `downloadUrl` VARCHAR(500),
+  `checksum` VARCHAR(255),
+  `isLatest` TINYINT(1) NOT NULL DEFAULT 0,
+  `isDeprecated` TINYINT(1) NOT NULL DEFAULT 0,
+  `releaseAt` DATETIME,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 当前版本种子（幂等）
+INSERT IGNORE INTO `Version` (id, version, title, category, changelog, isLatest, isDeprecated, releaseAt, createdAt)
+VALUES ('ver_v4_0_0', 'v4.0.0', '商源：代理商 SaaS 分发体系', '主版本更新', '[]', 1, 0, NOW(), NOW());
+
 -- ALTER TABLE ADD INDEX (see below) `UpdateLog_version_idx` ON `UpdateLog`(`version`);
 -- ALTER TABLE ADD INDEX (see below) `UpdateLog_type_idx` ON `UpdateLog`(`type`);
 -- ALTER TABLE ADD INDEX (see below) `UpdateLog_createdAt_idx` ON `UpdateLog`(`createdAt`);

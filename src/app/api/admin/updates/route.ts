@@ -13,8 +13,7 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * pageSize;
 
     const logs = await queryAll(
-      'SELECT * FROM "UpdateLog" ORDER BY "createdAt" DESC LIMIT ? OFFSET ?',
-      pageSize, offset
+      `SELECT * FROM "UpdateLog" ORDER BY "createdAt" DESC LIMIT ${pageSize} OFFSET ${offset}`
     );
 
     const countRow = await queryFirst('SELECT COUNT(*) as total FROM "UpdateLog"') as any;

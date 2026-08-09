@@ -65,10 +65,8 @@ export async function GET(req: NextRequest) {
 
     // 查询列表
     const logs = await queryAll(
-      `SELECT * FROM UpdateLog ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
-      ...params,
-      pageSize,
-      offset
+      `SELECT * FROM UpdateLog ${whereClause} ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     return NextResponse.json({
