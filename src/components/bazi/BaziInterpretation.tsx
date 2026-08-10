@@ -201,6 +201,11 @@ export function BaziInterpretation({ dayGan, wuxing, xiYongShen, nayin, shengxia
           {overallSummary}
         </div>
       </div>
+
+      {/* 免责声明 */}
+      <div className="text-center text-xs text-gray-400 py-2">
+        以上命理解读内容仅供传统文化娱乐参考，不构成任何决策建议
+      </div>
     </div>
   );
 }

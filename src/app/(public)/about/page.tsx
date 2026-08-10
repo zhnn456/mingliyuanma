@@ -4,7 +4,7 @@ import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '关于我们 - 先知命理网',
-  description: '先知命理网致力于传承中华传统命理文化，融合现代科技，提供专业、精准的四柱八字、紫微斗数、奇门遁甲、梅花易数等命理测算服务。',
+  description: '先知命理网致力于传承中华传统命理文化，融合现代科技，提供四柱八字、紫微斗数、奇门遁甲、梅花易数等命理排盘服务。',
 };
 
 export default function AboutPage() {
@@ -62,7 +62,7 @@ export default function AboutPage() {
               {
                 icon: '💡',
                 title: '持续更新',
-                description: '我们持续优化算法模型，扩展知识库内容，为用户提供越来越精准的命理解读。',
+                description: '我们持续优化算法模型，扩展知识库内容，为用户提供更好的命理解读体验。',
               },
             ].map((item) => (
               <div key={item.title} className="p-5 bg-gray-50 rounded-xl border border-gray-100">
@@ -94,7 +94,7 @@ export default function AboutPage() {
               {
                 icon: '🔮',
                 title: '奇门遁甲',
-                desc: '时家奇门排盘，展示九宫八门、九星、八神分布格局。提供方位吉凶、值符值使分析、特殊格局解读，辅助决策趋吉避凶。',
+                desc: '时家奇门排盘，展示九宫八门、九星、八神分布格局。提供方位分析、值符值使分析、特殊格局解读，作为传统文化参考。',
                 href: '/qimen',
               },
               {
@@ -202,7 +202,7 @@ export default function AboutPage() {
           <div className="text-gray-600 space-y-2 text-sm">
             <p>如果您有任何问题、建议或合作意向，欢迎通过以下方式与我们联系。</p>
             <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
-              <p><span className="font-medium text-gray-800">邮箱：</span>support@mingliwang.com</p>
+              <p><span className="font-medium text-gray-800">邮箱：</span>support@ming8.online</p>
               <p><span className="font-medium text-gray-800">微信公众号：</span>先知命理网</p>
               <p><span className="font-medium text-gray-800">在线时间：</span>工作日 9:00 - 18:00</p>
             </div>

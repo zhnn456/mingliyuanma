@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/'],
       },
     ],
-    sitemap: 'https://www.mingliwang.com/sitemap.xml',
+    sitemap: 'https://ming8.online/sitemap.xml',
   };
 }

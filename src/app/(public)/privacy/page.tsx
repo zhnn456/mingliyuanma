@@ -152,7 +152,7 @@ export default function PrivacyPage() {
             如果您对本隐私政策有任何疑问、意见或建议，或需要行使您的相关权利，欢迎通过以下方式联系我们：
           </p>
           <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
-            <p><strong>邮箱：</strong>privacy@mingliwang.com</p>
+            <p><strong>邮箱：</strong>support@ming8.online</p>
             <p><strong>工作时间：</strong>工作日 9:00 - 18:00</p>
             <p>我们会在收到您的请求后15个工作日内给予回复。</p>
           </div>

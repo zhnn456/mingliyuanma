@@ -35,7 +35,7 @@ export default function CopyrightPage() {
           <div className="space-y-3 text-sm text-gray-600">
             <p>
               先知命理网（域名：ming8.online）的所有内容，除非另有说明，其知识产权均归先知命理网运营团队所有，
-              受《中华人民共和国著作权法》《中华人民共和国知识产权法》及相关国际条约的保护。
+              受《中华人民共和国著作权法》及相关国际条约的保护。
             </p>
             <p>受版权保护的内容包括但不限于：</p>
             <ul className="pl-5 list-disc space-y-1">
@@ -84,46 +84,16 @@ export default function CopyrightPage() {
 
         {/* 4. 开源致谢 */}
         <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl shadow-sm border border-amber-200 p-6 mb-6">
-          <h2 className="text-xl font-bold text-amber-900 mb-4">4. 开源项目致谢</h2>
+          <h2 className="text-xl font-bold text-amber-900 mb-4">4. 开源致谢</h2>
           <div className="space-y-4 text-sm text-amber-900">
             <p>
-              先知命理网的开发过程中，参考和借鉴了以下 GitHub 开源项目的算法逻辑和实现思路。
+              先知命理网在开发过程中，参考了 GitHub 开源社区中关于传统历法计算、命理排盘算法等方面的公开资料与实现思路。
               在此向所有开源社区贡献者表示最诚挚的感谢！
             </p>
-
-            <div className="bg-white/70 rounded-lg p-4 space-y-3">
-              <div className="border-b border-amber-100 pb-3">
-                <h3 className="font-bold text-gray-800">🌐 qimen-dunjia</h3>
-                <p className="text-xs text-gray-500">奇门遁甲排盘算法</p>
-                <p className="text-xs text-gray-600 mt-1">参考其起卦逻辑、九宫布局、用神分析等核心算法实现</p>
-              </div>
-              <div className="border-b border-amber-100 pb-3">
-                <h3 className="font-bold text-gray-800">⭐ ziwei-doushu</h3>
-                <p className="text-xs text-gray-500">紫微斗数排盘算法</p>
-                <p className="text-xs text-gray-600 mt-1">参考其十二宫位计算、星曜分布、四化飞星等算法逻辑</p>
-              </div>
-              <div className="border-b border-amber-100 pb-3">
-                <h3 className="font-bold text-gray-800">🏛️ bazi-paipan</h3>
-                <p className="text-xs text-gray-500">四柱八字排盘算法</p>
-                <p className="text-xs text-gray-600 mt-1">参考其干支计算、五行旺衰、十神分析等计算方法</p>
-              </div>
-              <div className="border-b border-amber-100 pb-3">
-                <h3 className="font-bold text-gray-800">📅 chinese-calendar</h3>
-                <p className="text-xs text-gray-500">中国传统历法计算</p>
-                <p className="text-xs text-gray-600 mt-1">参考其农历转换、节气计算、干支纪年等功能实现</p>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-800">☯️ bagua-utils</h3>
-                <p className="text-xs text-gray-500">八卦分析工具库</p>
-                <p className="text-xs text-gray-600 mt-1">参考其卦象解析、爻辞查询、体用分析等功能逻辑</p>
-              </div>
-            </div>
-
             <div className="bg-red-50 rounded-lg p-4 border border-red-200">
               <p className="text-xs text-red-800">
-                💡 <strong>声明：</strong>本站仅参考上述开源项目的算法思路，未直接复制其源代码。
-                所有算法实现均经过重新设计与优化。相关开源项目的知识产权归其原作者所有。
-                如需查看原项目，请访问 GitHub 搜索相关关键词。
+                💡 <strong>声明：</strong>本站所有算法均为自主实现，未直接复制任何第三方源代码。
+                如有权利人认为本站内容侵犯了其合法权益，请通过下方投诉邮箱联系我们，我们会尽快核实处理。
               </p>
             </div>
           </div>
@@ -154,7 +124,7 @@ export default function CopyrightPage() {
               我们会在收到投诉后15个工作日内进行核实和处理。
             </p>
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-800 mb-2">投诉邮箱：copyright@mingliwang.com</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">投诉邮箱：support@ming8.online</h3>
               <p className="text-xs text-gray-500 mb-3">投诉时请提供以下信息：</p>
               <ul className="text-xs text-gray-600 space-y-1 pl-5 list-disc">
                 <li>权利人身份证明</li>
@@ -182,7 +152,7 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold mb-4">联系我们</h2>
           <p className="text-sm opacity-90 mb-4">如有任何版权相关问题，欢迎随时联系我们：</p>
           <div className="space-y-2 text-sm">
-            <p>📧 邮箱：copyright@mingliwang.com</p>
+            <p>📧 邮箱：support@ming8.online</p>
             <p>💬 微信公众号：先知命理网</p>
             <p>🕐 工作时间：工作日 9:00 - 18:00</p>
           </div>

@@ -103,6 +103,16 @@ export default function TermsPage() {
                 <li>其他损害网站或第三方利益的行为</li>
               </ul>
             </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-2">2.4 未成年人保护</h3>
+              <ul className="pl-5 list-disc space-y-1">
+                <li>本网站服务面向18周岁及以上成年人</li>
+                <li>未成年人不得注册账号或使用付费服务</li>
+                <li>监护人应妥善保管支付工具，防止未成年人误操作充值</li>
+                <li>如发现未成年人未经授权使用本服务，请联系客服处理</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -147,7 +157,8 @@ export default function TermsPage() {
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">3.4 退款政策</h3>
               <ul className="pl-5 list-disc space-y-1">
-                <li>虚拟商品一经售出，不支持7天无理由退款</li>
+                <li>已消费的灵珠不支持退款</li>
+                <li>未使用的灵珠余额可申请退款，将在3个工作日内原路退回</li>
                 <li>如因系统故障导致服务无法使用，我们将根据实际情况处理退款</li>
                 <li>退款申请需在购买后7天内提出</li>
                 <li>特殊情况请联系客服协商处理</li>
@@ -237,7 +248,7 @@ export default function TermsPage() {
             如您对本服务条款有任何疑问，欢迎通过以下方式联系我们：
           </p>
           <div className="bg-gray-50 rounded-lg p-4 text-sm mt-3 space-y-2">
-            <p><strong>邮箱：</strong>terms@mingliwang.com</p>
+            <p><strong>邮箱：</strong>support@ming8.online</p>
             <p><strong>工作时间：</strong>工作日 9:00 - 18:00</p>
           </div>
         </div>
