@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
     if (!pkg) return NextResponse.json({ error: '无效的充值套餐' }, { status: 400 });
 
     const now = new Date().toISOString();
-    const orderId = `ord_${Date.now()}`;
-    const orderNo = `RC${Date.now()}`;
+    const randSuffix = Math.random().toString(36).slice(2, 8);
+    const orderId = `ord_${Date.now()}_${randSuffix}`;
+    const orderNo = `RC${Date.now()}${randSuffix}`;
 
     await execute(
       'INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',

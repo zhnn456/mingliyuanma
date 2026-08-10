@@ -158,31 +158,23 @@ export async function deductLingzhu(userId: string, amount: number, reason: stri
 }
 
 /**
- * 赠送灵珠（会员开通时）
+ * 赠送灵珠（会员开通时）— 原子操作，防止并发双倍
  */
 export async function grantLingzhu(userId: string, amount: number, reason: string): Promise<void> {
   const now = new Date().toISOString();
 
-  // 检查是否已有 UserPoints 记录
-  const existing = await queryFirst('SELECT userId FROM UserPoints WHERE userId = ?', userId);
-  if (existing) {
-    await execute(
-      'UPDATE UserPoints SET balance = balance + ?, updatedAt = ? WHERE userId = ?',
-      amount, now, userId
-    );
-  } else {
-    await execute(
-      'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?)',
-      userId, amount, now
-    );
-  }
+  // 原子性 upsert：INSERT 或 UPDATE 在一条 SQL 完成
+  await execute(
+    'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + ?, updatedAt = ?',
+    userId, amount, now, amount, now
+  );
 
   const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
   const newBalance = row?.balance || 0;
 
   await execute(
     'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    `pts_${Date.now()}`, userId, amount, newBalance, 'reward', reason, now
+    `pts_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, userId, amount, newBalance, 'reward', reason, now
   );
 }
 

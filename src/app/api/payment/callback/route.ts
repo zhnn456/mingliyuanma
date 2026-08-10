@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryFirst, batch } from '@/lib/d1';
+import { queryFirst, execute, batch } from '@/lib/d1';
 import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 import { grantLingzhu, MEMBERSHIP_GIFT_LINGZHU } from '@/lib/rate-limit';
 
+// 充值套餐（与 recharge/route.ts 保持一致）
+const RECHARGE_PACKAGES: Record<string, number> = {
+  pkg_100: 100,
+  pkg_500: 550,
+  pkg_1000: 1200,
+  pkg_3000: 3800,
+};
+
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const method = searchParams.get('method') || 'mock';
+    const method = searchParams.get('method');
+
+    // 拒绝 mock 方式，只接受真实支付回调
+    if (method !== 'wechat' && method !== 'alipay') {
+      return NextResponse.json({ code: 'FAIL', message: '无效的支付方式' }, { status: 400 });
+    }
 
     const rawBody = await req.text();
     const headers: Record<string, string> = {};
@@ -32,26 +45,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ code: 'FAIL', message: '订单不存在' }, { status: 404 });
     }
 
+    // 金额校验（防篡改）
     const paidAmount = result.amount;
     if (isNaN(paidAmount) || Math.abs(order.amount - paidAmount) > 0.01) {
       console.error('回调金额不匹配:', order.amount, paidAmount);
       return NextResponse.json({ code: 'FAIL', message: '金额不匹配' }, { status: 400 });
     }
 
-    if (order.status === 'paid') {
+    // 原子性抢占：只有 pending 状态才能更新为 paid
+    // 防止并发回调导致重复处理（双倍充值）
+    const claimResult = await execute(
+      'UPDATE "Order" SET status = ?, transactionId = ?, paidAt = ?, updatedAt = ? WHERE id = ? AND status = ?',
+      'paid', result.transactionId, new Date().toISOString(), new Date().toISOString(), order.id, 'pending'
+    );
+
+    if (claimResult.changes === 0) {
+      // 订单已被其他回调处理，幂等返回成功
       return NextResponse.json({ code: 'SUCCESS', message: '成功' });
     }
 
     const now = new Date().toISOString();
+    const randSuffix = Math.random().toString(36).slice(2, 8);
 
     const batchStatements: Array<{ sql: string; params?: any[] }> = [
       {
-        sql: 'UPDATE "Order" SET status = ?, transactionId = ?, paidAt = ?, updatedAt = ? WHERE id = ?',
-        params: ['paid', result.transactionId, now, now, order.id],
-      },
-      {
         sql: 'INSERT INTO Payment (id, orderId, userId, method, amount, status, transactionId, paidAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        params: [`pay_${Date.now()}`, order.id, order.userId, result.method, order.amount, 'success', result.transactionId, now, now],
+        params: [`pay_${Date.now()}_${randSuffix}`, order.id, order.userId, result.method, order.amount, 'success', result.transactionId, now, now],
       },
     ];
 
@@ -75,13 +94,33 @@ export async function POST(req: NextRequest) {
       const [itemId, offerType] = (order.targetId || '').split(':::');
       batchStatements.push({
         sql: 'INSERT INTO OfferingRecord (id, userId, itemId, amount, type, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        params: [`off_${Date.now()}`, order.userId, itemId || order.targetId || '', order.amount, offerType || 'single', 'completed', now],
+        params: [`off_${Date.now()}_${randSuffix}`, order.userId, itemId || order.targetId || '', order.amount, offerType || 'single', 'completed', now],
       });
 
       await auditLog({
         userId: order.userId,
         action: 'offering_create',
         details: { orderNo: order.orderNo, targetId: order.targetId },
+        status: 'success',
+      });
+    } else if (order.type === 'recharge') {
+      // 充值灵珠到账
+      const points = RECHARGE_PACKAGES[order.targetId];
+      if (points) {
+        batchStatements.push({
+          sql: 'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + VALUES(balance), updatedAt = VALUES(updatedAt)',
+          params: [order.userId, points, now],
+        });
+        batchStatements.push({
+          sql: 'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, (SELECT balance FROM UserPoints WHERE userId = ?), ?, ?, ?)',
+          params: [`pts_${Date.now()}_${randSuffix}`, order.userId, points, order.userId, 'recharge', `充值${points}灵珠`, now],
+        });
+      }
+
+      await auditLog({
+        userId: order.userId,
+        action: 'recharge_success',
+        details: { orderNo: order.orderNo, points, amount: order.amount },
         status: 'success',
       });
     }

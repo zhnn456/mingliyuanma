@@ -119,22 +119,22 @@ export async function listAllPointsLedger(page: number = 1, pageSize: number = 2
   return { rows, total: countRow?.total || 0, page, pageSize };
 }
 
-/** 管理员调整用户积分 */
+/** 管理员调整用户积分 — 原子操作 */
 export async function addPoints(userId: string, amount: number, type: string, remark: string) {
   const now = new Date().toISOString();
-  const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
-  const current = row?.balance || 0;
-  const newBalance = current + amount;
 
-  if (row) {
-    await execute('UPDATE UserPoints SET balance = ?, updatedAt = ? WHERE userId = ?', newBalance, now, userId);
-  } else {
-    await execute('INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?)', userId, newBalance, now);
-  }
+  // 原子性 upsert
+  await execute(
+    'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + ?, updatedAt = ?',
+    userId, amount, now, amount, now
+  );
+
+  const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
+  const newBalance = row?.balance || 0;
 
   await execute(
     'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    `pts_${Date.now()}`, userId, amount, newBalance, type, remark, now
+    `pts_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, userId, amount, newBalance, type, remark, now
   );
 
   return newBalance;

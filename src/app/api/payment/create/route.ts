@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const { type, method, couponCode } = body;
     let targetId = body.targetId;
 
-    const VALID_METHODS = ['wechat', 'alipay', 'mock'];
+    const VALID_METHODS = ['wechat', 'alipay'];
     if (!method || !VALID_METHODS.includes(method)) return NextResponse.json({ error: '无效的支付方式' }, { status: 400 });
     const paymentMethod = method as PaymentMethod;
 
@@ -102,15 +102,16 @@ export async function POST(req: NextRequest) {
       discount = coupon.type === 'percentage' ? amount * (coupon.value / 100) : coupon.value;
       if (discount > amount) discount = amount;
       appliedCoupon = coupon;
-      // 增加使用次数
-      await execute('UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ?', coupon.id);
+      // 增加使用次数（原子操作，防止超发）
+      const couponUpdate = await execute('UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ? AND usedCount < maxUses', coupon.id);
+      if (couponUpdate.changes === 0) return NextResponse.json({ error: '优惠码已用完' }, { status: 400 });
     }
 
     const finalAmount = parseFloat((amount - discount).toFixed(2));
     const orderNo = generateOrderNo();
     const userId = session.sub;
 
-    const orderId = `ord_${Date.now()}`;
+    const orderId = `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, paymentMethod, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,

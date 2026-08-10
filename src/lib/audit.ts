@@ -8,7 +8,7 @@ import { execute, queryAll } from '@/lib/d1';
 export type AuditAction =
   | 'login' | 'logout' | 'register'
   | 'bazi_paipan' | 'ziwei_paipan' | 'qimen_paipan' | 'meihua_paipan'
-  | 'order_create' | 'order_pay' | 'order_refund'
+  | 'order_create' | 'order_pay' | 'order_refund' | 'recharge_success'
   | 'member_upgrade' | 'member_expire'
   | 'admin_update_user' | 'admin_update_order' | 'admin_update_config'
   | 'admin_toggle_agent' | 'admin_create_agent' | 'admin_delete_agent' | 'admin_update_agent'
