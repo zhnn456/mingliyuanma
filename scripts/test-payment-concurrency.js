@@ -17,6 +17,11 @@ const CONCURRENCY = 20;  // 并发数
 const TEST_USER_ID = 'test_concurrency_user';
 const TEST_PREFIX = `test_${Date.now()}`;
 
+// MySQL datetime格式：YYYY-MM-DD HH:MM:SS
+function mysqlNow() {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ');
+}
+
 async function main() {
   const pool = mysql.createPool(DB_URL);
 
@@ -60,11 +65,11 @@ async function testOrderClaim(pool) {
 
   const orderId = `${TEST_PREFIX}_order_1`;
   const orderNo = `TC${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = mysqlNow();
 
   // 创建一个 pending 状态的测试订单
   await pool.execute(
-    `INSERT INTO "Order" (id, orderNo, userId, type, targetId, amount, status, createdAt, updatedAt)
+    `INSERT INTO \`Order\` (id, orderNo, userId, type, targetId, amount, status, createdAt, updatedAt)
      VALUES (?, ?, ?, 'recharge', 'pkg_100', 100, 'pending', ?, ?)`,
     [orderId, orderNo, TEST_USER_ID, now, now]
   );
@@ -75,7 +80,7 @@ async function testOrderClaim(pool) {
   for (let i = 0; i < CONCURRENCY; i++) {
     promises.push(
       pool.execute(
-        `UPDATE "Order" SET status = 'paid', paidAt = ?, updatedAt = ? WHERE id = ? AND status = 'pending'`,
+        `UPDATE \`Order\` SET status = 'paid', paidAt = ?, updatedAt = ? WHERE id = ? AND status = 'pending'`,
         [now, now, orderId]
       )
     );
@@ -85,7 +90,7 @@ async function testOrderClaim(pool) {
   const successCount = results.filter(r => r[0].affectedRows > 0).length;
 
   // 验证订单最终状态
-  const [rows] = await pool.execute(`SELECT status FROM "Order" WHERE id = ?`, [orderId]);
+  const [rows] = await pool.execute(`SELECT status FROM \`Order\` WHERE id = ?`, [orderId]);
   const finalStatus = rows[0]?.status;
 
   console.log(`  并发抢占数: ${CONCURRENCY}`);
@@ -111,21 +116,21 @@ async function testCouponOversell(pool) {
 
   const couponId = `${TEST_PREFIX}_coupon_1`;
   const couponCode = `TEST${Date.now()}`;
-  const now = new Date().toISOString();
+  const now = mysqlNow();
 
   await pool.execute(
-    `INSERT INTO Coupon (id, code, name, discountType, discountValue, minAmount, maxUses, usedCount, isActive, createdAt)
+    `INSERT INTO Coupon (id, code, name, discountType, discountValue, minAmount, totalCount, usedCount, isActive, createdAt)
      VALUES (?, ?, '测试券', 'fixed', 10, 0, 1, 0, 1, ?)`,
     [couponId, couponCode, now]
   );
-  console.log(`创建测试优惠券: ${couponCode} (maxUses=1, usedCount=0)`);
+  console.log(`创建测试优惠券: ${couponCode} (totalCount=1, usedCount=0)`);
 
   // 并发使用优惠券
   const promises = [];
   for (let i = 0; i < CONCURRENCY; i++) {
     promises.push(
       pool.execute(
-        `UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ? AND usedCount < maxUses`,
+        `UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ? AND usedCount < totalCount`,
         [couponId]
       )
     );
@@ -135,9 +140,9 @@ async function testCouponOversell(pool) {
   const successCount = results.filter(r => r[0].affectedRows > 0).length;
 
   // 验证最终usedCount
-  const [rows] = await pool.execute(`SELECT usedCount, maxUses FROM Coupon WHERE id = ?`, [couponId]);
+  const [rows] = await pool.execute(`SELECT usedCount, totalCount FROM Coupon WHERE id = ?`, [couponId]);
   const finalUsed = rows[0]?.usedCount;
-  const maxUses = rows[0]?.maxUses;
+  const maxUses = rows[0]?.totalCount;
 
   console.log(`  并发使用数: ${CONCURRENCY}`);
   console.log(`  成功使用数: ${successCount}`);
@@ -161,7 +166,7 @@ async function testGrantLingzhu(pool) {
   console.log('--- 测试3：并发灵珠赠礼（防双倍/丢失更新）---');
 
   const userId = `${TEST_PREFIX}_user_1`;
-  const now = new Date().toISOString();
+  const now = mysqlNow();
   const GIFT_AMOUNT = 100;
 
   // 初始化用户余额为0
@@ -210,7 +215,7 @@ async function cleanup(pool) {
   console.log('--- 清理测试数据 ---');
 
   // 删除测试订单
-  await pool.execute(`DELETE FROM "Order" WHERE id LIKE ?`, [`${TEST_PREFIX}%`]);
+  await pool.execute(`DELETE FROM \`Order\` WHERE id LIKE ?`, [`${TEST_PREFIX}%`]);
   // 删除测试优惠券
   await pool.execute(`DELETE FROM Coupon WHERE id LIKE ?`, [`${TEST_PREFIX}%`]);
   // 删除测试用户积分

@@ -94,16 +94,14 @@ export async function POST(req: NextRequest) {
     if (couponCode) {
       const coupon = await queryFirst('SELECT * FROM Coupon WHERE code = ? AND isActive = 1', couponCode) as any;
       if (!coupon) return NextResponse.json({ error: '优惠码无效' }, { status: 400 });
-      if (coupon.validTo && new Date(coupon.validTo) < new Date()) return NextResponse.json({ error: '优惠码已过期' }, { status: 400 });
-      if (coupon.validFrom && new Date(coupon.validFrom) > new Date()) return NextResponse.json({ error: '优惠码尚未生效' }, { status: 400 });
-      if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) return NextResponse.json({ error: '优惠码已用完' }, { status: 400 });
+      if (coupon.totalCount > 0 && coupon.usedCount >= coupon.totalCount) return NextResponse.json({ error: '优惠码已用完' }, { status: 400 });
       if (amount < coupon.minAmount) return NextResponse.json({ error: `未达到最低消费¥${coupon.minAmount}` }, { status: 400 });
 
-      discount = coupon.type === 'percentage' ? amount * (coupon.value / 100) : coupon.value;
+      discount = coupon.discountType === 'percent' ? amount * (coupon.discountValue / 100) : coupon.discountValue;
       if (discount > amount) discount = amount;
       appliedCoupon = coupon;
       // 增加使用次数（原子操作，防止超发）
-      const couponUpdate = await execute('UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ? AND usedCount < maxUses', coupon.id);
+      const couponUpdate = await execute('UPDATE Coupon SET usedCount = usedCount + 1 WHERE id = ? AND usedCount < totalCount', coupon.id);
       if (couponUpdate.changes === 0) return NextResponse.json({ error: '优惠码已用完' }, { status: 400 });
     }
 
