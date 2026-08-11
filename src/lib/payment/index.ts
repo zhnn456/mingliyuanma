@@ -405,6 +405,9 @@ export class PaymentService {
    * 创建 PayPal 订单
    * 跳转到 PayPal.me 让用户手动输入金额付款
    * 付款后由客服在后台手动核销订单（无自动回调）
+   *
+   * 汇率折算：PayPal.me 默认以美元结算，需将人民币金额转换为美元
+   * 汇率通过环境变量 PAYPAL_USD_RATE 配置（默认 7.15，即 1 USD ≈ 7.15 CNY）
    */
   private async createPaypalOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
     if (!this.isPaypalConfigured()) {
@@ -412,16 +415,21 @@ export class PaymentService {
       return this.createMockOrder(params);
     }
 
-    // PayPal.me 链接：https://paypal.me/{username}/{金额}
-    // 金额需为数字，保留两位小数
-    const amountStr = params.amount.toFixed(2);
+    // 人民币 → 美元折算
+    const rate = parseFloat(process.env.PAYPAL_USD_RATE || '7.15');
+    const usdAmount = params.amount / rate;
+    const amountStr = usdAmount.toFixed(2);
     const paymentUrl = `https://paypal.me/${this.config.paypalMeUsername}/${amountStr}`;
 
     return {
       orderNo: params.orderNo,
       paymentUrl,
       status: 'pending',
-    };
+      // 附加汇率信息供前端展示
+      amount: params.amount,
+      usdAmount,
+      exchangeRate: rate,
+    } as CreateOrderResult;
   }
 
   // ============ Mock 支付（开发/测试用） ============

@@ -40,7 +40,7 @@ const PAYMENT_METHODS = [
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
   { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
-  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 zhiwei_kefu 购买卡密后兑换' },
+  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 Xcbot2026 购买卡密后兑换' },
 ];
 
 export default function PayPage({ params }: { params: Promise<{ orderNo: string }> }) {
@@ -52,7 +52,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [payment, setPayment] = useState<PaymentInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState('mock');
+  const [selectedMethod, setSelectedMethod] = useState('wechat');
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
 
@@ -341,8 +341,11 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           setRedirecting(false);
           setPaying(false);
           // 提示用户付款后联系客服核销
+          const cnyAmount = (data.order?.amount ?? order?.amount ?? 0);
+          const usdAmount = pay.usdAmount as number | undefined;
+          const rate = pay.exchangeRate as number | undefined;
           setTimeout(() => {
-            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${(data.order?.amount ?? order?.amount ?? 0).toFixed(2)}\n\n付款完成后请联系客服微信 zhiwei_kefu 核销订单，或刷新本页面查看订单状态。`);
+            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${cnyAmount.toFixed(2)}（约 $${usdAmount?.toFixed(2) || (cnyAmount / 7.15).toFixed(2)} USD，汇率 ${rate || 7.15}）\n\n付款完成后请联系客服微信 Xcbot2026 核销订单，或刷新本页面查看订单状态。`);
           }, 300);
         } else if (pay.paymentUrl && pay.paymentUrl.startsWith('/pay/')) {
           setError('PayPal 未配置（缺少 PAYPAL_ME_USERNAME），请联系管理员');
@@ -475,7 +478,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         <div className="card mb-6">
           <h2 className="card-title">选择支付方式</h2>
           <div className="space-y-3 mt-3">
-            {PAYMENT_METHODS.map((method) => {
+            {PAYMENT_METHODS.filter(m => m.id !== 'mock' || session?.role === 'admin').map((method) => {
               const configured =
                 method.id === 'mock' ? true
                   : method.id === 'wechat' ? methodsConfig.wechat
