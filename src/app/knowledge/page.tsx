@@ -432,11 +432,11 @@ export default function KnowledgePage() {
         <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="h-px w-8 bg-gold/40" />
-            <span className="text-gold text-sm font-medium tracking-widest">KNOWLEDGE</span>
+            <span className="text-gold text-sm font-medium tracking-widest">ACADEMY</span>
             <div className="h-px w-8 bg-gold/40" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 font-kai">命理知识</h1>
-          <p className="text-gray-500">系统学习命理知识，从入门到精通</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 font-kai">传统文化学堂</h1>
+          <p className="text-gray-500">传承千年智慧，从入门到精通</p>
         </div>
 
         {/* Tab 切换：浏览 / 学习路线 */}

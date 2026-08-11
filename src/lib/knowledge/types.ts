@@ -61,7 +61,7 @@ export interface LearningStage {
 export const KNOWLEDGE_CATEGORIES: Omit<KnowledgeCategory, 'articleCount'>[] = [
   {
     id: 'basic',
-    name: '命理基础',
+    name: '文化基础',
     icon: '📚',
     description: '阴阳五行、天干地支等基础知识',
     color: 'amber',

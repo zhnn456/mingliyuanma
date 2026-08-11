@@ -24,7 +24,7 @@ export function Header() {
     { href: '/qimen', label: '奇门' },
     { href: '/meihua', label: '梅花' },
     { href: '/offering', label: '祈福' },
-    { href: '/knowledge', label: '知识' },
+    { href: '/knowledge', label: '学堂' },
     { href: '/membership', label: '会员' },
   ];
 
