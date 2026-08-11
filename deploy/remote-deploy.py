@@ -49,13 +49,15 @@ print("连接服务器...")
 ssh.connect(HOST, username=USER, password=PASSWORD, timeout=10, look_for_keys=False, allow_agent=False)
 print("SSH 连接成功")
 
-# 1. 停掉 ming8（admin 用户的 PM2）
-print("\n===== 1/6 停止 ming8 进程 =====")
-run(ssh, 'su - admin -c "pm2 stop ming8" 2>/dev/null || pm2 stop ming8 2>/dev/null || echo "ming8 not running or already stopped"')
+# 1. 停掉所有 PM2 实例的 ming8（root 与 admin 两套实例都停，避免端口冲突）
+print("\n===== 1/6 停止 ming8 进程（root + admin 双实例）=====")
+run(ssh, 'pm2 stop ming8 2>/dev/null; pm2 delete ming8 2>/dev/null; echo "root 实例已清理"')
+run(ssh, 'su - admin -c "pm2 stop ming8 2>/dev/null; pm2 delete ming8 2>/dev/null; echo admin 实例已清理"')
+run(ssh, 'sleep 2; ss -tlnp | grep 3001 && echo "⚠️ 端口仍被占用" || echo "✅ 3001 端口已释放"')
 
-# 2. git pull（用 admin 用户，修复 ownership）
+# 2. git pull（先修复 .git 权限，用 admin 用户）
 print("\n===== 2/6 拉取最新代码 =====")
-run(ssh, 'git config --global --add safe.directory /www/ming8 2>/dev/null; su - admin -c "cd /www/ming8 && git config --global --add safe.directory /www/ming8 && git pull origin main" 2>&1')
+run(ssh, 'chown -R admin:admin /www/ming8/.git 2>/dev/null; chmod -R u+rwX /www/ming8/.git 2>/dev/null; git config --global --add safe.directory /www/ming8 2>/dev/null; su - admin -c "cd /www/ming8 && git config --global --add safe.directory /www/ming8 && git pull origin main" 2>&1')
 
 # 3. mysql init
 print("\n===== 3/6 初始化数据库 =====")
@@ -88,10 +90,10 @@ print("\n===== 5/6 解压构建产物 =====")
 run(ssh, 'which unzip >/dev/null 2>&1 || apt install -y unzip 2>&1 | tail -1')
 run(ssh, 'cd /www/ming8 && rm -rf .next && unzip -qo next-build.zip && rm -f next-build.zip && echo "解压完成"')
 
-# 6. 启动服务
+# 6. 启动服务（统一用 admin 实例；root 实例配置已删除不会再抢占）
 print("\n===== 6/6 启动服务 =====")
-run(ssh, 'su - admin -c "cd /www/ming8 && pm2 start deploy/ecosystem.config.js" 2>/dev/null || su - admin -c "pm2 restart ming8" 2>/dev/null || pm2 restart ming8 2>/dev/null || echo "启动失败，检查 pm2 logs"')
-run(ssh, 'su - admin -c "pm2 save" 2>/dev/null; pm2 save 2>/dev/null; echo "PM2 已保存"')
+run(ssh, 'pm2 delete ming8 2>/dev/null; su - admin -c "cd /www/ming8 && pm2 start deploy/ecosystem.config.js" 2>&1')
+run(ssh, 'su - admin -c "pm2 save" 2>/dev/null; pm2 delete ming8 2>/dev/null; pm2 save 2>/dev/null; echo "PM2 已保存（仅 admin 实例）"')
 
 # 7. 记录更新日志（UpdateLog 表）
 record_deploy_log(ssh)
