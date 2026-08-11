@@ -133,17 +133,35 @@ function renderMarkdown(content: string) {
   return elements;
 }
 
-/* ========== 文章封面图映射（占位图） ========== */
+/* ========== 文章封面图映射 ========== */
+// 图解类文章用对应的知识图解 SVG 作为封面，其余文章用分类真实照片
 function getArticleImage(article: { id: string; category: string }): string | null {
-  const specific: Record<string, string> = {
-    'basic-yinyang': '/images/knowledge/categories/basic.svg',
-    'bazi-intro': '/images/knowledge/categories/bazi.svg',
-    'ziwei-intro': '/images/knowledge/categories/ziwei.svg',
-    'qimen-intro': '/images/knowledge/categories/qimen.svg',
-    'meihua-intro': '/images/knowledge/categories/meihua.svg',
+  const diagramCovers: Record<string, string> = {
+    // 文化基础图解
+    'wuxing-tuxing': '/images/knowledge/basic/wuxing.svg',
+    'ganzhi-liushi': '/images/knowledge/basic/ganzhi.svg',
+    'jieqi-lifa': '/images/knowledge/basic/jieqi.svg',
+    // 四柱八字图解
+    'bazi-sizhu-tuxing': '/images/knowledge/bazi/sizhu.svg',
+    'bazi-shishen-tuxing': '/images/knowledge/bazi/shishen.svg',
+    // 紫微斗数图解
+    'ziwei-gongwei-tuxing': '/images/knowledge/ziwei/gongwei.svg',
+    // 奇门遁甲图解
+    'qimen-jiugong': '/images/knowledge/qimen/jiugong.svg',
+    'qimen-sanpan': '/images/knowledge/qimen/sanpan.svg',
+    // 梅花易数图解
+    'meihua-bagua-fangwei': '/images/knowledge/meihua/bagua.svg',
+    'meihua-liushisi-tuxing': '/images/knowledge/meihua/liushisi.svg',
   };
-  if (specific[article.id]) return specific[article.id];
-  const catDefaults: Record<string, string> = { basic: '/images/knowledge/categories/basic.svg', bazi: '/images/knowledge/categories/bazi.svg', ziwei: '/images/knowledge/categories/ziwei.svg', qimen: '/images/knowledge/categories/qimen.svg', meihua: '/images/knowledge/categories/meihua.svg' };
+  if (diagramCovers[article.id]) return diagramCovers[article.id];
+  // 分类真实照片（Wikimedia Commons 公有领域/CC0，可商用）
+  const catDefaults: Record<string, string> = {
+    basic: '/images/knowledge/categories/basic.jpg',
+    bazi: '/images/knowledge/categories/bazi.jpg',
+    ziwei: '/images/knowledge/categories/ziwei.jpg',
+    qimen: '/images/knowledge/categories/qimen.jpg',
+    meihua: '/images/knowledge/categories/meihua.jpg',
+  };
   return catDefaults[article.category] || null;
 }
 
