@@ -20,10 +20,15 @@ import {
   parseCallback as alipayParseCallback,
   type AlipayConfig,
 } from './alipay';
+import {
+  createCheckoutSession as stripeCheckout,
+  parseWebhook as stripeParseWebhook,
+  type StripeConfig,
+} from './stripe';
 
 // ============ 类型定义 ============
 
-export type PaymentMethod = 'wechat' | 'alipay' | 'mock';
+export type PaymentMethod = 'wechat' | 'alipay' | 'stripe' | 'mock';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'closed';
 
 export interface PaymentConfig {
@@ -42,6 +47,10 @@ export interface PaymentConfig {
   alipayNotifyUrl?: string;
   alipayReturnUrl?: string;
   alipayGateway?: string;
+  // Stripe
+  stripePublishableKey?: string;
+  stripeSecretKey?: string;
+  stripeWebhookSecret?: string;
   // 代理商配置（多租户）
   agentId?: string;
 }
@@ -140,6 +149,8 @@ export class PaymentService {
         return this.createWechatOrder(params);
       case 'alipay':
         return this.createAlipayOrder(params);
+      case 'stripe':
+        return this.createStripeOrder(params);
       case 'mock':
         return this.createMockOrder(params);
       default:
@@ -156,6 +167,8 @@ export class PaymentService {
         return this.handleWechatCallback(rawBody, headers);
       case 'alipay':
         return this.handleAlipayCallback(rawBody, headers);
+      case 'stripe':
+        return this.handleStripeCallback(rawBody, headers);
       case 'mock':
         return this.handleMockCallback(rawBody);
       default:
@@ -390,6 +403,66 @@ export class PaymentService {
     return statusMap[result.status] || 'pending';
   }
 
+  // ============ Stripe 支付 ============
+
+  private isStripeConfigured(): boolean {
+    return !!(this.config.stripeSecretKey && this.config.stripePublishableKey);
+  }
+
+  private getStripeConfig(): StripeConfig {
+    return {
+      publishableKey: this.config.stripePublishableKey!,
+      secretKey: this.config.stripeSecretKey!,
+      webhookSecret: this.config.stripeWebhookSecret,
+      returnUrl: `${process.env.NEXTAUTH_URL || 'https://ming8.online'}/payment/result`,
+    };
+  }
+
+  private async createStripeOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    if (!this.isStripeConfigured()) {
+      console.warn('[Stripe] 未配置，降级为 mock 模式');
+      return this.createMockOrder(params);
+    }
+
+    const config = this.getStripeConfig();
+    const result = await stripeCheckout(config, {
+      orderNo: params.orderNo,
+      amount: params.amount,
+      title: params.title,
+      description: params.description,
+      userId: params.userId,
+      returnUrl: params.returnUrl,
+    });
+
+    return {
+      orderNo: result.orderNo,
+      paymentUrl: result.paymentUrl,
+      status: 'pending',
+    };
+  }
+
+  private async handleStripeCallback(rawBody: string, headers: Record<string, string>): Promise<CallbackResult> {
+    if (!this.isStripeConfigured()) {
+      return this.handleMockCallback(rawBody);
+    }
+
+    const config = this.getStripeConfig();
+    const signature = headers['stripe-signature'] || '';
+    const data = await stripeParseWebhook(config, rawBody, signature);
+
+    if (!data) {
+      return { success: false, orderNo: '', transactionId: '', amount: 0, method: 'stripe' };
+    }
+
+    return {
+      success: data.success,
+      orderNo: data.orderNo,
+      transactionId: data.transactionId,
+      amount: data.amount,
+      method: 'stripe',
+    };
+  }
+
   // ============ Mock 支付（开发/测试用） ============
 
   private async createMockOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
@@ -438,6 +511,10 @@ export function getPaymentConfig(agentId?: string): PaymentConfig {
     alipayNotifyUrl: process.env.ALIPAY_NOTIFY_URL,
     alipayReturnUrl: process.env.ALIPAY_RETURN_URL,
     alipayGateway: process.env.ALIPAY_GATEWAY || 'https://openapi.alipay.com/gateway.do',
+    // Stripe
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     agentId,
   };
 

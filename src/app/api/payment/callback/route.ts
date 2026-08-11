@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const method = searchParams.get('method');
 
     // 拒绝 mock 方式，只接受真实支付回调
-    if (method !== 'wechat' && method !== 'alipay') {
+    if (method !== 'wechat' && method !== 'alipay' && method !== 'stripe') {
       return NextResponse.json({ code: 'FAIL', message: '无效的支付方式' }, { status: 400 });
     }
 

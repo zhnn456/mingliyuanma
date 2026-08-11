@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const { type, method, couponCode } = body;
     let targetId = body.targetId;
 
-    const VALID_METHODS = ['wechat', 'alipay'];
+    const VALID_METHODS = ['wechat', 'alipay', 'stripe'];
     if (!method || !VALID_METHODS.includes(method)) return NextResponse.json({ error: '无效的支付方式' }, { status: 400 });
     const paymentMethod = method as PaymentMethod;
 
