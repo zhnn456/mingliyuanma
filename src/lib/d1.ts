@@ -695,18 +695,19 @@ export async function seedDefaultSupplies(force = false) {
 export async function ensureCardKeyTable() {
   await execute(
     `CREATE TABLE IF NOT EXISTS "CardKey" (
-      "id" TEXT PRIMARY KEY,
-      "code" TEXT UNIQUE NOT NULL,
-      "type" TEXT NOT NULL DEFAULT 'lingzhu',
-      "value" REAL NOT NULL,
-      "price" REAL NOT NULL DEFAULT 0,
-      "status" TEXT NOT NULL DEFAULT 'unused',
-      "createdBy" TEXT,
-      "usedBy" TEXT,
-      "usedAt" TEXT,
-      "batchId" TEXT,
-      "expiryAt" TEXT,
-      "createdAt" TEXT NOT NULL
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "code" VARCHAR(255) NOT NULL,
+      "type" VARCHAR(50) NOT NULL DEFAULT 'lingzhu',
+      "value" DOUBLE NOT NULL,
+      "price" DOUBLE NOT NULL DEFAULT 0,
+      "status" VARCHAR(50) NOT NULL DEFAULT 'unused',
+      "createdBy" VARCHAR(255),
+      "usedBy" VARCHAR(255),
+      "usedAt" DATETIME,
+      "batchId" VARCHAR(255),
+      "expiryAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY "CardKey_code_key" ("code")
     )`
   );
   await execute('CREATE INDEX IF NOT EXISTS "CardKey_code_idx" ON "CardKey"("code")');

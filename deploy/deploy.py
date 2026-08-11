@@ -83,8 +83,10 @@ ssh.connect(HOST, username=USER, password=PASSWORD, timeout=10, look_for_keys=Fa
 print("SSH 连接成功")
 
 steps = [
-    ("1. 丢弃本地改动", f"cd {APP_DIR} && git checkout -- src/lib/version.ts scripts/test-payment-concurrency.js 2>&1 || true"),
+    ("1. 丢弃所有本地改动", f"cd {APP_DIR} && git checkout -- . 2>&1 || true"),
+    ("1b. 清理未跟踪文件", f"cd {APP_DIR} && git clean -fd 2>&1 | tail -3 || true"),
     ("2. 拉取代码", f"cd {APP_DIR} && git pull 2>&1"),
+    ("2b. 清理.next构建缓存", f"cd {APP_DIR} && rm -rf .next && echo 'cleaned .next'"),
     ("3. 同步数据库表", f"cd {APP_DIR} && npm run db:init 2>&1 | tail -15"),
     ("4. 构建(限制内存 1GB)", f"cd {APP_DIR} && set -o pipefail && NODE_OPTIONS=\"--max-old-space-size=1024\" npm run build:server 2>&1 | tail -40"),
     ("5. 重启 PM2 (PORT=3001)", f"pm2 delete ming8 2>/dev/null; cd {APP_DIR} && PORT=3001 pm2 start npm --name ming8 -- start 2>&1"),
