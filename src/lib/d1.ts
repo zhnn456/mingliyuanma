@@ -44,24 +44,39 @@ function adaptSql(sql: string): string {
     .replace(/"(\w+)"/g, '`$1`');
 }
 
+/**
+ * 把 ISO 8601 时间戳自动转换为 MySQL DATETIME 兼容格式
+ * MySQL 8.0 严格模式不接受 '2026-08-11T06:50:44.331Z'，需要转为 '2026-08-11 06:50:44'
+ */
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+function adaptParams(params: any[] | undefined): any[] | undefined {
+  if (!params || !Array.isArray(params)) return params;
+  return params.map(p => {
+    if (typeof p === 'string' && ISO_DATE_REGEX.test(p)) {
+      return p.slice(0, 19).replace('T', ' ');
+    }
+    return p;
+  });
+}
+
 /** 执行查询，返回第一行 */
 export async function queryFirst(sql: string, ...params: any[]) {
   const pool = getPool();
-  const [rows] = await pool.execute(adaptSql(sql), params);
+  const [rows] = await pool.execute(adaptSql(sql), adaptParams(params) as any[]);
   return (rows as any[])[0] || null;
 }
 
 /** 执行查询，返回所有行 */
 export async function queryAll(sql: string, ...params: any[]) {
   const pool = getPool();
-  const [rows] = await pool.execute(adaptSql(sql), params);
+  const [rows] = await pool.execute(adaptSql(sql), adaptParams(params) as any[]);
   return rows as any[];
 }
 
 /** 执行写入（INSERT/UPDATE/DELETE） */
 export async function execute(sql: string, ...params: any[]): Promise<any> {
   const pool = getPool();
-  const [result] = await pool.execute(adaptSql(sql), params);
+  const [result] = await pool.execute(adaptSql(sql), adaptParams(params) as any[]);
   // 兼容 D1 API：返回 success + meta（含 changes/last_row_id）
   const meta = result as any;
   return {
@@ -79,7 +94,7 @@ export async function batch(statements: Array<{ sql: string; params?: any[] }>) 
   try {
     await conn.beginTransaction();
     for (const { sql, params } of statements) {
-      await conn.execute(adaptSql(sql), params || []);
+      await conn.execute(adaptSql(sql), adaptParams(params) as any[]);
     }
     await conn.commit();
     return { success: true };
