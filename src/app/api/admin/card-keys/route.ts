@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');   // unused/used/expired/disabled
     const type = searchParams.get('type');       // lingzhu/agent_balance
     const batchId = searchParams.get('batchId'); // 批次ID
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '50');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const pageSize = Math.min(500, Math.max(1, parseInt(searchParams.get('pageSize') || '50') || 50));
 
     // 动态拼接查询条件
     const conditions: string[] = [];
@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * pageSize;
 
     // 查询列表（JOIN User 获取使用者信息 + 创建者信息）
+    // 注意：LIMIT/OFFSET 直接拼接，因为 mysql2 prepared statements 不支持 LIMIT 参数
     const rows = await queryAll(
       `SELECT c.*,
         u.email as usedByEmail,
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
        LEFT JOIN User cu ON c.createdBy = cu.id
        ${where}
        ORDER BY c.createdAt DESC
-       LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     // 统计总数（带筛选条件）
