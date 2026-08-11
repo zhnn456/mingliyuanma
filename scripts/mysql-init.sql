@@ -484,6 +484,7 @@ CREATE TABLE IF NOT EXISTS `UpdateLog` (
   `isCurrent` TINYINT(1) NOT NULL DEFAULT 0,
   `isLatest` TINYINT(1) NOT NULL DEFAULT 0,
   `createdBy` VARCHAR(255),
+  `kind` VARCHAR(20) NOT NULL DEFAULT 'manual',
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -670,6 +671,7 @@ CALL add_column_if_missing('UpdateLog', 'category', "VARCHAR(50) DEFAULT '改进
 CALL add_column_if_missing('UpdateLog', 'isCurrent', 'TINYINT(1) NOT NULL DEFAULT 0');
 CALL add_column_if_missing('UpdateLog', 'isLatest', 'TINYINT(1) NOT NULL DEFAULT 0');
 CALL add_column_if_missing('UpdateLog', 'createdBy', 'VARCHAR(255)');
+CALL add_column_if_missing('UpdateLog', 'kind', "VARCHAR(20) NOT NULL DEFAULT 'manual'");
 CALL add_column_if_missing('UpdateLog', 'createdAt', 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
 
 CALL add_column_if_missing('Version', 'version', 'VARCHAR(50) NOT NULL DEFAULT ""');

@@ -156,7 +156,7 @@ export default function AdminUpdateLogsPage() {
         <div>
           <h2 className="text-lg font-bold text-gray-900">系统更新日志</h2>
           <p className="text-sm text-gray-500 mt-1">
-            记录系统版本更新、变更内容、操作人及回滚操作
+            部署与回滚记录（部署时自动生成，仅供查看审计，更新公告请在"更新公告"页维护）
           </p>
         </div>
         <button

@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
     const rollbackContent = `回滚自 v${currentVersion?.version || 'unknown'}，原因：${reason || '未提供'}`;
 
     await execute(
-      `INSERT INTO UpdateLog (id, version, title, content, type, isMajor, changes, operatorId, operatorName, status, rollbackVersion)
-       VALUES (?, ?, ?, ?, 'hotfix', 0, ?, ?, 'rolled_back', ?)`,
+      `INSERT INTO UpdateLog (id, version, title, content, type, isMajor, changes, operatorId, operatorName, status, rollbackVersion, kind)
+       VALUES (?, ?, ?, ?, 'hotfix', 0, ?, ?, 'rolled_back', ?, 'rollback')`,
       id, targetVersion, rollbackTitle, rollbackContent,
       JSON.stringify([{
         type: 'hotfix',

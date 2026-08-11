@@ -54,6 +54,10 @@ export async function GET(req: NextRequest) {
       params.push(endDate);
     }
 
+    // 只返回部署/回滚记录（kind='deploy'/'rollback'），手动公告在"更新公告"中维护
+    conditions.push('kind IN (?, ?)');
+    params.push('deploy', 'rollback');
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     let logs: any[] = [];
@@ -120,8 +124,8 @@ export async function POST(req: NextRequest) {
     const operatorName = session?.name || session?.email || '管理员';
 
     await execute(
-      `INSERT INTO UpdateLog (id, version, title, content, type, isMajor, changes, operatorId, operatorName, tag, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'success')`,
+      `INSERT INTO UpdateLog (id, version, title, content, type, isMajor, changes, operatorId, operatorName, tag, status, kind)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'success', 'deploy')`,
       id, version, title, content, type, isMajor ? 1 : 0, changesJson, session?.id || null, operatorName, tag || null
     );
 

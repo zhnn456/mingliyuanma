@@ -30,8 +30,8 @@ def record_deploy_log(ssh):
     # 2. 生成 SQL（转义单引号，防注入）
     logs_escaped = logs.replace("'", "''").replace('\n', '\\n')
     title = f'部署 v{version} ({commit})'
-    sql = f"""INSERT INTO UpdateLog (id, version, title, content, type, isMajor, operatorName, tag, status, createdAt)
-VALUES (CONCAT('ul', UNIX_TIMESTAMP()), '{version}', '{title}', '{logs_escaped}', 'update', 0, 'remote-deploy.py', '{commit}', 'success', NOW());"""
+    sql = f"""INSERT INTO UpdateLog (id, version, title, content, type, isMajor, operatorName, tag, status, kind, createdAt)
+VALUES (CONCAT('ul', UNIX_TIMESTAMP()), '{version}', '{title}', '{logs_escaped}', 'update', 0, 'remote-deploy.py', '{commit}', 'success', 'deploy', NOW());"""
 
     # 3. SFTP 写 SQL 再执行（避免 shell 引号问题）
     sftp = ssh.open_sftp()

@@ -731,6 +731,7 @@ export async function ensureUpdateLogTable() {
       "tag" TEXT,
       "status" TEXT NOT NULL DEFAULT 'success',
       "rollbackVersion" TEXT,
+      "kind" TEXT NOT NULL DEFAULT 'manual',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
   );
@@ -738,4 +739,5 @@ export async function ensureUpdateLogTable() {
   await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_type_idx" ON "UpdateLog"("type")');
   await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_createdAt_idx" ON "UpdateLog"("createdAt")');
   await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_status_idx" ON "UpdateLog"("status")');
+  await execute('CREATE INDEX IF NOT EXISTS "UpdateLog_kind_idx" ON "UpdateLog"("kind")');
 }

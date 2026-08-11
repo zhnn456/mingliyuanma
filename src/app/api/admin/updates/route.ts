@@ -16,10 +16,11 @@ export async function GET(req: NextRequest) {
     let total = 0;
 
     try {
+      // 只返回手动维护的更新公告（kind='manual'），部署记录在"系统更新日志"中查看
       logs = await queryAll(
-        `SELECT * FROM UpdateLog ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`
+        `SELECT * FROM UpdateLog WHERE kind = 'manual' ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`
       );
-      const countRow = await queryFirst('SELECT COUNT(*) as total FROM UpdateLog') as any;
+      const countRow = await queryFirst('SELECT COUNT(*) as total FROM UpdateLog WHERE kind = \'manual\'') as any;
       total = countRow?.total || 0;
     } catch (dbErr: any) {
       console.error('[updates/GET] 数据库错误:', dbErr?.message);
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
     }
 
     await execute(
-      `INSERT INTO UpdateLog (id, version, title, category, content, isCurrent, isLatest, createdAt, createdBy)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO UpdateLog (id, version, title, category, content, isCurrent, isLatest, createdAt, createdBy, kind)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual')`,
       id, version, title, category || '改进', content,
       isCurrent ? 1 : 0, isLatest ? 1 : 0, now, session?.id || null
     );

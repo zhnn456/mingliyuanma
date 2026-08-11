@@ -7,20 +7,21 @@ export async function GET(req: NextRequest) {
     const { allowed } = await requireAgent(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
+    // 只展示手动维护的更新公告（kind='manual'），部署记录不向代理商端展示
     const currentRow = await queryFirst(
-      'SELECT * FROM "UpdateLog" WHERE "isCurrent" = true ORDER BY "createdAt" DESC LIMIT 1'
+      'SELECT * FROM "UpdateLog" WHERE "kind" = \'manual\' AND "isCurrent" = true ORDER BY "createdAt" DESC LIMIT 1'
     ) as any;
 
     const latestRow = await queryFirst(
-      'SELECT * FROM "UpdateLog" WHERE "isLatest" = true ORDER BY "createdAt" DESC LIMIT 1'
+      'SELECT * FROM "UpdateLog" WHERE "kind" = \'manual\' AND "isLatest" = true ORDER BY "createdAt" DESC LIMIT 1'
     ) as any;
 
     const fallbackLatest = await queryFirst(
-      'SELECT * FROM "UpdateLog" ORDER BY "createdAt" DESC LIMIT 1'
+      'SELECT * FROM "UpdateLog" WHERE "kind" = \'manual\' ORDER BY "createdAt" DESC LIMIT 1'
     ) as any;
 
     const changelog = await queryAll(
-      'SELECT version, title, category, content, "createdAt" FROM "UpdateLog" ORDER BY "createdAt" DESC LIMIT 20'
+      'SELECT version, title, category, content, "createdAt" FROM "UpdateLog" WHERE "kind" = \'manual\' ORDER BY "createdAt" DESC LIMIT 20'
     ) as any[];
 
     return NextResponse.json({

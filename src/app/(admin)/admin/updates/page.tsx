@@ -303,9 +303,9 @@ export default function AdminUpdatesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">更新日志管理</h2>
+          <h2 className="text-lg font-bold text-gray-900">更新公告</h2>
           <p className="text-sm text-gray-500 mt-1">
-            管理产品版本更新日志，最新版本置顶显示
+            维护展示给代理商和用户的产品更新公告（在代理商端展示，可新增/编辑/删除）
           </p>
         </div>
         <button
