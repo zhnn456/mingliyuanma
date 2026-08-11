@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
              SELECT id FROM QimenRecord WHERE userId = ?
              UNION ALL
              SELECT id FROM MeihuaRecord WHERE userId = ?
-           )`,
+           ) AS sub`,
           agent.userId, agent.userId, agent.userId, agent.userId
         ) as any;
 
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
              SELECT id FROM QimenRecord WHERE userId = ? AND createdAt >= ?
              UNION ALL
              SELECT id FROM MeihuaRecord WHERE userId = ? AND createdAt >= ?
-           )`,
+           ) AS sub`,
           agent.userId, thirtyDaysAgo,
           agent.userId, thirtyDaysAgo,
           agent.userId, thirtyDaysAgo,

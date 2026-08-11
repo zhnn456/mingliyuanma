@@ -4,17 +4,17 @@ import { queryFirst, queryAll, execute } from '@/lib/d1';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS AgentSettlement (
-    id TEXT PRIMARY KEY,
-    agentId TEXT NOT NULL,
-    period TEXT NOT NULL,
-    totalAmount REAL DEFAULT 0,
-    commissionRate TEXT,
-    commissionAmount REAL DEFAULT 0,
-    status TEXT DEFAULT 'pending',
-    paidAt TEXT,
+    id VARCHAR(255) PRIMARY KEY,
+    agentId VARCHAR(255) NOT NULL,
+    period VARCHAR(50) NOT NULL,
+    totalAmount DOUBLE DEFAULT 0,
+    commissionRate VARCHAR(50),
+    commissionAmount DOUBLE DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'pending',
+    paidAt DATETIME,
     remark TEXT,
-    createdAt TEXT DEFAULT (datetime('now')),
-    updatedAt TEXT
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME
   )`);
 }
 

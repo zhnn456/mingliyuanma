@@ -29,17 +29,18 @@ export async function GET(req: NextRequest) {
 
     const orders = await queryAll(
       `SELECT o.*, u.name as userName, u.email as userEmail,
-        CASE o.productType
+        CASE o.type
           WHEN 'membership' THEN '会员'
           WHEN 'offering' THEN '服务'
           WHEN 'pdf_report' THEN 'PDF报告'
-          ELSE o.productType
+          WHEN 'recharge' THEN '充值'
+          ELSE o.type
         END as productTypeName
        FROM "Order" o
        LEFT JOIN User u ON o.userId = u.id
        ${where}
-       ORDER BY o.createdAt DESC LIMIT ? OFFSET ?`,
-      ...values, pageSize, offset
+       ORDER BY o.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...values
     ) as any[];
 
     const countRow = await queryFirst(

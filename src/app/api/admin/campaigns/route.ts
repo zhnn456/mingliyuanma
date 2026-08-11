@@ -13,7 +13,7 @@ async function ensureTable() {
     startAt TEXT,
     endAt TEXT,
     isActive INTEGER DEFAULT 1,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
 }

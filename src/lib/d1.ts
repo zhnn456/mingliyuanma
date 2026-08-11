@@ -386,16 +386,16 @@ export async function removeTagsFromUsers(userIds: string[], tagIds: string[]) {
 export async function ensureWithdrawalTable() {
   await execute(
     `CREATE TABLE IF NOT EXISTS "Withdrawal" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "userId" TEXT NOT NULL,
-      "amount" REAL NOT NULL,
-      "method" TEXT NOT NULL,
-      "account" TEXT NOT NULL,
-      "accountName" TEXT NOT NULL,
-      "status" TEXT NOT NULL DEFAULT 'pending',
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "userId" VARCHAR(255) NOT NULL,
+      "amount" DOUBLE NOT NULL,
+      "method" VARCHAR(50) NOT NULL,
+      "account" VARCHAR(255) NOT NULL,
+      "accountName" VARCHAR(255) NOT NULL,
+      "status" VARCHAR(50) NOT NULL DEFAULT 'pending',
       "remark" TEXT,
       "auditRemark" TEXT,
-      "auditorId" TEXT,
+      "auditorId" VARCHAR(255),
       "auditedAt" DATETIME,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
@@ -430,28 +430,28 @@ export async function getWithdrawalStats() {
 
 export async function ensureCommissionTables() {
   await execute(`CREATE TABLE IF NOT EXISTS "CommissionRule" (
-    "id" TEXT PRIMARY KEY,
-    "agentId" TEXT,
-    "productType" TEXT NOT NULL,
-    "productId" TEXT,
+    "id" VARCHAR(255) PRIMARY KEY,
+    "agentId" VARCHAR(255),
+    "productType" VARCHAR(50) NOT NULL,
+    "productId" VARCHAR(255),
     "baseRate" REAL NOT NULL DEFAULT 0,
     "tierBonus" REAL DEFAULT 0,
     "newCustomerBonus" REAL DEFAULT 0,
     "maxMarkupRate" REAL DEFAULT 0,
     "isActive" INTEGER DEFAULT 1,
     "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TEXT
+    "updatedAt" VARCHAR(50)
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "cr_agentId_idx" ON "CommissionRule"("agentId")');
   await execute('CREATE INDEX IF NOT EXISTS "cr_productType_idx" ON "CommissionRule"("productType")');
 
   await execute(`CREATE TABLE IF NOT EXISTS "CommissionRecord" (
-    "id" TEXT PRIMARY KEY,
-    "agentId" TEXT NOT NULL,
-    "orderId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "productType" TEXT NOT NULL,
-    "productId" TEXT,
+    "id" VARCHAR(255) PRIMARY KEY,
+    "agentId" VARCHAR(255) NOT NULL,
+    "orderId" VARCHAR(255) NOT NULL,
+    "userId" VARCHAR(255) NOT NULL,
+    "productType" VARCHAR(50) NOT NULL,
+    "productId" VARCHAR(255),
     "orderAmount" REAL NOT NULL DEFAULT 0,
     "baseAmount" REAL NOT NULL DEFAULT 0,
     "commissionRate" REAL NOT NULL DEFAULT 0,
@@ -459,11 +459,11 @@ export async function ensureCommissionTables() {
     "tierBonusAmount" REAL DEFAULT 0,
     "newCustomerBonusAmount" REAL DEFAULT 0,
     "totalCommission" REAL NOT NULL DEFAULT 0,
-    "settlementId" TEXT,
-    "status" TEXT DEFAULT 'pending',
+    "settlementId" VARCHAR(255),
+    "status" VARCHAR(50) DEFAULT 'pending',
     "clawbackAmount" REAL DEFAULT 0,
     "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-    "settledAt" TEXT
+    "settledAt" VARCHAR(50)
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "crec_agentId_idx" ON "CommissionRecord"("agentId")');
   await execute('CREATE INDEX IF NOT EXISTS "crec_orderId_idx" ON "CommissionRecord"("orderId")');
@@ -471,46 +471,46 @@ export async function ensureCommissionTables() {
   await execute('CREATE INDEX IF NOT EXISTS "crec_createdAt_idx" ON "CommissionRecord"("createdAt")');
 
   await execute(`CREATE TABLE IF NOT EXISTS "SettlementRecord" (
-    "id" TEXT PRIMARY KEY,
-    "agentId" TEXT NOT NULL,
-    "periodStart" TEXT NOT NULL,
-    "periodEnd" TEXT NOT NULL,
+    "id" VARCHAR(255) PRIMARY KEY,
+    "agentId" VARCHAR(255) NOT NULL,
+    "periodStart" VARCHAR(50) NOT NULL,
+    "periodEnd" VARCHAR(50) NOT NULL,
     "orderCount" INTEGER DEFAULT 0,
     "totalOrderAmount" REAL DEFAULT 0,
     "totalCommission" REAL DEFAULT 0,
     "clawbackAmount" REAL DEFAULT 0,
     "netCommission" REAL DEFAULT 0,
-    "status" TEXT DEFAULT 'pending',
-    "paidAt" TEXT,
-    "paidMethod" TEXT,
-    "paidAccount" TEXT,
-    "auditorId" TEXT,
+    "status" VARCHAR(50) DEFAULT 'pending',
+    "paidAt" VARCHAR(50),
+    "paidMethod" VARCHAR(50),
+    "paidAccount" VARCHAR(255),
+    "auditorId" VARCHAR(255),
     "auditRemark" TEXT,
     "createdAt" DATETIME DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TEXT
+    "updatedAt" VARCHAR(50)
   )`);
   await execute('CREATE INDEX IF NOT EXISTS "sr_agentId_idx" ON "SettlementRecord"("agentId")');
   await execute('CREATE INDEX IF NOT EXISTS "sr_status_idx" ON "SettlementRecord"("status")');
 
-  // Agent 表扩展字段
+  // Agent 表扩展字段（注意：MySQL 8.0 严格模式下 TEXT/BLOB 字段不允许使用 DEFAULT 值，因此统一使用 VARCHAR）
   const agentCols = await queryAll("SHOW COLUMNS FROM `Agent`") as any[];
   const agentColNames = agentCols.map(c => c.Field);
   const agentAlters = [
-    ['commissionRate', 'REAL DEFAULT 0.3'],
-    ['totalCommission', 'REAL DEFAULT 0'],
-    ['pendingCommission', 'REAL DEFAULT 0'],
-    ['currentMonthGMV', 'REAL DEFAULT 0'],
-    ['settlementCycle', "TEXT DEFAULT 'weekly'"],
-    ['bankName', 'TEXT'],
-    ['bankAccount', 'TEXT'],
-    ['bankAccountName', 'TEXT'],
-    ['level', "TEXT DEFAULT 'saas'"],
-    ['plan', "TEXT DEFAULT 'trial'"],
-    ['planExpiry', 'TEXT'],
-    ['balance', 'REAL DEFAULT 0'],
-    ['referralCode', 'TEXT'],
-    ['maxCustomers', 'INTEGER DEFAULT 500'],
-    ['settledCommission', 'REAL DEFAULT 0'],
+    ['commissionRate', 'DOUBLE DEFAULT 0.3'],
+    ['totalCommission', 'DOUBLE DEFAULT 0'],
+    ['pendingCommission', 'DOUBLE DEFAULT 0'],
+    ['currentMonthGMV', 'DOUBLE DEFAULT 0'],
+    ['settlementCycle', "VARCHAR(50) DEFAULT 'weekly'"],
+    ['bankName', 'VARCHAR(255)'],
+    ['bankAccount', 'VARCHAR(255)'],
+    ['bankAccountName', 'VARCHAR(255)'],
+    ['level', "VARCHAR(50) DEFAULT 'saas'"],
+    ['plan', "VARCHAR(50) DEFAULT 'trial'"],
+    ['planExpiry', 'DATETIME'],
+    ['balance', 'DOUBLE DEFAULT 0'],
+    ['referralCode', 'VARCHAR(255)'],
+    ['maxCustomers', 'INT DEFAULT 500'],
+    ['settledCommission', 'DOUBLE DEFAULT 0'],
   ];
   for (const [col, def] of agentAlters) {
     if (!agentColNames.includes(col)) {
@@ -631,7 +631,7 @@ export async function ensureOfferingSupplyTable() {
     "image" TEXT,
     "price" REAL NOT NULL,
     "description" TEXT,
-    "category" TEXT NOT NULL DEFAULT 'general',
+    "category" VARCHAR(50) NOT NULL DEFAULT 'general',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isActive" INTEGER NOT NULL DEFAULT 1,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -721,19 +721,19 @@ export async function ensureCardKeyTable() {
 export async function ensureUpdateLogTable() {
   await execute(
     `CREATE TABLE IF NOT EXISTS "UpdateLog" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "version" TEXT NOT NULL,
-      "title" TEXT NOT NULL,
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "version" VARCHAR(50) NOT NULL,
+      "title" VARCHAR(255) NOT NULL,
       "content" TEXT NOT NULL,
-      "type" TEXT NOT NULL DEFAULT 'update',
+      "type" VARCHAR(50) NOT NULL DEFAULT 'update',
       "isMajor" INTEGER NOT NULL DEFAULT 0,
       "changes" TEXT,
-      "operatorId" TEXT,
-      "operatorName" TEXT,
-      "tag" TEXT,
-      "status" TEXT NOT NULL DEFAULT 'success',
-      "rollbackVersion" TEXT,
-      "kind" TEXT NOT NULL DEFAULT 'manual',
+      "operatorId" VARCHAR(255),
+      "operatorName" VARCHAR(255),
+      "tag" VARCHAR(50),
+      "status" VARCHAR(50) NOT NULL DEFAULT 'success',
+      "rollbackVersion" VARCHAR(50),
+      "kind" VARCHAR(50) NOT NULL DEFAULT 'manual',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
   );

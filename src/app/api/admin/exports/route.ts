@@ -6,12 +6,12 @@ async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS ExportTask (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,
-    format TEXT DEFAULT 'csv',
-    status TEXT DEFAULT 'pending',
+    format VARCHAR(50) DEFAULT 'csv',
+    status VARCHAR(50) DEFAULT 'pending',
     fileUrl TEXT,
     params TEXT,
     createdBy TEXT,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
 }

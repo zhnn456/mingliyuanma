@@ -13,9 +13,9 @@ async function ensureTable() {
     sentAt TEXT,
     readCount INTEGER DEFAULT 0,
     totalCount INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'pending',
     createdBy TEXT,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
 }

@@ -55,7 +55,7 @@ export default function AdminAgentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
   const [detailAgent, setDetailAgent] = useState<Agent | null>(null);
-  const [showCreds, setShowCreds] = useState<{ email: string; password: string } | null>(null);
+  const [showCreds, setShowCreds] = useState<{ email: string; password: string; licenseKey?: string; brandName?: string } | null>(null);
   const [rechargeAgent, setRechargeAgent] = useState<Agent | null>(null);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [rechargeReason, setRechargeReason] = useState('');
@@ -175,7 +175,12 @@ export default function AdminAgentsPage() {
       });
       if (res.ok) {
         const d = await res.json();
-        setShowCreds(d.credentials || null);
+        setShowCreds({
+          email: d.credentials?.email || '',
+          password: d.credentials?.password || '',
+          licenseKey: d.agent?.licenseKey || '',
+          brandName: d.agent?.brandName || '',
+        });
         setShowModal(false);
         fetchAgents();
       } else { const e = await res.json(); alert(e.error || '创建失败'); }
@@ -237,6 +242,28 @@ export default function AdminAgentsPage() {
       alert('网络错误');
     }
     setRechargeLoading(false);
+  };
+
+  const handleRegenerateLicense = async (a: Agent) => {
+    if (!confirm(`确定要为代理商「${a.brandName}」重新生成授权码？\n\n旧授权码将立即失效，新授权码有效期为1年。`)) return;
+    try {
+      const res = await fetch('/api/admin/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate_license', agentId: a.id }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        alert(`授权码已重新生成！\n\n新授权码：\n${d.licenseKey}\n\n请复制并妥善保存。`);
+        // 更新详情页数据
+        setDetailAgent({ ...a, licenseKey: d.licenseKey, licenseExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() });
+        fetchAgents();
+      } else {
+        alert(d.error || '生成失败');
+      }
+    } catch {
+      alert('网络错误');
+    }
   };
 
   const fmtDate = (s: string | null | undefined) =>
@@ -579,13 +606,31 @@ export default function AdminAgentsPage() {
 
               {/* 授权信息 */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 mb-3">授权信息</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-500">授权信息</h4>
+                  <button
+                    onClick={() => handleRegenerateLicense(detailAgent)}
+                    className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs hover:bg-purple-700"
+                  >
+                    🔄 重新生成授权码
+                  </button>
+                </div>
+                <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-500">授权码：</span>
-                    <span className="text-gray-900 font-mono text-xs break-all">{detailAgent.licenseKey || '-'}</span>
+                    <div className="mt-1 bg-gray-50 rounded p-2 border border-gray-200">
+                      <code className="text-gray-900 font-mono text-xs break-all">{detailAgent.licenseKey || '-'}</code>
+                    </div>
+                    {detailAgent.licenseKey && (
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(detailAgent.licenseKey || ''); alert('授权码已复制'); }}
+                        className="mt-1 text-xs text-blue-600 hover:underline"
+                      >
+                        📋 复制
+                      </button>
+                    )}
                   </div>
-                  <div>
+                  <div className="flex items-center gap-3">
                     <span className="text-gray-500">到期时间：</span>
                     <span className="text-gray-900">{fmtDate(detailAgent.licenseExpiry)}</span>
                   </div>
@@ -688,11 +733,11 @@ export default function AdminAgentsPage() {
 
       {showCreds && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
             <h3 className="font-bold text-gray-900 text-lg mb-4">代理商创建成功</h3>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-green-800 font-medium mb-2">请将以下信息提供给代理商：</p>
-              <div className="space-y-2 text-sm">
+              <p className="text-sm text-green-800 font-medium mb-3">请将以下信息提供给代理商{showCreds.brandName ? `「${showCreds.brandName}」` : ''}：</p>
+              <div className="space-y-3 text-sm">
                 <div>
                   <span className="text-gray-500">登录邮箱：</span>
                   <span className="font-mono text-gray-900">{showCreds.email}</span>
@@ -701,9 +746,23 @@ export default function AdminAgentsPage() {
                   <span className="text-gray-500">初始密码：</span>
                   <span className="font-mono text-gray-900">{showCreds.password}</span>
                 </div>
+                {showCreds.licenseKey && (
+                  <div className="pt-2 border-t border-green-200">
+                    <div className="text-gray-500 mb-1">授权码：</div>
+                    <div className="bg-white rounded p-2 border border-gray-200">
+                      <code className="font-mono text-xs text-gray-900 break-all">{showCreds.licenseKey}</code>
+                    </div>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(showCreds.licenseKey || ''); alert('授权码已复制'); }}
+                      className="mt-2 text-xs text-blue-600 hover:underline"
+                    >
+                      📋 复制授权码
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-4">密码仅在此次显示，请妥善保存。</p>
+            <p className="text-xs text-gray-500 mb-4">密码和授权码仅在此次显示，请妥善保存。</p>
             <button onClick={() => setShowCreds(null)} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
               我已保存
             </button>

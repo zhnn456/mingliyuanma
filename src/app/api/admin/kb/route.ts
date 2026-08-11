@@ -13,7 +13,7 @@ async function ensureTable() {
     helpfulCount INTEGER DEFAULT 0,
     sortOrder INTEGER DEFAULT 0,
     isActive INTEGER DEFAULT 1,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS idx_kb_category ON KnowledgeArticle(category)');

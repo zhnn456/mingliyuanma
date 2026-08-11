@@ -17,7 +17,7 @@ async function ensureTable() {
     sortOrder INTEGER DEFAULT 0,
     isPublished INTEGER DEFAULT 0,
     publishedAt TEXT,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS idx_article_category ON Article(category)');

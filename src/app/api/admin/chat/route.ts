@@ -7,10 +7,10 @@ async function ensureTable() {
     id TEXT PRIMARY KEY,
     userId TEXT,
     subject TEXT,
-    status TEXT DEFAULT 'open',
+    status VARCHAR(50) DEFAULT 'open',
     lastMessage TEXT,
     lastMessageAt TEXT,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
   await execute(`CREATE TABLE IF NOT EXISTS ChatMessage (
@@ -18,7 +18,7 @@ async function ensureTable() {
     sessionId TEXT,
     sender TEXT,
     content TEXT,
-    createdAt TEXT DEFAULT (datetime('now'))
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   await execute('CREATE INDEX IF NOT EXISTS idx_chat_session_user ON ChatSession(userId)');
   await execute('CREATE INDEX IF NOT EXISTS idx_chat_session_status ON ChatSession(status)');

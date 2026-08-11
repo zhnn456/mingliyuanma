@@ -9,7 +9,7 @@ async function ensureTable() {
     userId TEXT NOT NULL,
     content TEXT NOT NULL,
     isStaff INTEGER DEFAULT 0,
-    createdAt TEXT DEFAULT (datetime('now'))
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   await execute('CREATE INDEX IF NOT EXISTS idx_ticket_message_ticketId ON TicketMessage(ticketId)');
 }

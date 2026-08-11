@@ -11,7 +11,7 @@ async function ensureTable() {
     shortcut TEXT,
     sortOrder INTEGER DEFAULT 0,
     isActive INTEGER DEFAULT 1,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
   await execute('CREATE INDEX IF NOT EXISTS idx_qr_category ON QuickReply(category)');

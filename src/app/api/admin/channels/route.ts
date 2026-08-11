@@ -15,7 +15,7 @@ async function ensureTable() {
     orderCount INTEGER DEFAULT 0,
     commission TEXT,
     isActive INTEGER DEFAULT 1,
-    createdAt TEXT DEFAULT (datetime('now')),
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt TEXT
   )`);
 }

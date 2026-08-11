@@ -64,10 +64,10 @@ async function ensureOfferingSupplyTable() {
     "image" TEXT,
     "price" REAL NOT NULL,
     "description" TEXT,
-    "category" TEXT NOT NULL DEFAULT 'general',
+    "category" VARCHAR(50) NOT NULL DEFAULT 'general',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "isActive" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TEXT NOT NULL DEFAULT (datetime('now')),
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "stock" INTEGER NOT NULL DEFAULT 0
   )`);
 
