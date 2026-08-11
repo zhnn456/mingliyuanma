@@ -6,7 +6,7 @@ import { auditLog } from '@/lib/audit';
 
 /**
  * 管理员卡密管理 API
- * GET    查询卡密列表（支持按批次/状态/类型筛选）
+ * GET    查询卡密列表（支持按批次/状态/类型筛选 + 自动标记过期 + JOIN使用者信息）
  * POST   生成卡密批次
  * DELETE 禁用卡密
  */
@@ -18,6 +18,12 @@ export async function GET(req: NextRequest) {
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureCardKeyTable();
+
+    // === 先把已过期的未使用卡密自动标记为 expired ===
+    await execute(
+      `UPDATE CardKey SET status = 'expired' WHERE status = 'unused' AND expiryAt IS NOT NULL AND expiryAt < NOW()`
+    );
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');   // unused/used/expired/disabled
     const type = searchParams.get('type');       // lingzhu/agent_balance
@@ -28,25 +34,35 @@ export async function GET(req: NextRequest) {
     // 动态拼接查询条件
     const conditions: string[] = [];
     const params: any[] = [];
-    if (status) { conditions.push('status = ?'); params.push(status); }
-    if (type) { conditions.push('type = ?'); params.push(type); }
-    if (batchId) { conditions.push('batchId = ?'); params.push(batchId); }
+    if (status) { conditions.push('c.status = ?'); params.push(status); }
+    if (type) { conditions.push('c.type = ?'); params.push(type); }
+    if (batchId) { conditions.push('c.batchId = ?'); params.push(batchId); }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const offset = (page - 1) * pageSize;
 
+    // 查询列表（JOIN User 获取使用者信息 + 创建者信息）
     const rows = await queryAll(
-      `SELECT * FROM CardKey ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*,
+        u.email as usedByEmail,
+        u.name as usedByName,
+        cu.email as createdByEmail
+       FROM CardKey c
+       LEFT JOIN User u ON c.usedBy = u.id
+       LEFT JOIN User cu ON c.createdBy = cu.id
+       ${where}
+       ORDER BY c.createdAt DESC
+       LIMIT ? OFFSET ?`,
       ...params, pageSize, offset
     );
 
-    // 统计总数
+    // 统计总数（带筛选条件）
     const countRow = await queryFirst(
-      `SELECT COUNT(*) as total FROM CardKey ${where}`,
+      `SELECT COUNT(*) as total FROM CardKey c ${where}`,
       ...params
     ) as any;
 
-    // 统计各状态数量
+    // 统计各状态数量（全表，不受筛选影响）
     const statsRow = await queryFirst(
       `SELECT
         COUNT(*) as total,
@@ -57,11 +73,18 @@ export async function GET(req: NextRequest) {
       FROM CardKey`
     ) as any;
 
+    // 获取所有批次列表（用于批次筛选下拉框）
+    const batches = await queryAll(
+      `SELECT batchId, COUNT(*) as count, MIN(createdAt) as createdAt, MAX(expiryAt) as expiryAt
+       FROM CardKey GROUP BY batchId ORDER BY createdAt DESC LIMIT 50`
+    );
+
     return NextResponse.json({
       rows,
       total: countRow?.total || 0,
       page,
       pageSize,
+      totalPages: Math.ceil((countRow?.total || 0) / pageSize),
       stats: {
         total: statsRow?.total || 0,
         unused: statsRow?.unused || 0,
@@ -69,6 +92,7 @@ export async function GET(req: NextRequest) {
         disabled: statsRow?.disabled || 0,
         expired: statsRow?.expired || 0,
       },
+      batches,
     });
   } catch (error: any) {
     console.error('查询卡密列表失败:', error?.message);

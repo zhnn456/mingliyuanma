@@ -1,18 +1,19 @@
 /**
  * 卡密生成工具
- * 生成格式如 XXXX-XXXX-XXXX-XXXX 的 16 位卡密
+ * 生成格式如 XXXX-XXXX-XXXX-XXXX-XXXX 的 20 位卡密
  * 去掉易混淆字符 O/0/I/1/L，避免人工识别困难
+ * 30^20 ≈ 3.5×10^29 种组合，暴力破解不可能
  */
 import { execute, ensureCardKeyTable, queryFirst } from '@/lib/d1';
 
 // 卡密可用字符集（排除 O/0/I/1/L 等易混淆字符）
 const CARD_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 16;        // 卡密总长度 16 位
+const CODE_LENGTH = 20;        // 卡密总长度 20 位（5组×4位）
 const GROUP_LENGTH = 4;        // 每组 4 位
 
 /**
- * 生成单个 16 位卡密代码
- * 格式：XXXX-XXXX-XXXX-XXXX
+ * 生成单个 20 位卡密代码
+ * 格式：XXXX-XXXX-XXXX-XXXX-XXXX
  */
 export function generateCardCode(): string {
   let code = '';

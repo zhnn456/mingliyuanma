@@ -1,15 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { CARD_KEY_DENOMINATIONS } from '@/lib/pricing';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth-client';
 
-// 卡密类型映射
+// === 类型定义 ===
+interface CardKey {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  price: number;
+  status: string;
+  batchId: string;
+  expiryAt: string | null;
+  createdAt: string;
+  usedAt: string | null;
+  usedByEmail: string | null;
+  usedByName: string | null;
+  createdByEmail: string | null;
+}
+
+interface Stats {
+  total: number;
+  unused: number;
+  used: number;
+  disabled: number;
+  expired: number;
+}
+
+interface Batch {
+  batchId: string;
+  count: number;
+  createdAt: string;
+  expiryAt: string | null;
+}
+
 const TYPE_MAP: Record<string, string> = {
   lingzhu: '积分卡',
   agent_balance: '代理商余额卡',
 };
 
-// 卡密状态映射
 const STATUS_MAP: Record<string, string> = {
   unused: '未使用',
   used: '已使用',
@@ -20,409 +50,415 @@ const STATUS_MAP: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   unused: 'bg-green-100 text-green-800',
   used: 'bg-gray-100 text-gray-600',
-  expired: 'bg-yellow-100 text-yellow-800',
+  expired: 'bg-orange-100 text-orange-800',
   disabled: 'bg-red-100 text-red-800',
 };
 
-// 有效期选项
-const EXPIRY_OPTIONS = [
-  { label: '30天', days: 30 },
-  { label: '90天', days: 90 },
-  { label: '365天', days: 365 },
-  { label: '永久', days: 0 },
-];
+// 计算剩余天数
+function getRemainingDays(expiryAt: string | null): number | null {
+  if (!expiryAt) return null;
+  const diff = new Date(expiryAt).getTime() - Date.now();
+  return Math.ceil(diff / 86400000);
+}
 
-function fmt(d: string) {
-  try { return new Date(d).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch { return d || '-'; }
+// 格式化日期
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function AdminCardKeysPage() {
-  const [cards, setCards] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, unused: 0, used: 0, disabled: 0, expired: 0 });
+  const { user: session } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [cards, setCards] = useState<CardKey[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, unused: 0, used: 0, disabled: 0, expired: 0 });
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
-  // 筛选条件
+  // 筛选
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterBatch, setFilterBatch] = useState('');
 
-  // 生成表单（显式指定 number 类型，避免 as const 字面量推断问题）
-  const [form, setForm] = useState<{
-    type: string;
-    denomination: number;
-    value: number;
-    price: number;
-    customValue: boolean;
-    customInput: string;
-    count: number;
-    expiryDays: number;
-  }>({
-    type: 'lingzhu',
-    denomination: Number(CARD_KEY_DENOMINATIONS[0].value),
-    value: Number(CARD_KEY_DENOMINATIONS[0].lingzhu),
-    price: Number(CARD_KEY_DENOMINATIONS[0].value),
-    customValue: false,
-    customInput: '',
+  // 生成表单
+  const [form, setForm] = useState({
     count: 10,
-    expiryDays: 365,
+    type: 'lingzhu',
+    value: 100,
+    price: 9.9,
+    expiryDays: 30,
   });
-
-  // 生成结果（用于展示和导出）
-  const [generated, setGenerated] = useState<any[] | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<CardKey[] | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // 拉取卡密列表
-  const fetchCards = async () => {
+  // 获取卡密列表
+  const fetchCards = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
       if (filterStatus) params.set('status', filterStatus);
       if (filterType) params.set('type', filterType);
-      params.set('pageSize', '100');
+      if (filterBatch) params.set('batchId', filterBatch);
+
       const res = await fetch(`/api/admin/card-keys?${params}`);
       if (res.ok) {
         const d = await res.json();
         setCards(d.rows || []);
         setStats(d.stats || { total: 0, unused: 0, used: 0, disabled: 0, expired: 0 });
+        setBatches(d.batches || []);
+        setTotal(d.total || 0);
+        setTotalPages(d.totalPages || 1);
       }
-    } catch {} finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchCards(); }, [filterStatus, filterType]);
-
-  // 选择预设面额时联动 value 和 price
-  const onDenominationChange = (val: number) => {
-    const denom = CARD_KEY_DENOMINATIONS.find(d => d.value === val);
-    if (denom) {
-      setForm({
-        ...form,
-        denomination: denom.value,
-        value: form.type === 'lingzhu' ? denom.lingzhu : denom.value,
-        price: denom.value,
-        customValue: false,
-      });
+    } catch (e) {
+      console.error('获取卡密列表失败', e);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [page, filterStatus, filterType, filterBatch]);
 
-  // 切换卡密类型时重置面值
-  const onTypeChange = (type: string) => {
-    const denom = CARD_KEY_DENOMINATIONS[0];
-    setForm({
-      ...form,
-      type,
-      denomination: denom.value,
-      value: type === 'lingzhu' ? denom.lingzhu : denom.value,
-      price: denom.value,
-      customValue: false,
-      customInput: '',
-    });
-  };
-
-  // 切换自定义面值
-  const onCustomToggle = (checked: boolean) => {
-    setForm({ ...form, customValue: checked });
-    if (checked) {
-      setForm({ ...form, customValue: true, value: 0, price: 0 });
-    } else {
-      const denom = CARD_KEY_DENOMINATIONS.find(d => d.value === form.denomination) || CARD_KEY_DENOMINATIONS[0];
-      setForm({
-        ...form,
-        customValue: false,
-        value: form.type === 'lingzhu' ? denom.lingzhu : denom.value,
-        price: denom.value,
-        customInput: '',
-      });
+  useEffect(() => {
+    if (session?.role === 'admin') {
+      fetchCards();
     }
-  };
+  }, [fetchCards, session]);
 
   // 生成卡密
   const handleGenerate = async () => {
-    let value = form.value;
-    let price = form.price;
-
-    // 自定义面值处理
-    if (form.customValue && form.customInput) {
-      const num = parseFloat(form.customInput);
-      if (!num || num <= 0) { alert('请输入有效的自定义面值'); return; }
-      if (form.type === 'lingzhu') {
-        value = num;       // 积分数
-        price = num / 10;  // 1元=10积分
-      } else {
-        value = num;  // 元数
-        price = num;  // 售价=面值
-      }
-    }
-
-    if (!value || value <= 0) { alert('面值必须大于 0'); return; }
-    if (!form.count || form.count <= 0) { alert('数量必须大于 0'); return; }
-
     setGenerating(true);
     try {
       const res = await fetch('/api/admin/card-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          count: Number(form.count),
-          type: form.type,
-          value: Number(value),
-          price: Number(price),
-          expiryDays: Number(form.expiryDays),
-        }),
+        body: JSON.stringify(form),
       });
       const d = await res.json();
-      if (res.ok) {
+      if (res.ok && d.success) {
         setGenerated(d.items || []);
-        fetchCards();
+        // === 关键：await 确保统计刷新 ===
+        await fetchCards();
       } else {
         alert(d.error || '生成失败');
       }
-    } catch { alert('网络错误'); } finally { setGenerating(false); }
+    } catch (e) {
+      alert('网络错误');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 复制全部
+  const handleCopy = () => {
+    if (!generated) return;
+    const text = generated.map(c => c.code).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // 导出当前筛选的卡密
+  const handleExport = async () => {
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    params.set('pageSize', '10000');
+    if (filterStatus) params.set('status', filterStatus);
+    if (filterType) params.set('type', filterType);
+    if (filterBatch) params.set('batchId', filterBatch);
+
+    const res = await fetch(`/api/admin/card-keys?${params}`);
+    const d = await res.json();
+    const rows = d.rows || [];
+
+    const lines = ['卡密码\t类型\t面值\t售价\t状态\t使用者\t过期时间\t剩余天数\t创建时间'];
+    rows.forEach((c: CardKey) => {
+      const remain = getRemainingDays(c.expiryAt);
+      lines.push([
+        c.code,
+        TYPE_MAP[c.type] || c.type,
+        c.value,
+        c.price,
+        STATUS_MAP[c.status] || c.status,
+        c.usedByEmail || '-',
+        c.expiryAt ? formatDate(c.expiryAt) : '永久',
+        remain !== null ? (remain > 0 ? `${remain}天` : '已过期') : '永久',
+        formatDate(c.createdAt),
+      ].join('\t'));
+    });
+
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `卡密列表_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // 禁用卡密
   const handleDisable = async (id: string) => {
-    if (!confirm('确定要禁用此卡密吗？')) return;
-    const res = await fetch(`/api/admin/card-keys?id=${id}`, { method: 'DELETE' });
-    if (res.ok) { fetchCards(); } else { const d = await res.json(); alert(d.error || '禁用失败'); }
+    if (!confirm('确定要禁用这张卡密吗？')) return;
+    try {
+      const res = await fetch(`/api/admin/card-keys?id=${id}`, { method: 'DELETE' });
+      const d = await res.json();
+      if (res.ok && d.success) {
+        await fetchCards();
+      } else {
+        alert(d.error || '禁用失败');
+      }
+    } catch {
+      alert('网络错误');
+    }
   };
 
-  // 导出卡密为文本（方便复制）
+  // 纯卡密码（一行一个，方便复制粘贴）
   const exportText = () => {
     if (!generated || generated.length === 0) return '';
-    const header = `# 卡密批次 - ${new Date().toLocaleString('zh-CN')}\n# 类型: ${TYPE_MAP[form.type]} | 面值: ${form.value} | 数量: ${generated.length}\n\n`;
-    const lines = generated.map(c => c.code).join('\n');
-    return header + lines;
+    return generated.map(c => c.code).join('\n');
   };
 
-  // 复制到剪贴板
-  const handleCopy = async () => {
-    const text = exportText();
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { alert('复制失败，请手动选择文本复制'); }
-  };
+  // 统计卡片
+  const statCards = [
+    { label: '总卡密', value: stats.total, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { label: '未使用', value: stats.unused, color: 'bg-green-50 text-green-700 border-green-200' },
+    { label: '已使用', value: stats.used, color: 'bg-gray-50 text-gray-700 border-gray-200' },
+    { label: '已过期', value: stats.expired, color: 'bg-orange-50 text-orange-700 border-orange-200' },
+    { label: '已禁用', value: stats.disabled, color: 'bg-red-50 text-red-700 border-red-200' },
+  ];
+
+  if (session?.role !== 'admin') {
+    return <div className="p-8 text-center text-gray-500">无权限访问</div>;
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">卡密管理</h2>
-          <p className="text-sm text-gray-500">生成和管理充值卡密，替代支付系统进行充值</p>
-        </div>
-      </div>
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">卡密管理</h1>
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        {[
-          { label: '总卡密', value: stats.total, color: 'bg-blue-50 text-blue-700' },
-          { label: '未使用', value: stats.unused, color: 'bg-green-50 text-green-700' },
-          { label: '已使用', value: stats.used, color: 'bg-gray-50 text-gray-700' },
-          { label: '已过期', value: stats.expired, color: 'bg-yellow-50 text-yellow-700' },
-          { label: '已禁用', value: stats.disabled, color: 'bg-red-50 text-red-700' },
-        ].map(item => (
-          <div key={item.label} className={`rounded-xl p-4 ${item.color}`}>
-            <div className="text-2xl font-bold">{item.value}</div>
-            <div className="text-xs mt-1">{item.label}</div>
+        {statCards.map((s) => (
+          <div key={s.label} className={`rounded-xl border p-4 ${s.color}`}>
+            <div className="text-2xl font-bold">{s.value}</div>
+            <div className="text-xs mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* 生成卡密表单 */}
+      {/* 生成卡密 */}
       <div className="bg-white rounded-xl border p-5 mb-6">
         <h3 className="font-bold text-gray-900 mb-4">生成卡密</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 卡密类型 */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">卡密类型</label>
-            <select
-              value={form.type}
-              onChange={e => onTypeChange(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            >
-              <option value="lingzhu">积分卡（充值积分）</option>
-              <option value="agent_balance">代理商余额卡（充值余额）</option>
+            <label className="text-xs text-gray-500">数量</label>
+            <input type="number" value={form.count} min={1} max={500}
+              onChange={e => setForm({ ...form, count: Number(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500">类型</label>
+            <select value={form.type}
+              onChange={e => setForm({ ...form, type: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm">
+              <option value="lingzhu">积分卡</option>
+              <option value="agent_balance">代理商余额卡</option>
             </select>
           </div>
-
-          {/* 面值选择 */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">面值</label>
-            {!form.customValue ? (
-              <select
-                value={form.denomination}
-                onChange={e => onDenominationChange(Number(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-              >
-                {CARD_KEY_DENOMINATIONS.map(d => (
-                  <option key={d.value} value={d.value}>
-                    {form.type === 'lingzhu' ? d.label : `${d.value}元卡`}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="number"
-                value={form.customInput}
-                onChange={e => setForm({ ...form, customInput: e.target.value })}
-                placeholder={form.type === 'lingzhu' ? '积分数（如 200）' : '元数（如 20）'}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-              />
-            )}
-            <label className="flex items-center gap-1.5 mt-1 text-xs text-gray-500 cursor-pointer">
-              <input type="checkbox" checked={form.customValue} onChange={e => onCustomToggle(e.target.checked)} />
-              自定义面值
-            </label>
+            <label className="text-xs text-gray-500">面值</label>
+            <input type="number" value={form.value} min={1}
+              onChange={e => setForm({ ...form, value: Number(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
-
-          {/* 数量 */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">数量</label>
-            <input
-              type="number"
-              value={form.count}
-              min={1}
-              max={1000}
-              onChange={e => setForm({ ...form, count: parseInt(e.target.value) || 1 })}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
+            <label className="text-xs text-gray-500">售价</label>
+            <input type="number" value={form.price} min={0} step={0.1}
+              onChange={e => setForm({ ...form, price: Number(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
-
-          {/* 有效期 */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">有效期</label>
-            <select
-              value={form.expiryDays}
-              onChange={e => setForm({ ...form, expiryDays: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            >
-              {EXPIRY_OPTIONS.map(opt => (
-                <option key={opt.days} value={opt.days}>{opt.label}</option>
-              ))}
-            </select>
+            <label className="text-xs text-gray-500">有效期(天)</label>
+            <input type="number" value={form.expiryDays} min={0}
+              onChange={e => setForm({ ...form, expiryDays: Number(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg text-sm" />
           </div>
         </div>
-
-        {/* 生成信息预览 */}
-        <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-          {form.customValue && form.customInput
-            ? `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.customInput}${form.type === 'lingzhu' ? '积分' : '元'}`
-            : `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.type === 'lingzhu' ? `${form.value}积分` : `${form.price}元`}`
-          }
-        </div>
-
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="mt-3 px-5 py-2 bg-red-700 text-white rounded-lg text-sm disabled:opacity-50 hover:bg-red-800"
-        >
+        <button onClick={handleGenerate} disabled={generating}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
           {generating ? '生成中...' : '生成卡密'}
         </button>
       </div>
 
-      {/* 生成结果（导出区域） */}
+      {/* 生成结果 */}
       {generated && generated.length > 0 && (
         <div className="bg-white rounded-xl border p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-gray-900">生成结果（{generated.length} 张）</h3>
             <div className="flex gap-2">
-              <button
-                onClick={handleCopy}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
-              >
+              <button onClick={handleCopy}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">
                 {copied ? '✓ 已复制' : '复制全部'}
               </button>
-              <button
-                onClick={() => setGenerated(null)}
-                className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50"
-              >
+              <button onClick={() => setGenerated(null)}
+                className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50">
                 关闭
               </button>
             </div>
           </div>
-          <textarea
-            readOnly
-            value={exportText()}
-            className="w-full h-48 px-3 py-2 border rounded-lg text-sm font-mono bg-gray-50"
-            onClick={e => (e.target as HTMLTextAreaElement).select()}
-          />
+
+          {/* 纯卡密码区（方便复制粘贴） */}
+          <div className="text-xs text-gray-500 mb-1">纯卡密码（点击全选复制，一行一个）：</div>
+          <textarea readOnly value={exportText()}
+            className="w-full h-40 px-3 py-2 border rounded-lg text-sm font-mono bg-gray-50"
+            onClick={e => (e.target as HTMLTextAreaElement).select()} />
+
+          {/* 带状态核对列表 */}
+          <div className="text-xs text-gray-500 mt-4 mb-1">核对列表（含状态）：</div>
+          <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+            {generated.map((c, i) => (
+              <div key={c.id} className={`flex items-center justify-between px-3 py-2 text-sm ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 text-xs w-6">{i + 1}</span>
+                  <span className="font-mono font-bold text-gray-900">{c.code}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800">
+                    {STATUS_MAP[c.status] || c.status}
+                  </span>
+                  <button onClick={() => {
+                    navigator.clipboard.writeText(c.code);
+                    const btn = document.getElementById(`copy-btn-${i}`);
+                    if (btn) { btn.textContent = '✓'; setTimeout(() => { if (btn) btn.textContent = '复制'; }, 1500); }
+                  }} id={`copy-btn-${i}`} className="text-xs text-blue-600 hover:text-blue-800">复制</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* 筛选栏 */}
-      <div className="flex items-center gap-3 mb-4">
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 border rounded-lg text-sm"
-        >
-          <option value="">全部状态</option>
-          <option value="unused">未使用</option>
-          <option value="used">已使用</option>
-          <option value="expired">已过期</option>
-          <option value="disabled">已禁用</option>
-        </select>
-        <select
-          value={filterType}
-          onChange={e => setFilterType(e.target.value)}
-          className="px-3 py-1.5 border rounded-lg text-sm"
-        >
-          <option value="">全部类型</option>
-          <option value="lingzhu">积分卡</option>
-          <option value="agent_balance">代理商余额卡</option>
-        </select>
+      {/* 筛选区 */}
+      <div className="bg-white rounded-xl border p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+            className="px-3 py-1.5 border rounded-lg text-sm">
+            <option value="">全部状态</option>
+            <option value="unused">未使用</option>
+            <option value="used">已使用</option>
+            <option value="expired">已过期</option>
+            <option value="disabled">已禁用</option>
+          </select>
+          <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }}
+            className="px-3 py-1.5 border rounded-lg text-sm">
+            <option value="">全部类型</option>
+            <option value="lingzhu">积分卡</option>
+            <option value="agent_balance">代理商余额卡</option>
+          </select>
+          <select value={filterBatch} onChange={e => { setFilterBatch(e.target.value); setPage(1); }}
+            className="px-3 py-1.5 border rounded-lg text-sm">
+            <option value="">全部批次</option>
+            {batches.map(b => (
+              <option key={b.batchId} value={b.batchId}>
+                {b.batchId.slice(0, 20)}... ({b.count}张, {formatDate(b.createdAt)})
+              </option>
+            ))}
+          </select>
+          <button onClick={handleExport}
+            className="px-3 py-1.5 border rounded-lg text-sm text-blue-600 hover:bg-blue-50">
+            导出 CSV
+          </button>
+          <span className="text-xs text-gray-400 ml-auto">共 {total} 条</span>
+        </div>
       </div>
 
-      {/* 卡密列表表格 */}
-      <div className="bg-white rounded-xl border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b text-left">
-              <th className="px-4 py-3 text-gray-500 font-medium">卡密代码</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">类型</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">面值</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">售价</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">创建时间</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">使用时间</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">使用者</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">加载中...</td></tr>
-            ) : cards.length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">暂无卡密记录</td></tr>
-            ) : cards.map((c: any) => (
-              <tr key={c.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono font-bold text-gray-900">{c.code}</td>
-                <td className="px-4 py-3">{TYPE_MAP[c.type] || c.type}</td>
-                <td className="px-4 py-3">{c.type === 'lingzhu' ? `${c.value}积分` : `¥${c.value}`}</td>
-                <td className="px-4 py-3 text-gray-500">¥{c.price}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[c.status] || ''}`}>
-                    {STATUS_MAP[c.status] || c.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{fmt(c.createdAt)}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{fmt(c.usedAt)}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs font-mono">{c.usedBy || '-'}</td>
-                <td className="px-4 py-3">
-                  {(c.status === 'unused' || c.status === 'expired') && (
-                    <button
-                      onClick={() => handleDisable(c.id)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      禁用
-                    </button>
-                  )}
-                </td>
+      {/* 卡密列表 */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-3 py-2 text-left">卡密码</th>
+                <th className="px-3 py-2 text-left">类型</th>
+                <th className="px-3 py-2 text-right">面值</th>
+                <th className="px-3 py-2 text-left">状态</th>
+                <th className="px-3 py-2 text-left">使用者</th>
+                <th className="px-3 py-2 text-left">过期/剩余</th>
+                <th className="px-3 py-2 text-left">创建时间</th>
+                <th className="px-3 py-2 text-center">操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="text-center py-8 text-gray-400">加载中...</td></tr>
+              ) : cards.length === 0 ? (
+                <tr><td colSpan={8} className="text-center py-8 text-gray-400">暂无卡密</td></tr>
+              ) : (
+                cards.map(c => {
+                  const remain = getRemainingDays(c.expiryAt);
+                  return (
+                    <tr key={c.id} className="border-t hover:bg-gray-50">
+                      <td className="px-3 py-2 font-mono font-bold text-gray-900">{c.code}</td>
+                      <td className="px-3 py-2">{TYPE_MAP[c.type] || c.type}</td>
+                      <td className="px-3 py-2 text-right">
+                        {c.type === 'lingzhu' ? `${c.value}积分` : `¥${c.value}`}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[c.status] || 'bg-gray-100'}`}>
+                          {STATUS_MAP[c.status] || c.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600">
+                        {c.usedByEmail || '-'}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {c.expiryAt ? (
+                          <div>
+                            <div className="text-gray-500">{formatDate(c.expiryAt)}</div>
+                            <div className={remain > 7 ? 'text-green-600' : remain > 0 ? 'text-orange-600' : 'text-red-600'}>
+                              {remain > 0 ? `剩${remain}天` : '已过期'}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">永久</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-500">{formatDate(c.createdAt)}</td>
+                      <td className="px-3 py-2 text-center">
+                        {(c.status === 'unused') && (
+                          <button onClick={() => handleDisable(c.id)}
+                            className="text-xs text-red-600 hover:text-red-800">禁用</button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 分页 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <span className="text-xs text-gray-500">
+              第 {page} / {totalPages} 页
+            </span>
+            <div className="flex gap-1">
+              <button onClick={() => setPage(1)} disabled={page === 1}
+                className="px-3 py-1 border rounded text-xs disabled:opacity-30">首页</button>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="px-3 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="px-3 py-1 border rounded text-xs disabled:opacity-30">下一页</button>
+              <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                className="px-3 py-1 border rounded text-xs disabled:opacity-30">末页</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -25,10 +25,10 @@ export default function RedeemPage() {
 
   if (!user) return null;
 
-  // 卡密输入格式化：自动添加连字符（4-4-4-4）
+  // 卡密输入格式化：自动添加连字符（4-4-4-4-4，支持20位卡密）
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // 只保留字母数字，转大写
-    const raw = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
+    const raw = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 20);
     // 每 4 位插入连字符
     const formatted = raw.match(/.{1,4}/g)?.join('-') || '';
     setCode(formatted);
@@ -82,12 +82,12 @@ export default function RedeemPage() {
             value={code}
             onChange={handleCodeChange}
             onKeyDown={e => { if (e.key === 'Enter' && !loading) handleRedeem(); }}
-            placeholder="XXXX-XXXX-XXXX-XXXX"
+            placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"
             className="w-full px-4 py-3 border-2 rounded-lg text-center text-lg font-mono font-bold tracking-widest focus:border-purple-400 outline-none uppercase"
-            maxLength={19}
+            maxLength={24}
             autoComplete="off"
           />
-          <p className="text-xs text-gray-400 mt-1">请输入 16 位卡密（无需手动输入连字符）</p>
+          <p className="text-xs text-gray-400 mt-1">请输入 20 位卡密（无需手动输入连字符）</p>
         </div>
 
         <button
