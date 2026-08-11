@@ -85,10 +85,10 @@ with open(LOCAL_ZIP, 'rb') as f:
 print(f"\n  上传完成 ({time.time()-start_time[0]:.0f}s)")
 sftp.close()
 
-# 5. 解压
+# 5. 解压（.next + public 都从 zip 解压，不依赖 git pull 同步静态文件）
 print("\n===== 5/6 解压构建产物 =====")
 run(ssh, 'which unzip >/dev/null 2>&1 || apt install -y unzip 2>&1 | tail -1')
-run(ssh, 'cd /www/ming8 && rm -rf .next && unzip -qo next-build.zip && rm -f next-build.zip && echo "解压完成"')
+run(ssh, 'cd /www/ming8 && rm -rf .next public && unzip -qo next-build.zip && rm -f next-build.zip && echo "解压完成"')
 
 # 6. 启动服务（统一用 admin 实例；root 实例配置已删除不会再抢占）
 print("\n===== 6/6 启动服务 =====")
