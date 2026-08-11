@@ -77,7 +77,7 @@ export async function queryAll(sql: string, ...params: any[]) {
 export async function execute(sql: string, ...params: any[]): Promise<any> {
   const pool = getPool();
   const [result] = await pool.execute(adaptSql(sql), adaptParams(params) as any[]);
-  // 兼容 D1 API：返回 success + meta（含 changes/last_row_id）
+  // 统一返回格式：success + meta（含 changes/last_row_id）
   const meta = result as any;
   return {
     success: true,

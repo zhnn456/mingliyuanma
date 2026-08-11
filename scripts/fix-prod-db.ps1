@@ -33,7 +33,7 @@ $statements = @(
 
 $ok = 0; $skip = 0; $fail = 0
 foreach ($sql in $statements) {
-  $result = npx wrangler d1 execute yuanmamingli --remote --command="$sql" 2>&1
+  $result = mysql -u ming8 -pMing8@2026! ming8_db -e "$sql" 2>&1
   if ($LASTEXITCODE -eq 0) {
     Write-Host "OK: $sql" -ForegroundColor Green
     $ok++

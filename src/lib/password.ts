@@ -1,5 +1,5 @@
 /**
- * 密码工具 — Cloudflare Workers 兼容版
+ * 密码工具 — 纯 JS 实现
  * 使用 Web Crypto SubtleCrypto 的 PBKDF2-SHA256（新格式）
  * 兼容旧格式（salt$hash，2段式）
  */

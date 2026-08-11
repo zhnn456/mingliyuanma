@@ -1,6 +1,6 @@
 /**
  * JWT 工具 — 纯 Web Crypto API 实现
- * 兼容 Cloudflare Workers（零 Node.js 依赖）
+ * 纯 JavaScript 实现（零 Node.js 依赖）
  */
 
 const ALGORITHM = { name: 'HMAC', hash: 'SHA-256' };

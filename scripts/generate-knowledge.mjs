@@ -1,7 +1,7 @@
 /**
  * 知识文章构建时生成器
  * 读取 data/knowledge/ 下的 .md 文件，生成 TypeScript 数据文件
- * 用于 Cloudflare Workers 部署（无 fs 模块）
+ * 构建时预生成知识库数据，避免运行时依赖文件系统
  */
 
 import fs from 'fs';

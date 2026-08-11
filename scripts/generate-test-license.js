@@ -60,6 +60,6 @@ console.log(result.license);
 console.log('');
 console.log('='.repeat(60));
 console.log('💡 使用方法：');
-console.log('   将此授权码填入 wrangler-agent-test.toml 的 APP_LICENSE_KEY');
-console.log('   或在 Cloudflare Dashboard 中设置环境变量');
+console.log('   将此授权码填入 .env.production 的 APP_LICENSE_KEY');
+console.log('   或在服务器环境变量中设置');
 console.log('='.repeat(60));

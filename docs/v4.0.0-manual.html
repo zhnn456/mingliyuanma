@@ -96,8 +96,8 @@
       <strong>架构特点：</strong>
       <ul style="margin-left: 20px; margin-top: 10px;">
         <li>中央管理系统统一管理代理商、授权码、版本发布</li>
-        <li>每个代理商拥有独立的 Cloudflare Worker 实例</li>
-        <li>每个代理商拥有独立的 D1 数据库，数据天然隔离</li>
+        <li>每个代理商拥有独立的服务器部署实例</li>
+        <li>每个代理商拥有独立的 MySQL 数据库，数据天然隔离</li>
         <li>所有支付必须通过中央结算，防止代理商截留资金</li>
         <li>代理商通过授权码验证身份，无授权码无法运行</li>
       </ul>
@@ -272,7 +272,7 @@
     <h3>5.1 前置条件</h3>
     <div class="info-box">
       <ul style="margin-left: 20px;">
-        <li>已注册 Cloudflare 账号</li>
+        <li>已注册 服务器</li>
         <li>已安装 Node.js v18+</li>
         <li>已获得平台交付的源码包和授权码</li>
       </ul>
@@ -293,36 +293,36 @@
     
     <p>脚本会自动引导完成：</p>
     <ol class="step-list">
-      <li>检查 Node.js 和 wrangler 环境</li>
-      <li>引导登录 Cloudflare</li>
+      <li>检查 Node.js 和部署环境</li>
+      <li>引导配置服务器连接</li>
       <li>填写代理商代号、品牌名、授权码</li>
-      <li>自动创建 D1 数据库</li>
+      <li>自动创建 MySQL 数据库</li>
       <li>自动创建 KV 命名空间</li>
-      <li>自动生成 wrangler.toml 配置</li>
+      <li>自动生成 .env.production 配置</li>
       <li>自动初始化数据库表</li>
-      <li>自动构建并部署到 Cloudflare Workers</li>
+      <li>自动构建并部署到 Linux 服务器</li>
     </ol>
 
     <h3>5.3 手动部署</h3>
     <p>如果一键脚本失败，可手动执行以下步骤：</p>
     <div class="code-block">
-      <span class="comment"># 1. 登录 Cloudflare</span>
-      wrangler login
+      <span class="comment"># 1. 连接服务器</span>
+      ssh 连接服务器
       
-      <span class="comment"># 2. 创建 D1 数据库</span>
-      wrangler d1 create mingli-agent-{<span class="comment">代理商代号</span>}
+      <span class="comment"># 2. 创建 MySQL 数据库</span>
+      mysql 创建数据库 mingli_agent_{<span class="comment">代理商代号</span>}
       
       <span class="comment"># 3. 创建 KV 命名空间</span>
-      wrangler kv:namespace create KV
+      （无 KV，使用 MySQL）
       
       <span class="comment"># 4. 初始化数据库</span>
-      wrangler d1 execute mingli-agent-{<span class="comment">代号</span>} --remote --file=prisma/migrate_v4.sql
+      mysql -u ming8 -p ming8_db < prisma/migrate_v4.sql
       
       <span class="comment"># 5. 构建项目</span>
       npm run build:worker
       
       <span class="comment"># 6. 部署</span>
-      npx wrangler deploy
+      bash deploy.sh
     </div>
 
     <!-- 第6章 -->

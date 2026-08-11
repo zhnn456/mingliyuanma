@@ -1,7 +1,7 @@
 /**
  * 审计日志系统
  * 记录所有重要操作，用于安全审计和问题追踪
- * 使用 D1 直接操作，避免 Prisma 在 Workers 上的兼容性问题
+ * 直接使用 MySQL 查询，避免 Prisma 带来的额外开销
  */
 import { execute, queryAll } from '@/lib/d1';
 

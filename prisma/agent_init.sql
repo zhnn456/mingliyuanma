@@ -1,4 +1,4 @@
--- 代理商 D1 数据库初始化脚本
+-- 代理商数据库初始化脚本
 -- 版本：v4.0.0
 
 CREATE TABLE IF NOT EXISTS "User" (

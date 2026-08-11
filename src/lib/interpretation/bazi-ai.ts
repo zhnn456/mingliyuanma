@@ -22,7 +22,7 @@ import type {
 // 这是纯新增文件，不修改任何现有代码
 // ===================================================================
 
-// Workers 环境兼容：使用内联的技能数据，不再从文件系统读取
+// 使用内联的技能数据，避免运行时读取文件系统
 const SKILL_FILES: Record<string, string> = {};
 
 function readSkillFile(relativePath: string): string {

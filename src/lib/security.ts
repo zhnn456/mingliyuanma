@@ -1,7 +1,6 @@
 /**
  * 安全工具库
- * 注意：IP 速率限制在 CF Workers 多实例环境下不精确
- *       生产环境建议在 Cloudflare Dashboard 配置 WAF 速率限制规则
+ * 注意：单实例限流，如需更强防护可在 Nginx 层配置限流
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -101,8 +100,7 @@ export function sanitizeNumber(input: unknown, min?: number, max?: number): numb
 }
 
 // ============ IP 限流（单实例内存版） ============
-// 注意：Cloudflare Workers 多实例环境下不精确
-// 精确限流请使用 Cloudflare WAF Rate Limiting 规则
+// 单实例限流，精确度取决于服务器部署方式
 
 interface RateLimitEntry {
   count: number;
@@ -119,7 +117,7 @@ export function checkIPRateLimit(
   maxRequests: number = 60,
   windowMs: number = 60_000
 ): { allowed: boolean; remaining: number; resetTime: number } {
-  // 对于 Workers 环境，直接放行（限流由 Cloudflare WAF 处理）
+  // 无需处理时直接放行
   if (typeof process !== 'undefined' && process.env.CLOUDFLARE_WORKER) {
     return { allowed: true, remaining: maxRequests, resetTime: Date.now() + windowMs };
   }

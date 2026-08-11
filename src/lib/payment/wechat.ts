@@ -1,14 +1,14 @@
 /**
  * 微信支付 V3 API 工具类
- * 基于 Web Crypto API，兼容 Cloudflare Workers
+ * 基于 Web Crypto API（纯 JS 实现）
  *
  * 使用前需配置：
- *   wrangler secret put WECHAT_APP_ID
- *   wrangler secret put WECHAT_MCH_ID
- *   wrangler secret put WECHAT_API_V3_KEY
- *   wrangler secret put WECHAT_PRIVATE_KEY  (商户私钥 PEM)
- *   wrangler secret put WECHAT_CERT_SERIAL  (商户证书序列号)
- *   wrangler secret put WECHAT_NOTIFY_URL   (回调通知地址)
+ *   环境变量 WECHAT_APP_ID
+ *   环境变量 WECHAT_MCH_ID
+ *   环境变量 WECHAT_API_V3_KEY
+ *   环境变量 WECHAT_PRIVATE_KEY  (商户私钥 PEM)
+ *   环境变量 WECHAT_CERT_SERIAL  (商户证书序列号)
+ *   环境变量 WECHAT_NOTIFY_URL   (回调通知地址)
  */
 
 // ============ 类型定义 ============

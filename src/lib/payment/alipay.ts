@@ -1,13 +1,13 @@
 /**
  * 支付宝支付工具类
- * 基于 Web Crypto API，兼容 Cloudflare Workers
+ * 基于 Web Crypto API（纯 JS 实现）
  *
  * 使用前需配置：
- *   wrangler secret put ALIPAY_APP_ID
- *   wrangler secret put ALIPAY_PRIVATE_KEY  (商户RSA私钥 PEM)
- *   wrangler secret put ALIPAY_PUBLIC_KEY   (支付宝RSA公钥 PEM)
- *   wrangler secret put ALIPAY_NOTIFY_URL   (回调通知地址)
- *   wrangler secret put ALIPAY_GATEWAY      (网关地址，默认正式环境)
+ *   环境变量 ALIPAY_APP_ID
+ *   环境变量 ALIPAY_PRIVATE_KEY  (商户RSA私钥 PEM)
+ *   环境变量 ALIPAY_PUBLIC_KEY   (支付宝RSA公钥 PEM)
+ *   环境变量 ALIPAY_NOTIFY_URL   (回调通知地址)
+ *   环境变量 ALIPAY_GATEWAY      (网关地址，默认正式环境)
  */
 
 // ============ 类型定义 ============

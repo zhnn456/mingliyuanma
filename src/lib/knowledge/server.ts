@@ -1,7 +1,7 @@
 /**
  * 命理知识系统 - 服务端
  * 开发环境：读取 data/knowledge/*.md（支持热更新）
- * 生产环境（CF Workers）：使用构建时预生成的 JSON 数据
+ * 生产环境：使用构建时预生成的 JSON 数据
  */
 
 import type { KnowledgeArticle, ArticleCategory, ArticleLevel } from './types';
@@ -61,24 +61,13 @@ const CATEGORY_NAMES: Record<ArticleCategory, string> = {
 let _articlesCache: KnowledgeArticle[] | null = null;
 let _articlesMap: Map<string, KnowledgeArticle> | null = null;
 
-/**
- * 判断是否在 Workers 环境
- */
-function isWorkersEnv(): boolean {
-  return typeof process !== 'undefined' && (
-    !!(process as any).env?.CF_PAGES ||
-    !!(process as any).env?.CLOUDFLARE_WORKER ||
-    !!(process as any).env?.CF_WORKER
-  );
-}
-
 function loadArticles(): KnowledgeArticle[] {
   if (_articlesCache) return _articlesCache;
 
   let articles: KnowledgeArticle[] = [];
 
-  if (!isWorkersEnv()) {
-    // 开发环境：从文件系统读取（仅在非 Workers 环境执行）
+  if (true) {
+    // 开发环境：从文件系统读取
     try {
       const fsMod = require('fs');
       const pathMod = require('path');
@@ -123,7 +112,7 @@ function loadArticles(): KnowledgeArticle[] {
     }
   }
 
-  // 生产环境（CF Workers）：使用构建时预生成的数据
+  // 生产环境：使用构建时预生成的数据
   articles = KNOWLEDGE_ARTICLES as KnowledgeArticle[];
   _articlesCache = articles;
   _articlesMap = new Map(articles.map(a => [a.id, a]));

@@ -2,7 +2,7 @@
  * 紫微斗数 · 规则存储层
  * 
  * 提供规则的加载、存储、版本管理功能
- * 支持从 D1 数据库读取自定义规则，也支持本地规则作为默认值
+ * 支持从数据库读取自定义规则，也支持本地规则作为默认值
  */
 
 import type { IZWRule, AnalysisContext, RuleCategory, ZiweiChart } from '../interfaces/chart';
