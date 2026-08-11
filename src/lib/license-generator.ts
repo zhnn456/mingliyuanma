@@ -16,7 +16,7 @@ export interface LicensePayload {
   expiryAt: number | null;
   version: number;
   domain?: string;
-  level?: 'basic' | 'standard' | 'premium';
+  level?: 'basic' | 'standard' | 'premium' | 'saas' | 'source';
   monthlyFee?: number;
 }
 

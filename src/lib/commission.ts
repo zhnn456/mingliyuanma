@@ -146,14 +146,14 @@ export async function clawbackCommission(orderId: string) {
   await ensureCommissionTables();
 
   const records = await queryAll(
-    'SELECT * FROM "CommissionRecord" WHERE orderId = ? AND status NOT IN ("clawed_back")',
+    'SELECT * FROM "CommissionRecord" WHERE orderId = ? AND status NOT IN (\'clawed_back\')',
     orderId
   ) as any[];
 
   for (const record of records) {
     const clawbackAmount = record.totalCommission;
     await execute(
-      'UPDATE "CommissionRecord" SET status = "clawed_back", clawbackAmount = ?, createdAt = datetime("now") WHERE id = ?',
+      'UPDATE "CommissionRecord" SET status = \'clawed_back\', clawbackAmount = ?, createdAt = datetime(\'now\') WHERE id = ?',
       clawbackAmount, record.id
     );
     await execute(
@@ -195,7 +195,7 @@ export async function generateWeeklySettlement(agentId: string, weekStart: strin
   // 标记分润记录为已结算
   for (const r of records) {
     await execute(
-      'UPDATE "CommissionRecord" SET status = "settled", settlementId = ?, settledAt = datetime("now") WHERE id = ?',
+      'UPDATE "CommissionRecord" SET status = \'settled\', settlementId = ?, settledAt = datetime(\'now\') WHERE id = ?',
       settlementId, r.id
     );
   }
@@ -213,12 +213,12 @@ export async function getAgentCommissionStats(agentId: string) {
   await ensureCommissionTables();
 
   const pendingRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE agentId = ? AND status = "pending"',
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE agentId = ? AND status = \'pending\'',
     agentId
   ) as any;
 
   const settledRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE agentId = ? AND status = "settled"',
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE agentId = ? AND status = \'settled\'',
     agentId
   ) as any;
 
@@ -261,25 +261,25 @@ export async function getPlatformCommissionStats() {
   const monthStr = monthStart.toISOString();
 
   const totalRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status != "clawed_back"'
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status != \'clawed_back\''
   ) as any;
 
   const monthRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE createdAt >= ? AND status != "clawed_back"',
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE createdAt >= ? AND status != \'clawed_back\'',
     monthStr
   ) as any;
 
   const todayRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE createdAt >= ? AND status != "clawed_back"',
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE createdAt >= ? AND status != \'clawed_back\'',
     todayStr
   ) as any;
 
   const pendingRow = await queryFirst(
-    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status = "pending"'
+    'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status = \'pending\''
   ) as any;
 
   const clawbackRow = await queryFirst(
-    'SELECT COALESCE(SUM(clawbackAmount), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status = "clawed_back"'
+    'SELECT COALESCE(SUM(clawbackAmount), 0) as total, COUNT(*) as cnt FROM "CommissionRecord" WHERE status = \'clawed_back\''
   ) as any;
 
   return {
@@ -329,8 +329,8 @@ export async function listCommissionRecords(params: {
      LEFT JOIN "User" u ON r.userId = u.id
      LEFT JOIN "Agent" a ON r.agentId = a.id
      ${where}
-     ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`,
-    ...values, pageSize, offset
+     ORDER BY r.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+    ...values
   ) as any[];
 
   const countRow = await queryFirst(
@@ -360,8 +360,8 @@ export async function listSettlements(agentId?: string, status?: string, page = 
      FROM "SettlementRecord" s
      LEFT JOIN "Agent" a ON s.agentId = a.id
      ${where}
-     ORDER BY s.createdAt DESC LIMIT ? OFFSET ?`,
-    ...values, pageSize, offset
+     ORDER BY s.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+    ...values
   ) as any[];
 
   const countRow = await queryFirst(

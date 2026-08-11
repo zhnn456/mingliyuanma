@@ -510,6 +510,7 @@ export async function ensureCommissionTables() {
     ['balance', 'REAL DEFAULT 0'],
     ['referralCode', 'TEXT'],
     ['maxCustomers', 'INTEGER DEFAULT 500'],
+    ['settledCommission', 'REAL DEFAULT 0'],
   ];
   for (const [col, def] of agentAlters) {
     if (!agentColNames.includes(col)) {

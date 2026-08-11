@@ -69,6 +69,8 @@ export default function AdminAgentsPage() {
     domain: '',
     isActive: true,
     licenseExpiry: '',
+    level: 'saas' as 'saas' | 'source',
+    planType: 'monthly' as string,
   });
 
   const fetchAgents = async () => {
@@ -115,7 +117,7 @@ export default function AdminAgentsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ brandName: '', contactName: '', contactPhone: '', email: '', domain: '', isActive: true, licenseExpiry: '' });
+    setForm({ brandName: '', contactName: '', contactPhone: '', email: '', domain: '', isActive: true, licenseExpiry: '', level: 'saas', planType: 'monthly' });
     setShowModal(true);
   };
 
@@ -129,6 +131,8 @@ export default function AdminAgentsPage() {
       domain: a.domain || '',
       isActive: a.isActive,
       licenseExpiry: a.licenseExpiry ? a.licenseExpiry.slice(0, 10) : '',
+      level: (a.level === 'source' ? 'source' : 'saas') as 'saas' | 'source',
+      planType: a.plan || 'monthly',
     });
     setShowModal(true);
   };
@@ -164,6 +168,8 @@ export default function AdminAgentsPage() {
           domain: form.domain || null,
           email: form.email,
           licenseExpiry: form.licenseExpiry || null,
+          level: form.level,
+          planType: form.planType,
         }),
       });
       if (res.ok) {
@@ -394,6 +400,71 @@ export default function AdminAgentsPage() {
           <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">{editing ? '编辑代理商' : '创建代理商'}</h3>
             <div className="space-y-4">
+              {/* 代理类型选择（仅创建时） */}
+              {!editing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">代理类型 *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, level: 'saas', planType: 'monthly' })}
+                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                        form.level === 'saas'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-base font-bold">SaaS代理</div>
+                      <div className="text-xs mt-1 text-gray-500">平台托管 · 分润30%</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, level: 'source', planType: 'annual' })}
+                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                        form.level === 'source'
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-base font-bold">源码部署代理</div>
+                      <div className="text-xs mt-1 text-gray-500">独立部署 · 收入全归</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* SaaS套餐选择（仅创建时） */}
+              {!editing && form.level === 'saas' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">套餐选择 *</label>
+                  <select
+                    value={form.planType}
+                    onChange={(e) => setForm({ ...form, planType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="trial">试用版（免费，7天，10人上限）</option>
+                    <option value="monthly">月费版（99元/月，500人上限）</option>
+                    <option value="yearly">年费版（980元/年，500人上限）</option>
+                    <option value="flagship">旗舰版（2980元/年，不限人数，35%分润）</option>
+                  </select>
+                </div>
+              )}
+
+              {/* 源码授权选择（仅创建时） */}
+              {!editing && form.level === 'source' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">授权类型 *</label>
+                  <select
+                    value={form.planType}
+                    onChange={(e) => setForm({ ...form, planType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="annual">年度授权（2980元/年，含更新）</option>
+                    <option value="lifetime">永久买断（6800元，含1年更新）</option>
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">品牌名称 / 公司名</label>
                 <input value={form.brandName} onChange={(e) => setForm({ ...form, brandName: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="请输入品牌或公司名称" />
@@ -422,8 +493,11 @@ export default function AdminAgentsPage() {
                 {editing && <p className="text-xs text-gray-400 mt-1">编辑模式下不可修改邮箱</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">绑定域名</label>
-                <input value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="如 agent.example.com" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  绑定域名 {form.level === 'source' && !editing && '*'}
+                </label>
+                <input value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder={form.level === 'source' ? '源码部署必填，如 agent.example.com' : '如 agent.example.com'} />
+                {form.level === 'source' && !editing && <p className="text-xs text-orange-500 mt-1">源码部署代理必须绑定自有域名</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">授权到期时间</label>

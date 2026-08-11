@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAgent, requireAdmin } from '@/lib/auth-server';
-import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { requireAgent } from '@/lib/auth-server';
+import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';
+
+/**
+ * 代理商结算 API
+ * - GET: 查询自己的结算列表（从 SettlementRecord 表）
+ * - POST: 申请结算（写入 SettlementRecord，更新 CommissionRecord 为 settling）
+ *
+ * 统一使用 SettlementRecord 表（与管理后台一致）
+ */
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,53 +17,49 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
+    await ensureCommissionTables();
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || '';
 
-    const conditions: string[] = [];
-    const params: any[] = [];
-
     // 代理商只能看自己的结算单
-    const agent = await queryFirst('SELECT id FROM Agent WHERE userId = ?', session.sub) as any;
+    const agent = await queryFirst('SELECT id, pendingCommission, settledCommission FROM Agent WHERE userId = ?', session.sub) as any;
     if (!agent) {
       return NextResponse.json({ error: '代理商信息不存在' }, { status: 404 });
     }
 
-    conditions.push('agentId = ?');
-    params.push(agent.id);
-
+    // 查询结算列表
+    let where = 'agentId = ?';
+    const params: any[] = [agent.id];
     if (status) {
-      conditions.push('status = ?');
+      where += ' AND status = ?';
       params.push(status);
     }
 
     const settlements = await queryAll(
-      `SELECT * FROM Settlement WHERE ${conditions.join(' AND ')} ORDER BY createdAt DESC LIMIT 50`,
+      `SELECT * FROM SettlementRecord WHERE ${where} ORDER BY createdAt DESC LIMIT 50`,
       ...params
     ) as any[];
 
-    // 计算统计
-    const stats = {
-      totalAmount: 0,
-      pendingCount: 0,
-      approvedCount: 0,
-      paidCount: 0,
-    };
+    // 统计待结算和已结算金额
+    const pendingRow = await queryFirst(
+      'SELECT COALESCE(SUM(totalCommission), 0) as total, COUNT(*) as count FROM CommissionRecord WHERE agentId = ? AND status = ?',
+      agent.id, 'pending'
+    ) as any;
 
-    settlements.forEach((s: any) => {
-      if (s.status === 'pending') stats.pendingCount++;
-      else if (s.status === 'approved') stats.approvedCount++;
-      else if (s.status === 'paid') {
-        stats.paidCount++;
-        stats.totalAmount += s.amount;
-      }
-    });
+    const stats = {
+      pendingAmount: Number(pendingRow?.total || 0),
+      pendingCount: Number(pendingRow?.count || 0),
+      settledAmount: Number(agent.settledCommission || 0),
+      settlementCount: settlements.length,
+    };
 
     return NextResponse.json({
       settlements,
       stats,
     });
   } catch (err: any) {
+    console.error('查询结算列表失败:', err?.message);
     return NextResponse.json({ error: err?.message || '查询失败' }, { status: 500 });
   }
 }
@@ -66,6 +70,8 @@ export async function POST(req: NextRequest) {
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
+
+    await ensureCommissionTables();
 
     const body = await req.json();
     const action = body.action;
@@ -82,35 +88,23 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: '未知操作' }, { status: 400 });
   } catch (err: any) {
+    console.error('结算操作失败:', err?.message);
     return NextResponse.json({ error: err?.message || '操作失败' }, { status: 500 });
   }
 }
 
 async function applySettlement(agentId: string, period: string) {
-  // 确保 Settlement 表存在
-  await execute(`CREATE TABLE IF NOT EXISTS "Settlement" (
-    id TEXT PRIMARY KEY,
-    agentId TEXT NOT NULL,
-    period TEXT,
-    amount REAL DEFAULT 0,
-    status TEXT DEFAULT 'pending',
-    note TEXT,
-    createdAt TEXT,
-    updatedAt TEXT
-  )`);
-  await execute('CREATE INDEX IF NOT EXISTS "set_agentId_idx" ON "Settlement"("agentId")');
-  await execute('CREATE INDEX IF NOT EXISTS "set_status_idx" ON "Settlement"("status")');
-
   // 计算待结算金额
-  const pending = await queryAll(
-    `SELECT SUM(commissionAmount) as total, COUNT(*) as count
+  const pending = await queryFirst(
+    `SELECT COALESCE(SUM(totalCommission), 0) as total, COALESCE(SUM(orderAmount), 0) as orderTotal, COUNT(*) as count
      FROM CommissionRecord
      WHERE agentId = ? AND status = 'pending'`,
     agentId
-  ) as any[];
+  ) as any;
 
-  const totalAmount = Number(pending[0]?.total || 0);
-  const count = Number(pending[0]?.count || 0);
+  const totalAmount = Number(pending?.total || 0);
+  const orderTotal = Number(pending?.orderTotal || 0);
+  const count = Number(pending?.count || 0);
 
   if (count === 0 || totalAmount <= 0) {
     return NextResponse.json({ error: '没有可结算的分润' }, { status: 400 });
@@ -118,15 +112,17 @@ async function applySettlement(agentId: string, period: string) {
 
   const settlementId = `set_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = new Date().toISOString();
+  const periodStr = period || new Date().toISOString().slice(0, 7);
 
+  // 写入 SettlementRecord 表（统一结算表）
   await execute(
-    `INSERT INTO Settlement (id, agentId, period, amount, status, note, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
-    settlementId, agentId, period || new Date().toISOString().slice(0, 7), totalAmount,
-    `申请结算（${count}笔分润）`, now, now
+    `INSERT INTO SettlementRecord (id, agentId, periodStart, periodEnd, orderCount, totalOrderAmount, totalCommission, netCommission, status, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))`,
+    settlementId, agentId, periodStr, now,
+    count, orderTotal, totalAmount, Math.round(totalAmount * 100) / 100
   );
 
-  // 更新分润状态
+  // 更新分润记录状态为 settling（待结算审批中）
   await execute(
     `UPDATE CommissionRecord SET status = 'settling', settlementId = ?
      WHERE agentId = ? AND status = 'pending'`,

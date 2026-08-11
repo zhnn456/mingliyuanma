@@ -30,8 +30,8 @@ FROM CommissionRecord cr
 LEFT JOIN Agent a ON cr.agentId = a.id
 ${where}
 ORDER BY cr.createdAt DESC
-LIMIT ? OFFSET ?`;
-    const records = await queryAll(recordsSql, ...values, pageSize, offset);
+LIMIT ${pageSize} OFFSET ${offset}`;
+    const records = await queryAll(recordsSql, ...values);
 
     // 查询总数
     const countSql = `SELECT COUNT(*) as total FROM CommissionRecord cr ${where}`;

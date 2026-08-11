@@ -61,10 +61,38 @@ export async function POST(req: NextRequest) {
     const adminId = session.sub;
 
     if (action === 'create') {
-      const { companyName, contactName, contactPhone, domain, brandName, licenseExpiry, maxUsers } = body;
+      const { companyName, contactName, contactPhone, domain, brandName, licenseExpiry } = body;
+      const level: 'saas' | 'source' = body.level === 'source' ? 'source' : 'saas';
+      const planType: string = body.planType || (level === 'saas' ? 'monthly' : 'annual');
 
       if (!contactName || !contactPhone) {
         return NextResponse.json({ error: '联系人姓名和电话为必填' }, { status: 400 });
+      }
+
+      // 源码部署代理必须绑定域名
+      if (level === 'source' && !domain) {
+        return NextResponse.json({ error: '源码部署代理必须绑定自有域名' }, { status: 400 });
+      }
+
+      // 根据代理类型和套餐计算配置
+      let maxUsers = 500;
+      let monthlyFee = 99;
+      let commissionRate = 0.30;
+      let durationDays = 365;
+
+      if (level === 'saas') {
+        switch (planType) {
+          case 'trial':    maxUsers = 10;    monthlyFee = 0;    commissionRate = 0.30; durationDays = 7;   break;
+          case 'monthly':  maxUsers = 500;   monthlyFee = 99;   commissionRate = 0.30; durationDays = 30;  break;
+          case 'yearly':   maxUsers = 500;   monthlyFee = 980;  commissionRate = 0.30; durationDays = 365; break;
+          case 'flagship': maxUsers = 10000; monthlyFee = 2980; commissionRate = 0.35; durationDays = 365; break;
+        }
+      } else {
+        // 源码部署代理
+        maxUsers = 10000;
+        monthlyFee = 0;
+        commissionRate = 0;
+        durationDays = planType === 'lifetime' ? 36500 : 365;
       }
 
       if (domain) {
@@ -103,18 +131,17 @@ export async function POST(req: NextRequest) {
       );
 
       const agentId = `agt_${nowTs}_${Math.random().toString(36).slice(2, 8)}`;
-      const durationDays = body.durationDays || 365;
       const expiryTs = nowTs + durationDays * 24 * 60 * 60 * 1000;
 
       // 使用 HMAC 签名生成安全授权码
       const signedLicense = await generateAgentLicenseAsync({
         agentId,
         features: ['bazi', 'ziwei', 'qimen', 'meihua'],
-        maxUsers: maxUsers || 1000,
+        maxUsers,
         expiryAt: expiryTs,
         domain: domain || undefined,
-        level: body.level || 'basic',
-        monthlyFee: body.monthlyFee || 99,
+        level,
+        monthlyFee,
       });
       const licenseKey = signedLicense.raw;
 
@@ -149,11 +176,16 @@ export async function POST(req: NextRequest) {
         licenseKey,
         new Date(expiryTs).toISOString(),
         JSON.stringify({
-          maxUsers: maxUsers || 1000,
-          customPricing: false,
-          whiteLabel: false,
-          level: body.level || 'basic',
-          monthlyFee: body.monthlyFee || 99,
+          maxUsers,
+          customPricing: level === 'source',
+          whiteLabel: level === 'source',
+          level,
+          monthlyFee,
+          deployMode: level,
+          planType,
+          commissionRate,
+          agentTier: level === 'saas' ? (planType === 'trial' ? 'trial' : 'formal') : (planType === 'lifetime' ? 'lifetime' : 'annual'),
+          totalCustomers: 0,
         }),
         now
       );

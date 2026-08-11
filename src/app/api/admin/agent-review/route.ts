@@ -41,8 +41,7 @@ export async function GET(req: NextRequest) {
       params.push(kw, kw, kw);
     }
 
-    sql += ' ORDER BY a.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY a.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const agents = await queryAll(sql, ...params);
     const totalRow = await queryFirst(countSql, ...(keyword ? [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`] : [])) as any;
