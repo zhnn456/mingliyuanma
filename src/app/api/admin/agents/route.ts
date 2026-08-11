@@ -186,6 +186,14 @@ export async function POST(req: NextRequest) {
           commissionRate,
           agentTier: level === 'saas' ? (planType === 'trial' ? 'trial' : 'formal') : (planType === 'lifetime' ? 'lifetime' : 'annual'),
           totalCustomers: 0,
+          // 源码部署代理专属字段
+          ...(level === 'source' ? {
+            authorizedDomain: domain || null,
+            updateServiceExpiry: planType === 'lifetime'
+              ? new Date(nowTs + 365 * 24 * 60 * 60 * 1000).toISOString() // 永久买断含1年更新
+              : new Date(expiryTs).toISOString(), // 年度授权更新服务随授权到期
+            version: '4.0.0',
+          } : {}),
         }),
         now
       );

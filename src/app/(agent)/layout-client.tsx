@@ -24,14 +24,18 @@ const allMenuItems: MenuItem[] = [
   { href: '/agent/invite', label: '邀请管理', icon: '🔗', mode: 'saas' },
   { href: '/agent/billing', label: '套餐管理', icon: '📦', mode: 'saas' },
   { href: '/agent/domain', label: '域名设置', icon: '🌐', mode: 'saas' },
+  // 源码部署代理专属菜单
+  { href: '/agent/license', label: '授权管理', icon: '🔑', mode: 'source' },
+  { href: '/agent/renew', label: '续费管理', icon: '💳', mode: 'source' },
+  { href: '/agent/tickets', label: '技术工单', icon: '🎫', mode: 'source' },
   { href: '/agent/settings', label: '代理设置', icon: '⚙️', mode: 'both' },
   { href: '/agent/updates', label: '系统更新', icon: '🔄', mode: 'both' },
 ];
 
-// SaaS 代理不能访问的页面（源码部署专属）
-const sourceOnlyPaths = ['/agent/settings'];
 // 源码部署代理不能访问的页面（SaaS 专属）
 const saasOnlyPaths = ['/agent/commissions', '/agent/agent-settlements', '/agent/invite', '/agent/billing', '/agent/domain'];
+// SaaS 代理不能访问的页面（源码部署专属）
+const sourceOnlyPaths = ['/agent/license', '/agent/renew', '/agent/tickets'];
 
 export default function AgentLayoutClient({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -74,9 +78,11 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
   // 权限守卫：根据代理类型重定向
   useEffect(() => {
     if (!loading && agentLevel) {
-      if (agentLevel === 'saas' && sourceOnlyPaths.some(p => pathname.startsWith(p) && pathname !== '/agent/settings')) {
+      // SaaS 代理不能访问源码部署专属页面
+      if (agentLevel === 'saas' && sourceOnlyPaths.some(p => pathname.startsWith(p))) {
         router.replace('/agent');
       }
+      // 源码部署代理不能访问 SaaS 专属页面
       if (agentLevel === 'source' && saasOnlyPaths.some(p => pathname.startsWith(p))) {
         router.replace('/agent');
       }

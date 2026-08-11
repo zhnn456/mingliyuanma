@@ -156,6 +156,7 @@ export default function AdminAgentsPage() {
     } else {
       if (!form.contactName || !form.contactPhone) { alert('联系人姓名和电话为必填'); return; }
       if (!form.email) { alert('请提供代理商登录邮箱'); return; }
+      if (form.level === 'source' && !form.domain) { alert('源码部署代理必须填写绑定域名'); return; }
       const res = await fetch('/api/admin/agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -24,16 +24,36 @@ interface CommissionStats {
   totalCommission: number;
 }
 
+interface LicenseInfo {
+  license: {
+    licenseKey: string;
+    authorizedDomain: string | null;
+    expiryAt: string | null;
+    remainingDays: number | null;
+    isExpired: boolean;
+    isExpiringSoon: boolean;
+    status: string;
+    planType: string;
+    features: string[];
+    maxUsers: number;
+    updateServiceExpiry: string | null;
+    updateServiceRemainingDays: number | null;
+    updateServiceExpired: boolean;
+  };
+}
+
 export default function AgentHomePage() {
   const { user: session } = useAuth();
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [commission, setCommission] = useState<CommissionStats | null>(null);
+  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [agentLevel, setAgentLevel] = useState<'saas' | 'source' | null>(null);
 
   useEffect(() => {
     if (session?.role === 'agent') {
       loadOverview();
-      loadCommission();
+      loadAgentLevel();
     } else {
       setLoading(false);
     }
@@ -45,9 +65,29 @@ export default function AgentHomePage() {
       if (res.ok) {
         const data = await res.json();
         setStats(data);
+        // 自动判断代理模式
+        const sc = data.agent?.siteConfig || {};
+        const level = sc.deployMode === 'source' || sc.level === 'source' || data.agent?.level === 'source' ? 'source' : 'saas';
+        setAgentLevel(level);
+        if (level === 'source') {
+          loadLicenseInfo();
+        } else {
+          loadCommission();
+        }
       }
     } catch {}
     setLoading(false);
+  };
+
+  const loadAgentLevel = async () => {
+    try {
+      const res = await fetch('/api/agent/settings');
+      if (res.ok) {
+        const data = await res.json();
+        const level = data.agent?.level === 'source' ? 'source' : 'saas';
+        setAgentLevel(level);
+      }
+    } catch {}
   };
 
   const loadCommission = async () => {
@@ -56,6 +96,16 @@ export default function AgentHomePage() {
       if (res.ok) {
         const data = await res.json();
         if (data.stats) setCommission(data.stats);
+      }
+    } catch {}
+  };
+
+  const loadLicenseInfo = async () => {
+    try {
+      const res = await fetch('/api/agent/license');
+      if (res.ok) {
+        const data = await res.json();
+        setLicenseInfo(data);
       }
     } catch {}
   };
@@ -72,6 +122,13 @@ export default function AgentHomePage() {
   if (loading) return <div className="text-center py-20 text-gray-400">加载中...</div>;
 
   if (!stats) return <div className="text-center py-20 text-gray-400">暂无数据</div>;
+
+  // 源码部署代理视图
+  if (agentLevel === 'source') {
+    return <SourceAgentHome stats={stats} licenseInfo={licenseInfo} />;
+  }
+
+  // SaaS 代理视图（保留原逻辑）
 
   return (
     <div className="space-y-6">
@@ -238,6 +295,225 @@ export default function AgentHomePage() {
           <div className="text-3xl mb-2">🏦</div>
           <div className="text-sm font-medium text-gray-700">结算中心</div>
         </Link>
+      </div>
+    </div>
+  );
+}
+
+// ============ 源码部署代理首页 ============
+function SourceAgentHome({ stats, licenseInfo }: { stats: AgentStats; licenseInfo: LicenseInfo | null }) {
+  const license = licenseInfo?.license;
+  const agent = stats.agent;
+
+  return (
+    <div className="space-y-6">
+      {/* 欢迎信息 */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          您好{agent?.brandName ? `，${agent.brandName}` : ''} 👋
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">源码部署代理商后台，以下是您的授权概览</p>
+      </div>
+
+      {/* 授权状态卡片 */}
+      {license && (
+        <div className={`p-5 rounded-xl border ${
+          license.isExpired ? 'bg-red-50 border-red-200' :
+          license.isExpiringSoon ? 'bg-amber-50 border-amber-200' :
+          'bg-green-50 border-green-200'
+        }`}>
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full ${
+                license.isExpired ? 'bg-red-500' :
+                license.isExpiringSoon ? 'bg-amber-500' :
+                'bg-green-500'
+              }`} />
+              <div>
+                <div className="font-bold text-gray-900">
+                  授权状态：{license.status === 'expired' ? '已到期' : license.isExpiringSoon ? '即将到期' : '正常'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {license.expiryAt ? (
+                    <>到期时间：{new Date(license.expiryAt).toLocaleDateString('zh-CN')}
+                      {license.remainingDays !== null && !license.isExpired && `（剩余 ${license.remainingDays} 天）`}
+                    </>
+                  ) : '永久授权'}
+                  {' · '}
+                  授权类型：{license.planType === 'lifetime' ? '永久买断' : '年度授权'}
+                </div>
+              </div>
+            </div>
+            {(license.isExpiringSoon || license.isExpired) && (
+              <Link href="/agent/renew" className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700">
+                立即续费
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 授权统计 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          {
+            label: '授权类型',
+            value: license?.planType === 'lifetime' ? '永久买断' : license?.planType === 'annual' ? '年度授权' : '-',
+            color: 'text-purple-600',
+            icon: '🔑',
+          },
+          {
+            label: '剩余天数',
+            value: license?.remainingDays !== null && license?.remainingDays !== undefined ? (license.isExpired ? '已到期' : `${license.remainingDays}天`) : '永久',
+            color: license?.isExpired ? 'text-red-600' : 'text-green-600',
+            icon: '📅',
+          },
+          {
+            label: '绑定域名',
+            value: license?.authorizedDomain || '未绑定',
+            color: 'text-blue-600',
+            icon: '🌐',
+          },
+          {
+            label: '客户上限',
+            value: license?.maxUsers === -1 ? '不限' : license?.maxUsers || '-',
+            color: 'text-orange-600',
+            icon: '👥',
+          },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-xl shadow-sm border p-5 text-center">
+            <div className="text-2xl mb-1">{s.icon}</div>
+            <div className="text-xs text-gray-500 mb-1">{s.label}</div>
+            <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 更新服务状态 */}
+      {license && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-gray-800">更新服务状态</h3>
+            <Link href="/agent/updates" className="text-xs text-blue-600 hover:underline">检查更新 →</Link>
+          </div>
+          <div className={`p-4 rounded-lg border ${
+            license.updateServiceExpired ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+          }`}>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <div className="font-medium text-gray-900">
+                  {license.updateServiceExpired ? '更新服务已到期' : '更新服务正常'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {license.updateServiceExpiry ? (
+                    <>到期：{new Date(license.updateServiceExpiry).toLocaleDateString('zh-CN')}
+                      {license.updateServiceRemainingDays !== null && !license.updateServiceExpired &&
+                        `（剩余 ${license.updateServiceRemainingDays} 天）`}
+                    </>
+                  ) : '永久更新服务'}
+                </div>
+              </div>
+              {(license.updateServiceExpired ||
+                (license.updateServiceRemainingDays !== null && license.updateServiceRemainingDays <= 30)) && (
+                <Link href="/agent/renew" className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">
+                  续费更新服务
+                </Link>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            更新服务期内可拉取最新版本。到期后可继续使用当前版本，但无法获取新版本更新。
+          </p>
+        </div>
+      )}
+
+      {/* 授权码 */}
+      {license && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <h3 className="font-bold text-gray-800 mb-3">授权码</h3>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <code className="text-sm text-gray-700 break-all font-mono">
+              {license.licenseKey}
+            </code>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-gray-500">授权码已绑定域名，请妥善保管</p>
+            <Link href="/agent/license" className="text-xs text-blue-600 hover:underline">查看完整授权 →</Link>
+          </div>
+        </div>
+      )}
+
+      {/* 快捷操作 */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 mb-3">快捷操作</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Link href="/agent/license" className="bg-white rounded-xl shadow-sm border p-4 text-center hover:border-blue-300 transition-colors">
+            <div className="text-3xl mb-2">🔑</div>
+            <div className="text-sm font-medium text-gray-700">授权管理</div>
+          </Link>
+          <Link href="/agent/renew" className="bg-white rounded-xl shadow-sm border p-4 text-center hover:border-blue-300 transition-colors">
+            <div className="text-3xl mb-2">💳</div>
+            <div className="text-sm font-medium text-gray-700">续费管理</div>
+          </Link>
+          <Link href="/agent/updates" className="bg-white rounded-xl shadow-sm border p-4 text-center hover:border-blue-300 transition-colors">
+            <div className="text-3xl mb-2">🔄</div>
+            <div className="text-sm font-medium text-gray-700">系统更新</div>
+          </Link>
+          <Link href="/agent/tickets" className="bg-white rounded-xl shadow-sm border p-4 text-center hover:border-blue-300 transition-colors">
+            <div className="text-3xl mb-2">🎫</div>
+            <div className="text-sm font-medium text-gray-700">技术工单</div>
+          </Link>
+        </div>
+      </div>
+
+      {/* 已开通功能 */}
+      {license && license.features.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <h3 className="font-bold text-gray-800 mb-3">已开通功能</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { key: 'bazi', name: '四柱八字', icon: '📜' },
+              { key: 'ziwei', name: '紫微斗数', icon: '⭐' },
+              { key: 'qimen', name: '奇门遁甲', icon: '🔮' },
+              { key: 'meihua', name: '梅花易数', icon: '🌸' },
+            ].map(f => {
+              const enabled = license.features.includes(f.key);
+              return (
+                <div key={f.key} className={`p-3 rounded-lg border text-center ${
+                  enabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200 opacity-60'
+                }`}>
+                  <div className="text-2xl mb-1">{f.icon}</div>
+                  <div className="text-sm font-medium text-gray-700">{f.name}</div>
+                  <div className={`text-xs mt-1 ${enabled ? 'text-green-600' : 'text-gray-400'}`}>
+                    {enabled ? '已开通' : '未开通'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 平台数据（仅参考） */}
+      <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
+        <h3 className="font-bold text-gray-800 mb-2">平台数据（参考）</h3>
+        <p className="text-xs text-gray-600 mb-3">
+          以下为平台记录的关联数据，详细运营数据请查看您自己服务器上的管理后台
+        </p>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats.stats.customerCount}</div>
+            <div className="text-xs text-gray-500">关联客户数</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">{stats.stats.totalOrders}</div>
+            <div className="text-xs text-gray-500">关联订单数</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">¥{stats.stats.totalRevenue.toFixed(0)}</div>
+            <div className="text-xs text-gray-500">关联收入</div>
+          </div>
+        </div>
       </div>
     </div>
   );
