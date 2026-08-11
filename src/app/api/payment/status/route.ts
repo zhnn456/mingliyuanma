@@ -31,6 +31,8 @@ export async function GET(req: NextRequest) {
     const methods = {
       wechat: !!(process.env.WECHAT_APP_ID && process.env.WECHAT_MCH_ID && process.env.WECHAT_PRIVATE_KEY),
       alipay: !!(process.env.ALIPAY_APP_ID && process.env.ALIPAY_PRIVATE_KEY && process.env.ALIPAY_PUBLIC_KEY),
+      paypal: !!process.env.PAYPAL_ME_USERNAME,
+      cardkey: true, // 卡密兑换始终可用（联系客服获取卡密后自助兑换）
     };
 
     return NextResponse.json({

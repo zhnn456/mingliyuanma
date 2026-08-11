@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const method = searchParams.get('method');
 
     // 拒绝 mock 方式，只接受真实支付回调
-    if (method !== 'wechat' && method !== 'alipay' && method !== 'stripe') {
+    // 注：PayPal.me 暂不支持自动回调，由客服在后台手动核销
+    if (method !== 'wechat' && method !== 'alipay') {
       return NextResponse.json({ code: 'FAIL', message: '无效的支付方式' }, { status: 400 });
     }
 

@@ -113,7 +113,7 @@ export default function MembershipPage() {
         body: JSON.stringify({
           type: 'membership',
           targetId: level,
-          method: 'mock',
+          method: 'paypal',
         }),
       });
 

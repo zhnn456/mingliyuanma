@@ -83,7 +83,7 @@ ssh.connect(HOST, username=USER, password=PASSWORD, timeout=10, look_for_keys=Fa
 print("SSH 连接成功")
 
 steps = [
-    ("1. 丢弃版本注入本地改动", f"cd {APP_DIR} && git checkout -- src/lib/version.ts 2>&1 || true"),
+    ("1. 丢弃本地改动", f"cd {APP_DIR} && git checkout -- src/lib/version.ts scripts/test-payment-concurrency.js 2>&1 || true"),
     ("2. 拉取代码", f"cd {APP_DIR} && git pull 2>&1"),
     ("3. 同步数据库表", f"cd {APP_DIR} && npm run db:init 2>&1 | tail -15"),
     ("4. 构建(限制内存 1GB)", f"cd {APP_DIR} && set -o pipefail && NODE_OPTIONS=\"--max-old-space-size=1024\" npm run build:server 2>&1 | tail -40"),

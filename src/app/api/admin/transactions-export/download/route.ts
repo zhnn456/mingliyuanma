@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const transactions = await queryAll(sql, ...params);
 
     const typeMap: Record<string, string> = { membership: '会员', offering: '供奉', pdf_report: 'PDF', divination: '占卜' };
-    const methodMap: Record<string, string> = { wechat: '微信', alipay: '支付宝', points: '灵珠', stripe: 'Stripe' };
+    const methodMap: Record<string, string> = { wechat: '微信', alipay: '支付宝', points: '灵珠', stripe: 'Stripe', paypal: 'PayPal', cardkey: '卡密' };
     const statusMap: Record<string, string> = { pending: '待支付', paid: '已支付', failed: '失败', refunded: '已退款' };
 
     const headers = ['交易ID', '订单号', '用户邮箱', '用户名', '类型', '金额', '支付方式', '状态', '交易号', '支付时间', '退款时间', '退款金额', '备注', '创建时间'];

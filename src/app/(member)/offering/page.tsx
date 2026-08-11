@@ -117,7 +117,7 @@ export default function OfferingPage() {
     try {
       const res = await fetch('/api/payment/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offering', method: 'mock', offerType }),
+        body: JSON.stringify({ type: 'offering', method: 'paypal', offerType }),
       });
       const d = await res.json();
       if (res.ok && d.success) {

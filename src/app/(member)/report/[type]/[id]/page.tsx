@@ -54,7 +54,7 @@ export default function ReportPage() {
         body: JSON.stringify({
           type: 'pdf_report',
           targetId: `${type}:${recordId}`,
-          method: 'mock',
+          method: 'paypal',
         }),
       });
       const data = await res.json();

@@ -57,6 +57,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   alipay: '支付宝',
   stripe: 'Stripe',
   paypal: 'PayPal',
+  cardkey: '卡密',
   bank_transfer: '银行转账',
 };
 
@@ -65,6 +66,7 @@ const PAYMENT_COLORS: Record<string, string> = {
   alipay: 'bg-blue-500',
   stripe: 'bg-indigo-500',
   paypal: 'bg-sky-500',
+  cardkey: 'bg-amber-500',
   bank_transfer: 'bg-gray-500',
 };
 

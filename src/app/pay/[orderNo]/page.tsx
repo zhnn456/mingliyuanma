@@ -25,6 +25,8 @@ interface PaymentInfo {
 interface MethodsConfig {
   wechat: boolean;
   alipay: boolean;
+  paypal: boolean;
+  cardkey: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -37,6 +39,8 @@ const PAYMENT_METHODS = [
   { id: 'mock', name: '模拟支付（测试用）', icon: '🧪', desc: '开发测试用' },
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
+  { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
+  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 mingli_kefu 购买卡密后兑换' },
 ];
 
 export default function PayPage({ params }: { params: Promise<{ orderNo: string }> }) {
@@ -57,7 +61,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
   const [redirecting, setRedirecting] = useState(false);
-  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false });
+  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, cardkey: true });
 
   // 获取订单信息
   const fetchOrder = useCallback(async () => {
@@ -296,6 +300,72 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
       }
       return;
     }
+
+    // PayPal：创建订单后跳转到 PayPal.me 收款页（新窗口）
+    // 付款完成后由客服在后台手动核销订单
+    if (selectedMethod === 'paypal') {
+      setPaying(true);
+      setRedirecting(true);
+      try {
+        const body = buildCreateBody('paypal');
+        if (!body) {
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || '创建 PayPal 支付失败');
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        if (data.order?.orderNo) {
+          setPollOrderNo(data.order.orderNo);
+          setOrder((prev) =>
+            prev
+              ? { ...prev, orderNo: data.order.orderNo, amount: data.order.amount ?? prev.amount, paymentMethod: 'paypal' }
+              : prev,
+          );
+        }
+        const pay = data.payment || {};
+        if (pay.paymentUrl && pay.paymentUrl.startsWith('https://paypal.me/')) {
+          // 新窗口打开 PayPal.me，保留当前订单页供轮询
+          window.open(pay.paymentUrl, '_blank', 'noopener,noreferrer');
+          setError('');
+          setRedirecting(false);
+          setPaying(false);
+          // 提示用户付款后联系客服核销
+          setTimeout(() => {
+            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${(data.order?.amount ?? order?.amount ?? 0).toFixed(2)}\n\n付款完成后请联系客服微信 mingli_kefu 核销订单，或刷新本页面查看订单状态。`);
+          }, 300);
+        } else if (pay.paymentUrl && pay.paymentUrl.startsWith('/pay/')) {
+          setError('PayPal 未配置（缺少 PAYPAL_ME_USERNAME），请联系管理员');
+          setPaying(false);
+          setRedirecting(false);
+        } else {
+          setError('未获取到 PayPal 收款链接');
+          setPaying(false);
+          setRedirecting(false);
+        }
+      } catch {
+        setError('网络错误，请重试');
+        setPaying(false);
+        setRedirecting(false);
+      }
+      return;
+    }
+
+    // 卡密兑换：跳转到卡密兑换页（不创建支付订单）
+    if (selectedMethod === 'cardkey') {
+      router.push('/profile/redeem');
+      return;
+    }
   };
 
   // 格式化金额
@@ -407,11 +477,12 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           <div className="space-y-3 mt-3">
             {PAYMENT_METHODS.map((method) => {
               const configured =
-                method.id === 'mock'
-                  ? true
-                  : method.id === 'wechat'
-                    ? methodsConfig.wechat
-                    : methodsConfig.alipay;
+                method.id === 'mock' ? true
+                  : method.id === 'wechat' ? methodsConfig.wechat
+                  : method.id === 'alipay' ? methodsConfig.alipay
+                  : method.id === 'paypal' ? (methodsConfig.paypal ?? false)
+                  : method.id === 'cardkey' ? true
+                  : false;
               return (
                 <label
                   key={method.id}

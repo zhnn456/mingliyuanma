@@ -20,15 +20,10 @@ import {
   parseCallback as alipayParseCallback,
   type AlipayConfig,
 } from './alipay';
-import {
-  createCheckoutSession as stripeCheckout,
-  parseWebhook as stripeParseWebhook,
-  type StripeConfig,
-} from './stripe';
 
 // ============ 类型定义 ============
 
-export type PaymentMethod = 'wechat' | 'alipay' | 'stripe' | 'mock';
+export type PaymentMethod = 'wechat' | 'alipay' | 'paypal' | 'mock';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'closed';
 
 export interface PaymentConfig {
@@ -47,10 +42,8 @@ export interface PaymentConfig {
   alipayNotifyUrl?: string;
   alipayReturnUrl?: string;
   alipayGateway?: string;
-  // Stripe
-  stripePublishableKey?: string;
-  stripeSecretKey?: string;
-  stripeWebhookSecret?: string;
+  // PayPal（PayPal.me 收款链接，由客服手动核销）
+  paypalMeUsername?: string;
   // 代理商配置（多租户）
   agentId?: string;
 }
@@ -149,8 +142,8 @@ export class PaymentService {
         return this.createWechatOrder(params);
       case 'alipay':
         return this.createAlipayOrder(params);
-      case 'stripe':
-        return this.createStripeOrder(params);
+      case 'paypal':
+        return this.createPaypalOrder(params);
       case 'mock':
         return this.createMockOrder(params);
       default:
@@ -160,6 +153,7 @@ export class PaymentService {
 
   /**
    * 处理支付回调
+   * 注：PayPal.me 暂不支持自动回调，由客服在后台手动核销
    */
   async handleCallback(method: PaymentMethod, rawBody: string, headers: Record<string, string>): Promise<CallbackResult> {
     switch (method) {
@@ -167,8 +161,6 @@ export class PaymentService {
         return this.handleWechatCallback(rawBody, headers);
       case 'alipay':
         return this.handleAlipayCallback(rawBody, headers);
-      case 'stripe':
-        return this.handleStripeCallback(rawBody, headers);
       case 'mock':
         return this.handleMockCallback(rawBody);
       default:
@@ -403,63 +395,32 @@ export class PaymentService {
     return statusMap[result.status] || 'pending';
   }
 
-  // ============ Stripe 支付 ============
+  // ============ PayPal（PayPal.me 收款） ============
 
-  private isStripeConfigured(): boolean {
-    return !!(this.config.stripeSecretKey && this.config.stripePublishableKey);
+  private isPaypalConfigured(): boolean {
+    return !!this.config.paypalMeUsername;
   }
 
-  private getStripeConfig(): StripeConfig {
-    return {
-      publishableKey: this.config.stripePublishableKey!,
-      secretKey: this.config.stripeSecretKey!,
-      webhookSecret: this.config.stripeWebhookSecret,
-      returnUrl: `${process.env.NEXTAUTH_URL || 'https://ming8.online'}/payment/result`,
-    };
-  }
-
-  private async createStripeOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
-    if (!this.isStripeConfigured()) {
-      console.warn('[Stripe] 未配置，降级为 mock 模式');
+  /**
+   * 创建 PayPal 订单
+   * 跳转到 PayPal.me 让用户手动输入金额付款
+   * 付款后由客服在后台手动核销订单（无自动回调）
+   */
+  private async createPaypalOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    if (!this.isPaypalConfigured()) {
+      console.warn('[PayPal] 未配置 paypalMeUsername，降级为 mock 模式');
       return this.createMockOrder(params);
     }
 
-    const config = this.getStripeConfig();
-    const result = await stripeCheckout(config, {
+    // PayPal.me 链接：https://paypal.me/{username}/{金额}
+    // 金额需为数字，保留两位小数
+    const amountStr = params.amount.toFixed(2);
+    const paymentUrl = `https://paypal.me/${this.config.paypalMeUsername}/${amountStr}`;
+
+    return {
       orderNo: params.orderNo,
-      amount: params.amount,
-      title: params.title,
-      description: params.description,
-      userId: params.userId,
-      returnUrl: params.returnUrl,
-    });
-
-    return {
-      orderNo: result.orderNo,
-      paymentUrl: result.paymentUrl,
+      paymentUrl,
       status: 'pending',
-    };
-  }
-
-  private async handleStripeCallback(rawBody: string, headers: Record<string, string>): Promise<CallbackResult> {
-    if (!this.isStripeConfigured()) {
-      return this.handleMockCallback(rawBody);
-    }
-
-    const config = this.getStripeConfig();
-    const signature = headers['stripe-signature'] || '';
-    const data = await stripeParseWebhook(config, rawBody, signature);
-
-    if (!data) {
-      return { success: false, orderNo: '', transactionId: '', amount: 0, method: 'stripe' };
-    }
-
-    return {
-      success: data.success,
-      orderNo: data.orderNo,
-      transactionId: data.transactionId,
-      amount: data.amount,
-      method: 'stripe',
     };
   }
 
@@ -511,10 +472,8 @@ export function getPaymentConfig(agentId?: string): PaymentConfig {
     alipayNotifyUrl: process.env.ALIPAY_NOTIFY_URL,
     alipayReturnUrl: process.env.ALIPAY_RETURN_URL,
     alipayGateway: process.env.ALIPAY_GATEWAY || 'https://openapi.alipay.com/gateway.do',
-    // Stripe
-    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
-    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    // PayPal（PayPal.me 用户名，用于跳转收款）
+    paypalMeUsername: process.env.PAYPAL_ME_USERNAME,
     agentId,
   };
 
