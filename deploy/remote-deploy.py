@@ -15,6 +15,34 @@ def run(ssh, cmd, timeout=180):
     if err: print(f"[stderr] {err.strip()}")
     return out, err
 
+def record_deploy_log(ssh):
+    """部署成功后自动写入更新日志（UpdateLog 表）"""
+    print("\n===== 记录更新日志 =====")
+    # 1. 版本号 + commit
+    _, stdout, _ = ssh.exec_command('cd /www/ming8 && node -e "console.log(require(\'./package.json\').version)"')
+    version = stdout.read().decode(errors='replace').strip()
+    _, stdout, _ = ssh.exec_command('cd /www/ming8 && git rev-parse --short HEAD')
+    commit = stdout.read().decode(errors='replace').strip()
+    _, stdout, _ = ssh.exec_command('cd /www/ming8 && git log --oneline -5 --no-decorate')
+    logs = stdout.read().decode(errors='replace').strip()
+    print(f"版本: {version} | commit: {commit}")
+
+    # 2. 生成 SQL（转义单引号，防注入）
+    logs_escaped = logs.replace("'", "''").replace('\n', '\\n')
+    title = f'部署 v{version} ({commit})'
+    sql = f"""INSERT INTO UpdateLog (id, version, title, content, type, isMajor, operatorName, tag, status, createdAt)
+VALUES (CONCAT('ul', UNIX_TIMESTAMP()), '{version}', '{title}', '{logs_escaped}', 'update', 0, 'remote-deploy.py', '{commit}', 'success', NOW());"""
+
+    # 3. SFTP 写 SQL 再执行（避免 shell 引号问题）
+    sftp = ssh.open_sftp()
+    with sftp.open('/tmp/record_deploy.sql', 'w') as f:
+        f.write(sql)
+    sftp.close()
+    _, stdout, _ = ssh.exec_command("mysql -u ming8 -p'Ming8@2026!' ming8_db < /tmp/record_deploy.sql 2>&1 | grep -v 'Using a password'")
+    out = stdout.read().decode(errors='replace').strip()
+    print(f"记录结果: {out or '成功'}")
+    ssh.exec_command('rm -f /tmp/record_deploy.sql')
+
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 print("连接服务器...")
@@ -64,6 +92,9 @@ run(ssh, 'cd /www/ming8 && rm -rf .next && unzip -qo next-build.zip && rm -f nex
 print("\n===== 6/6 启动服务 =====")
 run(ssh, 'su - admin -c "cd /www/ming8 && pm2 start deploy/ecosystem.config.js" 2>/dev/null || su - admin -c "pm2 restart ming8" 2>/dev/null || pm2 restart ming8 2>/dev/null || echo "启动失败，检查 pm2 logs"')
 run(ssh, 'su - admin -c "pm2 save" 2>/dev/null; pm2 save 2>/dev/null; echo "PM2 已保存"')
+
+# 7. 记录更新日志（UpdateLog 表）
+record_deploy_log(ssh)
 
 # 验证
 print("\n===== 验证 =====")
