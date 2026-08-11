@@ -38,7 +38,6 @@
     "lunar-javascript": "^1.6.12",
     "mysql2": "^3.23.2",
     "next": "^15.5.21",
-    "next-auth": "^4.24.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.10.1"
