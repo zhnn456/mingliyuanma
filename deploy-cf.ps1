@@ -1,6 +1,6 @@
 ﻿﻿<#
 .SYNOPSIS
-    命理网 Cloudflare Pages 一键部署脚本
+    知微阁 Cloudflare Pages 一键部署脚本
 .DESCRIPTION
     自动完成：wrangler 安装/登录、D1/KV 创建、ID 回填、数据库迁移、密钥设置、构建、部署
     首次运行会创建所有 CF 资源；后续运行只做构建+部署

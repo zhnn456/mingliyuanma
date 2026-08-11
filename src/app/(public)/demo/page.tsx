@@ -167,7 +167,7 @@ function HeroVariantA({ theme }: { theme: typeof themes[0] }) {
             </div>
           </div>
           <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-wide">
-            <span className={theme.hero.titleGrad}>先知命理网</span>
+            <span className={theme.hero.titleGrad}>知微阁</span>
           </h1>
           <p className={`text-2xl md:text-3xl ${theme.hero.subtitle} mb-6 font-kai tracking-widest`}>
             传承千年智慧 · 解读命运密码
@@ -216,7 +216,7 @@ function HeroVariantB({ theme }: { theme: typeof themes[0] }) {
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400/60" />
-              <span className="text-amber-400/80 text-sm tracking-[0.3em] uppercase font-light">MINGLI • 命理</span>
+              <span className="text-amber-400/80 text-sm tracking-[0.3em] uppercase font-light">ZHIWEI • 知微</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-[1.1]">
               <span className="block">洞悉命运</span>
@@ -302,7 +302,7 @@ function HeroVariantC() {
           </span>
         </div>
         <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gray-800 tracking-wide">
-          先知命理网
+          知微阁
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-4 font-kai tracking-widest">
           传承千年智慧 · 解读命运密码

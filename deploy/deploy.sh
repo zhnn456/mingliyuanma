@@ -1,5 +1,5 @@
 #!/bin/bash
-# 命理网站部署脚本
+# 知微阁站部署脚本
 # 用法：在服务器上执行 bash deploy.sh
 
 set -e
@@ -7,7 +7,7 @@ set -e
 APP_DIR="/www/ming8"
 REPO_DIR="/www/ming8/repo"
 
-echo "===== 命理网站部署 ====="
+echo "===== 知微阁站部署 ====="
 
 # 1. 创建目录
 mkdir -p $APP_DIR/logs

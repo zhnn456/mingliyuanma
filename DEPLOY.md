@@ -1,4 +1,4 @@
-# 命理网部署到 Cloudflare Pages 完整指南
+# 知微阁部署到 Cloudflare Pages 完整指南
 
 > **TL;DR**：在项目根目录运行 `.\deploy-cf.ps1` 即可一键完成全部首次部署。
 

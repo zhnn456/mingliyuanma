@@ -40,7 +40,7 @@ const PAYMENT_METHODS = [
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
   { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
-  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 mingli_kefu 购买卡密后兑换' },
+  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 zhiwei_kefu 购买卡密后兑换' },
 ];
 
 export default function PayPage({ params }: { params: Promise<{ orderNo: string }> }) {
@@ -342,7 +342,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           setPaying(false);
           // 提示用户付款后联系客服核销
           setTimeout(() => {
-            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${(data.order?.amount ?? order?.amount ?? 0).toFixed(2)}\n\n付款完成后请联系客服微信 mingli_kefu 核销订单，或刷新本页面查看订单状态。`);
+            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${(data.order?.amount ?? order?.amount ?? 0).toFixed(2)}\n\n付款完成后请联系客服微信 zhiwei_kefu 核销订单，或刷新本页面查看订单状态。`);
           }, 300);
         } else if (pay.paymentUrl && pay.paymentUrl.startsWith('/pay/')) {
           setError('PayPal 未配置（缺少 PAYPAL_ME_USERNAME），请联系管理员');

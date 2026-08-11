@@ -20,7 +20,7 @@ export default function NotFound() {
           </Link>
         </div>
         <div className="mt-12 text-sm text-gray-400">
-          先知命理网 · 传承智慧 · 启迪人生
+          知微阁 · 传承智慧 · 启迪人生
         </div>
       </div>
     </div>

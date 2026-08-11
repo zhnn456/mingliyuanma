@@ -58,10 +58,10 @@ export default function LoginPage() {
             <span className="text-white font-bold text-3xl font-kai">命</span>
             <div className="absolute inset-0 rounded-2xl border border-gold/30" />
           </div>
-          <h1 className="text-4xl font-bold chinese-red font-kai">先知命理网</h1>
+          <h1 className="text-4xl font-bold chinese-red font-kai">知微阁</h1>
           <div className="flex items-center justify-center gap-3 mt-3">
             <div className="h-px w-10 bg-gold/40" />
-            <span className="text-xs text-gold tracking-widest">MINGLI</span>
+            <span className="text-xs text-gold tracking-widest">ZHIWEI</span>
             <div className="h-px w-10 bg-gold/40" />
           </div>
           <p className="text-gray-500 mt-4">登录您的账户</p>

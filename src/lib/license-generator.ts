@@ -26,7 +26,7 @@ export interface SignedLicense {
   raw: string;
 }
 
-const CENTER_SECRET_KEY = process.env.CENTER_SECRET_KEY || 'mingli-center-secret-key-v4';
+const CENTER_SECRET_KEY = process.env.CENTER_SECRET_KEY || 'zhiwei-center-secret-key-v4';
 
 const ENABLED_FEATURES = ['bazi', 'ziwei', 'qimen', 'meihua', 'offering', 'marketing', 'data-export'];
 

@@ -15,7 +15,7 @@ import {
 const CONFIG_KEY = 'payment_config';
 const CONFIG_CATEGORY = 'system';
 
-const FALLBACK_SECRET = 'mingli-secret-key-2026-production';
+const FALLBACK_SECRET = 'zhiwei-secret-key-2026-production';
 
 // ==================== 密钥与加密（AES-GCM，基于 Web Crypto） ====================
 

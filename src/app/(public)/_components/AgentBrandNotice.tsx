@@ -34,8 +34,8 @@ export default function AgentBrandNotice({ type = 'legal' }: { type?: 'legal' | 
 
   // 根据页面类型显示不同的授权声明
   const notices: Record<string, string> = {
-    legal: `${brandName}为先知命理网授权合作站点，使用先知命理网提供的测算技术与平台服务。本页面所述法律条款同时适用于本站，由先知命理网与${brandName}共同遵守。`,
-    about: `${brandName}为先知命理网授权合作站点，使用先知命理网提供的测算技术与平台服务。以下内容为先知命理网平台统一介绍，${brandName}在此基础上为您提供本地化服务。`,
+    legal: `${brandName}为知微阁授权合作站点，使用知微阁提供的测算技术与平台服务。本页面所述法律条款同时适用于本站，由知微阁与${brandName}共同遵守。`,
+    about: `${brandName}为知微阁授权合作站点，使用知微阁提供的测算技术与平台服务。以下内容为知微阁平台统一介绍，${brandName}在此基础上为您提供本地化服务。`,
   };
 
   return (

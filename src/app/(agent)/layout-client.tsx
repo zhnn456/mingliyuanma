@@ -122,7 +122,7 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
         <div className="p-5 border-b border-gray-800">
           <Link href="/agent" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-700 flex items-center justify-center text-white font-bold">代</div>
-            <div><div className="font-bold text-white">代理商后台</div><div className="text-xs text-gray-400">先知命理网</div></div>
+            <div><div className="font-bold text-white">代理商后台</div><div className="text-xs text-gray-400">知微阁</div></div>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">

@@ -48,7 +48,7 @@ async function getSecretKey(): Promise<string> {
   } catch {}
 
   // 回退密钥（与配置文件中保持一致，生产环境务必设置 NEXTAUTH_SECRET）
-  _cachedSecret = 'mingli-secret-key-2026-production';
+  _cachedSecret = 'zhiwei-secret-key-2026-production';
   return _cachedSecret;
 }
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# 命理网站一键部署脚本
+# 知微阁站一键部署脚本
 # 用法：cd /www/ming8 && git pull && bash deploy/auto-deploy.sh
 set -e
 

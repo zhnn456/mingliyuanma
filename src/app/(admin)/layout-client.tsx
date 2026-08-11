@@ -253,7 +253,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
               命
             </div>
             <div>
-              <div className="font-semibold text-slate-900 text-[15px] leading-tight">先知命理网</div>
+              <div className="font-semibold text-slate-900 text-[15px] leading-tight">知微阁</div>
               <div className="text-[11px] text-slate-500">管理后台 {APP_VERSION}</div>
             </div>
           </Link>

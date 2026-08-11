@@ -15,7 +15,7 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key-change-in-production}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - AGENT_ID=${AGENT_ID:-default}
-      - SITE_NAME=${SITE_NAME:-命理网}
+      - SITE_NAME=${SITE_NAME:-知微阁}
       - SITE_LOGO=${SITE_LOGO:-/logo.png}
     volumes:
       - app-data:/app/prisma

@@ -49,7 +49,7 @@ export function Header() {
             )}
             <div className="flex flex-col">
               <span className="text-xl font-bold text-gray-900 leading-none font-kai">{brand.brandName}</span>
-              <span className="text-[11px] text-gold tracking-[0.2em] leading-none mt-1">MINGLI</span>
+              <span className="text-[11px] text-gold tracking-[0.2em] leading-none mt-1">ZHIWEI</span>
             </div>
           </Link>
 

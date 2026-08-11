@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 import { createHmac } from 'crypto';
 
 const TOKEN_TTL = 86_400_000; // 24小时
-const FALLBACK_SECRET = 'mingli-secret-key-2026-production';
+const FALLBACK_SECRET = 'zhiwei-secret-key-2026-production';
 
 // 缓存密钥，但如果为空则不缓存，允许重试
 let _cachedSecret: string | null = null;

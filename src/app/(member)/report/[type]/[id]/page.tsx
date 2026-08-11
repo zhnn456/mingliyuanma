@@ -206,7 +206,7 @@ export default function ReportPage() {
           {/* 报告尾部 */}
           <div className="report-footer">
             <div className="report-footer-divider" />
-            <p className="report-footer-text">本报告由先知命理网自动生成 · 仅供参考</p>
+            <p className="report-footer-text">本报告由知微阁自动生成 · 仅供参考</p>
             <p className="report-footer-date">生成时间：{new Date(report.generatedAt).toLocaleString('zh-CN')}</p>
             <p className="report-footer-watermark">{report.watermark}</p>
           </div>

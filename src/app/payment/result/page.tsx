@@ -124,7 +124,7 @@ export default function PaymentResultPage() {
         {/* 客服信息 */}
         <div className="text-center mt-6">
           <p className="text-xs text-gray-400">
-            如有疑问请联系客服 · 微信: mingli_kefu
+            如有疑问请联系客服 · 微信: zhiwei_kefu
           </p>
         </div>
       </div>

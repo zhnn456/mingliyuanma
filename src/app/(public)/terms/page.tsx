@@ -3,8 +3,8 @@ import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
-  title: '服务条款 - 先知命理网',
-  description: '先知命理网服务条款，了解使用我们命理测算服务的相关规定和条件。',
+  title: '服务条款 - 知微阁',
+  description: '知微阁服务条款，了解使用我们命理测算服务的相关规定和条件。',
 };
 
 export default function TermsPage() {
@@ -25,7 +25,7 @@ export default function TermsPage() {
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 mb-6">
           <h2 className="text-lg font-bold text-amber-900 mb-3">⚠️ 重要声明</h2>
           <p className="text-sm text-amber-800 leading-relaxed">
-            先知命理网提供的所有命理测算服务（包括但不限于八字排盘、紫微斗数、奇门遁甲、梅花易数等）仅供娱乐参考。
+            知微阁提供的所有命理测算服务（包括但不限于八字排盘、紫微斗数、奇门遁甲、梅花易数等）仅供娱乐参考。
             命理预测属于传统文化范畴，不应作为人生重大决策的唯一依据。请您理性看待测算结果，切勿沉迷或迷信。
             本网站不对因过度依赖测算结果而做出的任何决定承担责任。
           </p>
@@ -38,7 +38,7 @@ export default function TermsPage() {
           <div className="space-y-4 text-sm text-gray-600">
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">1.1 服务内容</h3>
-              <p>先知命理网为用户提供以下在线测算服务：</p>
+              <p>知微阁为用户提供以下在线测算服务：</p>
               <ul className="mt-2 pl-5 list-disc space-y-1">
                 <li>四柱八字排盘与分析</li>
                 <li>紫微斗数排盘与解读</li>
@@ -171,7 +171,7 @@ export default function TermsPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">4. 知识产权</h2>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>先知命理网的所有内容，包括但不限于：</p>
+            <p>知微阁的所有内容，包括但不限于：</p>
             <ul className="pl-5 list-disc space-y-1">
               <li>网站设计、页面布局</li>
               <li>程序代码、算法逻辑</li>
@@ -179,7 +179,7 @@ export default function TermsPage() {
               <li>图形、Logo、图标等视觉素材</li>
               <li>数据库结构和数据内容</li>
             </ul>
-            <p>以上内容的知识产权均归先知命理网所有，受《中华人民共和国著作权法》及相关法律法规保护。</p>
+            <p>以上内容的知识产权均归知微阁所有，受《中华人民共和国著作权法》及相关法律法规保护。</p>
             <p className="mt-3 bg-gray-50 p-3 rounded">
               <strong>特别说明：</strong>本站部分功能参考了GitHub上的开源项目算法逻辑，具体致谢请参见
               <Link href="/about" className="text-red-700 hover:text-red-900 underline">《关于我们》</Link>页面。

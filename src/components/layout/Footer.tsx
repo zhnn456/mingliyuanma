@@ -30,7 +30,7 @@ export function Footer() {
               )}
               <div className="flex flex-col">
                 <span className="text-lg font-bold chinese-gold leading-none font-kai">{brand.brandName}</span>
-                <span className="text-[10px] text-gold/60 tracking-[0.2em] leading-none mt-1">MINGLI</span>
+                <span className="text-[10px] text-gold/60 tracking-[0.2em] leading-none mt-1">ZHIWEI</span>
               </div>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-md">传承千年智慧，融合现代科技。</p>
