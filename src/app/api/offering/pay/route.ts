@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     if (result.changes === 0) {
       const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
       const balance = row?.balance || 0;
-      return NextResponse.json({ error: `灵珠不足，需要${totalCost}灵珠，当前${balance}灵珠` }, { status: 400 });
+      return NextResponse.json({ error: `积分不足，需要${totalCost}积分，当前${balance}积分` }, { status: 400 });
     }
 
     const updatedRow = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     await execute(
       'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      ledgerId, userId, -totalCost, newBalance, 'offering', `供奉${supply.name}x${qty}`, now
+      ledgerId, userId, -totalCost, newBalance, 'offering', `祈福${supply.name}x${qty}`, now
     );
 
     await execute(
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, cost: totalCost, balance: newBalance, message: '供奉成功 🙏' });
+    return NextResponse.json({ success: true, cost: totalCost, balance: newBalance, message: '祈福成功 🙏' });
   } catch (error: any) {
     console.error('[offer] Error:', error?.message);
     return NextResponse.json({ error: '操作失败，请稍后重试' }, { status: 500 });

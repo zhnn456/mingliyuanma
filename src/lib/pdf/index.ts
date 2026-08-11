@@ -40,14 +40,14 @@ export const REPORT_CONFIG: Record<ReportType, {
   price: number;
 }> = {
   bazi: {
-    title: '四柱八字命理报告',
+    title: '四柱八字文化报告',
     subtitle: 'Four Pillars of Destiny Report',
     icon: '☰',
     color: '#B91C1C',
     price: 9.9,
   },
   ziwei: {
-    title: '紫微斗数命理报告',
+    title: '紫微斗数文化报告',
     subtitle: 'Zi Wei Dou Shu Report',
     icon: '★',
     color: '#7C3AED',
@@ -61,7 +61,7 @@ export const REPORT_CONFIG: Record<ReportType, {
     price: 9.9,
   },
   meihua: {
-    title: '梅花易数占卜报告',
+    title: '梅花易数文化报告',
     subtitle: 'Mei Hua Yi Shu Report',
     icon: '✿',
     color: '#DB2777',
@@ -184,7 +184,7 @@ export async function generateReportData(
     if (!record || record.userId !== userId) return null;
 
     userInfo = {
-      name: '占卜问事',
+      name: '文化问事',
     };
 
     chartData = {

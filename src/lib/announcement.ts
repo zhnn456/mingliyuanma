@@ -23,13 +23,13 @@ export interface Announcement {
   updatedAt?: string;
 }
 
-/** 旧公告（注册送100灵珠） */
+/** 旧公告（注册送100积分） */
 const SEED_REGISTER = {
   id: 'ann_reg_lingzhu',
   icon: '🎁',
   badge: '新用户福利',
-  title: '注册即送 100 灵珠',
-  content: '灵珠可用于八字排盘、奇门遁甲、紫微斗数等全部功能，免费体验专业命理测算。',
+  title: '注册即送 100 积分',
+  content: '积分可用于八字排盘、奇门遁甲、紫微斗数等全部功能，免费体验专业文化解读。',
   link: '/register',
   linkText: '立即注册',
   enabled: 1,
@@ -63,7 +63,7 @@ export async function ensureSeedAnnouncements(): Promise<void> {
     )) as any;
     if (countRow && countRow.c > 0) return; // 已有数据，跳过
 
-    // 尝试从旧 SiteConfig 迁移"注册送100灵珠"（若存在且内容不同）
+    // 尝试从旧 SiteConfig 迁移"注册送100积分"（若存在且内容不同）
     let migratedRegister = null;
     try {
       const row = (await queryFirst(

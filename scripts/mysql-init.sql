@@ -712,40 +712,35 @@ INSERT IGNORE INTO `SiteConfig` (`key`, `value`, `category`, `updatedAt`) VALUES
 ('logo', '', 'general', NOW()),
 ('tagline', '传承千年智慧，融合现代科技', 'general', NOW());
 
--- 供奉分类
+-- 祈福分类
 INSERT IGNORE INTO `OfferingCategory` (`id`, `name`, `icon`, `description`, `sortOrder`, `isActive`, `createdAt`) VALUES
-('cat_buddha',      '佛菩萨', '🪷', '供养佛菩萨，祈福消灾', 1, 1, NOW()),
-('cat_deity',       '神明',   '⛩️', '供奉神明，护佑平安',   2, 1, NOW()),
-('cat_ritual',      '法器',   '🕯️', '供奉法器，庄严道场',   3, 1, NOW()),
-('cat_offering',    '供品',   '🍎', '鲜花水果，清香供奉',   4, 1, NOW()),
-('cat_deliverance', '超度',   '🪧', '追思超度，回向功德',   5, 1, NOW());
+('cat_wish',    '心愿祈福', '🏮', '寄托心愿，民俗祈福',       1, 1, NOW()),
+('cat_culture', '文化纪念', '🎐', '妈祖、关公、文昌等民俗文化纪念', 2, 1, NOW()),
+('cat_offering','鲜花供品', '🌸', '鲜花水果等传统供品',       3, 1, NOW()),
+('cat_ritual',  '香烛用品', '🕯️', '香烛等传统祭祀用品',       4, 1, NOW());
 
--- 默认供奉供品（从 d1.ts 的 SEED_SUPPLIES 复制）
+-- 默认祈福供品（从 d1.ts 的 SEED_SUPPLIES 复制）
 INSERT IGNORE INTO `OfferingSupply` (`id`, `name`, `icon`, `image`, `price`, `description`, `category`, `sortOrder`, `isActive`, `createdAt`, `stock`) VALUES
-('sup_seed_1',  '释迦牟尼佛', '🪷', NULL, 188,  '释迦牟尼佛供奉，祈福平安', 'buddha',      1, 1, NOW(), 100),
-('sup_seed_2',  '阿弥陀佛',   '🪷', NULL, 188,  '阿弥陀佛供奉，往生极乐',   'buddha',      2, 1, NOW(), 100),
-('sup_seed_3',  '药师佛',     '🪷', NULL, 188,  '药师佛供奉，消灾解难',     'buddha',      3, 1, NOW(), 100),
-('sup_seed_4',  '观音菩萨',   '🧘', NULL, 168,  '观音菩萨供奉，救苦救难',   'buddha',      4, 1, NOW(), 200),
-('sup_seed_5',  '地藏王菩萨', '🧘', NULL, 168,  '地藏王菩萨供奉，慈悲护佑', 'buddha',      5, 1, NOW(), 200),
-('sup_seed_6',  '弥勒佛',     '😊', NULL, 158,  '弥勒佛供奉，笑口常开',     'buddha',      6, 1, NOW(), 150),
-('sup_seed_7',  '土地公',     '🏠', NULL, 88,   '土地公供奉，守护家园',     'deity',       1, 1, NOW(), 300),
-('sup_seed_8',  '城隍爷',     '⚖️', NULL, 128,  '城隍爷供奉，护佑一方',     'deity',       2, 1, NOW(), 200),
-('sup_seed_9',  '妈祖',       '🌊', NULL, 168,  '妈祖供奉，海上平安',       'deity',       3, 1, NOW(), 200),
-('sup_seed_10', '关帝',       '⚔️', NULL, 168,  '关帝供奉，忠义千秋',       'deity',       4, 1, NOW(), 250),
-('sup_seed_11', '文昌帝君',   '📚', NULL, 128,  '文昌帝君供奉，学业有成',   'deity',       5, 1, NOW(), 200),
-('sup_seed_12', '香炉',       '🕯️', NULL, 28,   '精品铜香炉，供奉法器',     'ritual',      1, 1, NOW(), 500),
-('sup_seed_13', '烛台',       '🕯️', NULL, 18,   '传统烛台，供灯法器',       'ritual',      2, 1, NOW(), 500),
-('sup_seed_14', '供盘',       '🍽️', NULL, 15,   '供果盘，盛装供品',         'ritual',      3, 1, NOW(), 500),
-('sup_seed_15', '木鱼',       '🪵', NULL, 38,   '精品木鱼，修行法器',       'ritual',      4, 1, NOW(), 300),
-('sup_seed_16', '念珠',       '📿', NULL, 48,   '檀木念珠，持咒修行',       'ritual',      5, 1, NOW(), 400),
-('sup_seed_17', '鲜花',       '💐', NULL, 9.9,  '新鲜供花，清香供奉',       'offering',    1, 1, NOW(), 1000),
-('sup_seed_18', '水果',       '🍎', NULL, 15,   '时令供果，敬献三宝',       'offering',    2, 1, NOW(), 800),
-('sup_seed_19', '糕点',       '🍰', NULL, 12,   '传统糕点，供奉佳品',       'offering',    3, 1, NOW(), 600),
-('sup_seed_20', '茶水',       '🍵', NULL, 6,    '好茶供奉，清净自在',       'offering',    4, 1, NOW(), 1000),
-('sup_seed_21', '香烛',       '🕯️', NULL, 8,    '天然香烛，供奉燃香',       'offering',    5, 1, NOW(), 1000),
-('sup_seed_22', '追思牌位',   '🪧', NULL, 88,   '追思牌位，缅怀先人',       'deliverance', 1, 1, NOW(), 200),
-('sup_seed_23', '祈福莲花',   '🪷', NULL, 38,   '祈福莲花，回向功德',       'deliverance', 2, 1, NOW(), 300),
-('sup_seed_24', '金元宝',     '💰', NULL, 5,    '金元宝供奉，冥资供养',     'deliverance', 3, 1, NOW(), 2000);
+('sup_seed_1',  '心愿福灯',     '🏮', NULL, 28,   '点亮一盏福灯，寄托美好心愿', 'wish',      1, 1, NOW(), 1000),
+('sup_seed_2',  '祈福带',       '🎀', NULL, 9.9,  '一条祈福带，系住一份祝愿',   'wish',      2, 1, NOW(), 2000),
+('sup_seed_3',  '平安香囊',     '🧧', NULL, 18,   '传统香囊，寄托平安祝愿',     'wish',      3, 1, NOW(), 1500),
+('sup_seed_4',  '心愿牌',       '🏷️', NULL, 15,   '写下心愿，挂在祈福墙上',     'wish',      4, 1, NOW(), 1500),
+('sup_seed_5',  '祈福莲花灯',   '🪷', NULL, 38,   '莲花灯，象征美好祝愿',       'wish',      5, 1, NOW(), 800),
+('sup_seed_6',  '千里福灯',     '🏮', NULL, 36,   '遥寄思念，福佑远方',         'wish',      6, 1, NOW(), 800),
+('sup_seed_7',  '妈祖文化纪念徽章', '🌊', NULL, 168, '妈祖信俗文化纪念，护佑平安顺遂', 'culture', 1, 1, NOW(), 500),
+('sup_seed_8',  '关公文化纪念卡', '🎭', NULL, 168, '弘扬关公忠义精神',           'culture',   2, 1, NOW(), 500),
+('sup_seed_9',  '文昌智慧书签', '📚', NULL, 128,  '文昌文化纪念，祝愿学业进步', 'culture',   3, 1, NOW(), 500),
+('sup_seed_10', '土地公民俗纪念', '🏠', NULL, 88,  '传统民俗文化纪念',           'culture',   4, 1, NOW(), 800),
+('sup_seed_11', '生肖守护纪念牌', '🐲', NULL, 66,  '生肖民俗文化纪念',           'culture',   5, 1, NOW(), 800),
+('sup_seed_12', '五福临门挂饰', '🧧', NULL, 58,   '传统五福民俗挂饰',           'culture',   6, 1, NOW(), 800),
+('sup_seed_13', '鲜花',         '💐', NULL, 9.9,  '新鲜花束，清香雅致',         'offering',  1, 1, NOW(), 1000),
+('sup_seed_14', '水果',         '🍎', NULL, 15,   '时令水果，新鲜可口',         'offering',  2, 1, NOW(), 800),
+('sup_seed_15', '糕点',         '🍰', NULL, 12,   '传统糕点，精致可口',         'offering',  3, 1, NOW(), 600),
+('sup_seed_16', '茶水',         '🍵', NULL, 6,    '清香好茶',                   'offering',  4, 1, NOW(), 1000),
+('sup_seed_17', '香烛',         '🕯️', NULL, 8,    '天然香烛，传统祭祀用品',     'offering',  5, 1, NOW(), 1000),
+('sup_seed_18', '铜香炉',       '🏺', NULL, 28,   '传统铜香炉',                 'ritual',    1, 1, NOW(), 500),
+('sup_seed_19', '烛台',         '🕯️', NULL, 18,   '传统烛台',                   'ritual',    2, 1, NOW(), 500),
+('sup_seed_20', '供盘',         '🍽️', NULL, 15,   '传统供盘',                   'ritual',    3, 1, NOW(), 500);
 
 -- ============================================================
 -- 初始化完成

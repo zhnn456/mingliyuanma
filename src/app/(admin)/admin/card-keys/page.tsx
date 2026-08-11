@@ -5,7 +5,7 @@ import { CARD_KEY_DENOMINATIONS } from '@/lib/pricing';
 
 // 卡密类型映射
 const TYPE_MAP: Record<string, string> = {
-  lingzhu: '灵珠卡',
+  lingzhu: '积分卡',
   agent_balance: '代理商余额卡',
 };
 
@@ -145,8 +145,8 @@ export default function AdminCardKeysPage() {
       const num = parseFloat(form.customInput);
       if (!num || num <= 0) { alert('请输入有效的自定义面值'); return; }
       if (form.type === 'lingzhu') {
-        value = num;       // 灵珠数
-        price = num / 10;  // 1元=10灵珠
+        value = num;       // 积分数
+        price = num / 10;  // 1元=10积分
       } else {
         value = num;  // 元数
         price = num;  // 售价=面值
@@ -241,7 +241,7 @@ export default function AdminCardKeysPage() {
               onChange={e => onTypeChange(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm"
             >
-              <option value="lingzhu">灵珠卡（充值灵珠）</option>
+              <option value="lingzhu">积分卡（充值积分）</option>
               <option value="agent_balance">代理商余额卡（充值余额）</option>
             </select>
           </div>
@@ -266,7 +266,7 @@ export default function AdminCardKeysPage() {
                 type="number"
                 value={form.customInput}
                 onChange={e => setForm({ ...form, customInput: e.target.value })}
-                placeholder={form.type === 'lingzhu' ? '灵珠数（如 200）' : '元数（如 20）'}
+                placeholder={form.type === 'lingzhu' ? '积分数（如 200）' : '元数（如 20）'}
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             )}
@@ -307,8 +307,8 @@ export default function AdminCardKeysPage() {
         {/* 生成信息预览 */}
         <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
           {form.customValue && form.customInput
-            ? `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.customInput}${form.type === 'lingzhu' ? '灵珠' : '元'}`
-            : `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.type === 'lingzhu' ? `${form.value}灵珠` : `${form.price}元`}`
+            ? `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.customInput}${form.type === 'lingzhu' ? '积分' : '元'}`
+            : `将生成 ${form.count} 张${TYPE_MAP[form.type]}，面值 ${form.type === 'lingzhu' ? `${form.value}积分` : `${form.price}元`}`
           }
         </div>
 
@@ -369,7 +369,7 @@ export default function AdminCardKeysPage() {
           className="px-3 py-1.5 border rounded-lg text-sm"
         >
           <option value="">全部类型</option>
-          <option value="lingzhu">灵珠卡</option>
+          <option value="lingzhu">积分卡</option>
           <option value="agent_balance">代理商余额卡</option>
         </select>
       </div>
@@ -399,7 +399,7 @@ export default function AdminCardKeysPage() {
               <tr key={c.id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono font-bold text-gray-900">{c.code}</td>
                 <td className="px-4 py-3">{TYPE_MAP[c.type] || c.type}</td>
-                <td className="px-4 py-3">{c.type === 'lingzhu' ? `${c.value}灵珠` : `¥${c.value}`}</td>
+                <td className="px-4 py-3">{c.type === 'lingzhu' ? `${c.value}积分` : `¥${c.value}`}</td>
                 <td className="px-4 py-3 text-gray-500">¥{c.price}</td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[c.status] || ''}`}>

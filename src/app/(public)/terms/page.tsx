@@ -4,7 +4,7 @@ import AgentBrandNotice from '../_components/AgentBrandNotice';
 
 export const metadata: Metadata = {
   title: '服务条款 - 知微阁',
-  description: '知微阁服务条款，了解使用我们命理测算服务的相关规定和条件。',
+  description: '知微阁服务条款，了解使用我们文化解读服务的相关规定和条件。',
 };
 
 export default function TermsPage() {
@@ -25,8 +25,8 @@ export default function TermsPage() {
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 mb-6">
           <h2 className="text-lg font-bold text-amber-900 mb-3">⚠️ 重要声明</h2>
           <p className="text-sm text-amber-800 leading-relaxed">
-            知微阁提供的所有命理测算服务（包括但不限于八字排盘、紫微斗数、奇门遁甲、梅花易数等）仅供娱乐参考。
-            命理预测属于传统文化范畴，不应作为人生重大决策的唯一依据。请您理性看待测算结果，切勿沉迷或迷信。
+            知微阁提供的所有文化解读服务（包括但不限于八字排盘、紫微斗数、奇门遁甲、梅花易数等）仅供娱乐参考。
+            解读内容基于传统文化整理，不应作为人生重大决策的依据。请您理性看待解读内容，切勿沉迷或迷信。
             本网站不对因过度依赖测算结果而做出的任何决定承担责任。
           </p>
         </div>
@@ -38,7 +38,7 @@ export default function TermsPage() {
           <div className="space-y-4 text-sm text-gray-600">
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">1.1 服务内容</h3>
-              <p>知微阁为用户提供以下在线测算服务：</p>
+              <p>知微阁为用户提供以下在线文化解读服务：</p>
               <ul className="mt-2 pl-5 list-disc space-y-1">
                 <li>四柱八字排盘与分析</li>
                 <li>紫微斗数排盘与解读</li>
@@ -51,7 +51,7 @@ export default function TermsPage() {
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">1.2 服务性质</h3>
               <ul className="pl-5 list-disc space-y-1">
-                <li>本网站所有测算结果均由计算机算法自动生成，不保证100%准确</li>
+                <li>本网站所有解读内容均由计算机算法自动生成，不保证100%准确</li>
                 <li>命理分析结果仅作文化娱乐用途，不构成任何建议或指导</li>
                 <li>用户应自行判断测算结果的参考价值</li>
               </ul>
@@ -141,24 +141,24 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">3.3 灵珠充值与使用规则</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">3.3 积分充值与使用规则</h3>
               <ul className="pl-5 list-disc space-y-1">
-                <li>灵珠为本平台虚拟货币，1元人民币 = 10灵珠</li>
-                <li>灵珠仅限在本平台内用于排盘解读、供奉、合盘等功能消费</li>
-                <li>灵珠不可提现、不可转账、不可兑换人民币或其他货币</li>
-                <li>灵珠不可跨平台使用，不同代理商站点之间灵珠余额独立计算</li>
-                <li>充值成功后灵珠即时到账，如遇延迟请联系客服处理</li>
-                <li>灵珠账户余额长期有效，暂无过期时间限制</li>
+                <li>积分为本平台虚拟货币，1元人民币 = 10积分</li>
+                <li>积分仅限在本平台内用于排盘解读、祈福、合盘等功能消费</li>
+                <li>积分不可提现、不可转账、不可兑换人民币或其他货币</li>
+                <li>积分不可跨平台使用，不同代理商站点之间积分余额独立计算</li>
+                <li>充值成功后积分即时到账，如遇延迟请联系客服处理</li>
+                <li>积分账户余额长期有效，暂无过期时间限制</li>
                 <li>请确认充值金额后再支付，因用户自身操作失误导致的误充值，平台不承担责任</li>
-                <li>如发现利用漏洞非法获取灵珠，平台有权冻结相关账户及灵珠余额</li>
+                <li>如发现利用漏洞非法获取积分，平台有权冻结相关账户及积分余额</li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">3.4 退款政策</h3>
               <ul className="pl-5 list-disc space-y-1">
-                <li>已消费的灵珠不支持退款</li>
-                <li>未使用的灵珠余额可申请退款，将在3个工作日内原路退回</li>
+                <li>已消费的积分不支持退款</li>
+                <li>未使用的积分余额可申请退款，将在3个工作日内原路退回</li>
                 <li>如因系统故障导致服务无法使用，我们将根据实际情况处理退款</li>
                 <li>退款申请需在购买后7天内提出</li>
                 <li>特殊情况请联系客服协商处理</li>
@@ -194,8 +194,8 @@ export default function TermsPage() {
           <div className="space-y-3 text-sm text-gray-600">
             <p>在法律允许的最大范围内，我们对以下情形不承担责任：</p>
             <ul className="pl-5 list-disc space-y-2">
-              <li><strong>测算结果准确性：</strong>命理测算结果可能存在误差，我们不保证结果的准确性和完整性。</li>
-              <li><strong>用户决策损失：</strong>因用户依据测算结果做出的任何决策而导致的损失。</li>
+              <li><strong>解读内容准确性：</strong>解读内容基于传统文化整理，可能存在误差，我们不保证内容的准确性和完整性。</li>
+              <li><strong>用户决策损失：</strong>因用户依据解读内容做出的任何决策而导致的损失。</li>
               <li><strong>服务中断：</strong>因不可抗力或非我们可控的原因导致的服务中断。</li>
               <li><strong>信息泄露：</strong>因用户自身原因（如密码泄露）导致的个人信息泄露。</li>
               <li><strong>第三方行为：</strong>因第三方（包括其他用户、网络攻击等）的行为导致的损失。</li>

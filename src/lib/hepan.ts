@@ -1365,7 +1365,7 @@ function generateLuckyTips(
 
   // 通用建议
   if (tips.length < 3) {
-    tips.push('心诚则灵：无论风水方位如何调节，最核心的"开运"是双方的真心与用心。以真诚相待、以善良处世，自然福气盈门。');
+    tips.push('无论五行方位如何调节，最核心的"默契"是双方的真心与用心。以真诚相待、以善良处世，自然相处融洽。');
   }
 
   return tips.slice(0, 5);

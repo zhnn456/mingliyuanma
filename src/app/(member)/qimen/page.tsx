@@ -6,6 +6,7 @@ import { BAMEN_INTERPRETATION, JIUXING_INTERPRETATION, BASHEN_INTERPRETATION, TE
 import { QUESTION_TYPES, generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
 import { InterpretPaywall } from '@/components/InterpretPaywall';
 import { useToast } from '@/components/Toast';
+import Disclaimer from '@/components/Disclaimer';
 import QimenChart from '@/components/QimenChart';
 
 interface QimenPalace {
@@ -201,7 +202,7 @@ export default function QimenPage() {
       } else if (response.status === 402) {
         if (useLingzhu) {
           setPaywall(null);
-          addToast('error', json.error || '灵珠不足，请充值');
+          addToast('error', json.error || '积分不足，请充值');
         } else {
           const balance = await fetchBalance();
           setPaywall({ status: 402, cost: json.cost || 50, balance });
@@ -532,7 +533,7 @@ export default function QimenPage() {
               <p className="text-xs text-gray-500 mb-4">
                 {currentQuestionType ? (
                   <>当前选择：<strong className="text-red-700">{currentQuestionType.label}</strong>，用神为<strong className="text-purple-700">{currentQuestionType.yongshen}</strong>。下方解析将重点围绕此用神进行分析。</>
-                ) : '请选择您要占卜的事项类型，系统将根据类型选取对应用神进行分析'
+                ) : '请选择您想了解的事项类型，系统将根据类型选取对应用神进行分析'
                 }
               </p>
               <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
@@ -936,6 +937,8 @@ export default function QimenPage() {
                 )}
               </>
             )}
+
+            <Disclaimer />
 
             {/* 查看详细解读按钮 */}
             {!interpretData && (

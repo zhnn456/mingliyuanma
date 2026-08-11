@@ -21,3 +21,23 @@ nul
 .next-build/
 .next-mingli/
 .dev.vars
+
+# 部署构建产物（大文件，不进仓库）
+*.zip
+deploy.zip
+next-build.zip
+deploy-assets/
+deploy-tmp/
+deploy-root/
+deploy.zip
+
+# IDE/工具目录（不进仓库）
+.agents/
+.codebuddy/
+.lingma/
+.qoder/
+.trae/
+skills/
+skills-lock.json
+.vscode/
+.idea/

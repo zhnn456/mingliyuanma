@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       ) as any[];
 
       let leaderboard = top.map((r: any, i: number) => ({
-        rank: i + 1, userId: r.userId, name: '善信', totalAmount: r.totalAmount || 0, count: r.count
+        rank: i + 1, userId: r.userId, name: '用户', totalAmount: r.totalAmount || 0, count: r.count
       }));
 
       if (top.length > 0) {
@@ -41,9 +41,9 @@ export async function GET(req: NextRequest) {
           `SELECT id, name FROM User WHERE id IN (${placeholders})`,
           ...userIds
         ) as any[];
-        const userMap = new Map(users.map((u: any) => [u.id, u.name || '善信']));
+        const userMap = new Map(users.map((u: any) => [u.id, u.name || '用户']));
         leaderboard = top.map((r: any, i: number) => ({
-          rank: i + 1, userId: r.userId, name: userMap.get(r.userId) || '善信', totalAmount: r.totalAmount || 0, count: r.count
+          rank: i + 1, userId: r.userId, name: userMap.get(r.userId) || '用户', totalAmount: r.totalAmount || 0, count: r.count
         }));
       }
 

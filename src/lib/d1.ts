@@ -106,7 +106,7 @@ export async function batch(statements: Array<{ sql: string; params?: any[] }>) 
   }
 }
 
-/** 获取用户灵珠余额 */
+/** 获取用户积分余额 */
 export async function getUserPoints(userId: string) {
   const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
   return row?.balance || 0;
@@ -579,36 +579,36 @@ export async function getAgentByReferralCode(code: string) {
   return agent ? { ...agent, referralCode: code } : null;
 }
 
-// ============ 供奉供品表 (OfferingSupply) ============
+// ============ 祈福供品表 (OfferingSupply) ============
 
 const SEED_SUPPLIES: Array<{
   name: string; icon: string; category: string; price: number;
   description: string; sortOrder: number; stock: number;
 }> = [
-  { name: '释迦牟尼佛', icon: '🪷', category: 'buddha', price: 188, description: '释迦牟尼佛供奉，祈福平安', sortOrder: 1, stock: 100 },
-  { name: '阿弥陀佛', icon: '🪷', category: 'buddha', price: 188, description: '阿弥陀佛供奉，往生极乐', sortOrder: 2, stock: 100 },
-  { name: '药师佛', icon: '🪷', category: 'buddha', price: 188, description: '药师佛供奉，消灾解难', sortOrder: 3, stock: 100 },
-  { name: '观音菩萨', icon: '🧘', category: 'buddha', price: 168, description: '观音菩萨供奉，救苦救难', sortOrder: 4, stock: 200 },
-  { name: '地藏王菩萨', icon: '🧘', category: 'buddha', price: 168, description: '地藏王菩萨供奉，慈悲护佑', sortOrder: 5, stock: 200 },
-  { name: '弥勒佛', icon: '😊', category: 'buddha', price: 158, description: '弥勒佛供奉，笑口常开', sortOrder: 6, stock: 150 },
-  { name: '土地公', icon: '🏠', category: 'deity', price: 88, description: '土地公供奉，守护家园', sortOrder: 1, stock: 300 },
-  { name: '城隍爷', icon: '⚖️', category: 'deity', price: 128, description: '城隍爷供奉，护佑一方', sortOrder: 2, stock: 200 },
-  { name: '妈祖', icon: '🌊', category: 'deity', price: 168, description: '妈祖供奉，海上平安', sortOrder: 3, stock: 200 },
-  { name: '关帝', icon: '⚔️', category: 'deity', price: 168, description: '关帝供奉，忠义千秋', sortOrder: 4, stock: 250 },
-  { name: '文昌帝君', icon: '📚', category: 'deity', price: 128, description: '文昌帝君供奉，学业有成', sortOrder: 5, stock: 200 },
-  { name: '香炉', icon: '🕯️', category: 'ritual', price: 28, description: '精品铜香炉，供奉法器', sortOrder: 1, stock: 500 },
-  { name: '烛台', icon: '🕯️', category: 'ritual', price: 18, description: '传统烛台，供灯法器', sortOrder: 2, stock: 500 },
-  { name: '供盘', icon: '🍽️', category: 'ritual', price: 15, description: '供果盘，盛装供品', sortOrder: 3, stock: 500 },
-  { name: '木鱼', icon: '🪵', category: 'ritual', price: 38, description: '精品木鱼，修行法器', sortOrder: 4, stock: 300 },
-  { name: '念珠', icon: '📿', category: 'ritual', price: 48, description: '檀木念珠，持咒修行', sortOrder: 5, stock: 400 },
-  { name: '鲜花', icon: '💐', category: 'offering', price: 9.9, description: '新鲜供花，清香供奉', sortOrder: 1, stock: 1000 },
-  { name: '水果', icon: '🍎', category: 'offering', price: 15, description: '时令供果，敬献三宝', sortOrder: 2, stock: 800 },
-  { name: '糕点', icon: '🍰', category: 'offering', price: 12, description: '传统糕点，供奉佳品', sortOrder: 3, stock: 600 },
-  { name: '茶水', icon: '🍵', category: 'offering', price: 6, description: '好茶供奉，清净自在', sortOrder: 4, stock: 1000 },
-  { name: '香烛', icon: '🕯️', category: 'offering', price: 8, description: '天然香烛，供奉燃香', sortOrder: 5, stock: 1000 },
-  { name: '追思牌位', icon: '🪧', category: 'deliverance', price: 88, description: '追思牌位，缅怀先人', sortOrder: 1, stock: 200 },
-  { name: '祈福莲花', icon: '🪷', category: 'deliverance', price: 38, description: '祈福莲花，回向功德', sortOrder: 2, stock: 300 },
-  { name: '金元宝', icon: '💰', category: 'deliverance', price: 5, description: '金元宝供奉，冥资供养', sortOrder: 3, stock: 2000 },
+  // 心愿祈福类（民俗祈福文化，无宗教属性）
+  { name: '心愿福灯', icon: '🏮', category: 'wish', price: 28, description: '点亮一盏福灯，寄托美好心愿', sortOrder: 1, stock: 1000 },
+  { name: '祈福带', icon: '🎀', category: 'wish', price: 9.9, description: '一条祈福带，系住一份祝愿', sortOrder: 2, stock: 2000 },
+  { name: '平安香囊', icon: '🧧', category: 'wish', price: 18, description: '传统香囊，寄托平安祝愿', sortOrder: 3, stock: 1500 },
+  { name: '心愿牌', icon: '🏷️', category: 'wish', price: 15, description: '写下心愿，挂在祈福墙上', sortOrder: 4, stock: 1500 },
+  { name: '祈福莲花灯', icon: '🪷', category: 'wish', price: 38, description: '莲花灯，象征美好祝愿', sortOrder: 5, stock: 800 },
+  { name: '千里福灯', icon: '🏮', category: 'wish', price: 36, description: '遥寄思念，福佑远方', sortOrder: 6, stock: 800 },
+  // 文化纪念类（妈祖/关公/文昌等民俗文化，非遗保护范畴）
+  { name: '妈祖文化纪念徽章', icon: '🌊', category: 'culture', price: 168, description: '妈祖信俗文化纪念，护佑平安顺遂', sortOrder: 1, stock: 500 },
+  { name: '关公文化纪念卡', icon: '🎭', category: 'culture', price: 168, description: '弘扬关公忠义精神', sortOrder: 2, stock: 500 },
+  { name: '文昌智慧书签', icon: '📚', category: 'culture', price: 128, description: '文昌文化纪念，祝愿学业进步', sortOrder: 3, stock: 500 },
+  { name: '土地公民俗纪念', icon: '🏠', category: 'culture', price: 88, description: '传统民俗文化纪念', sortOrder: 4, stock: 800 },
+  { name: '生肖守护纪念牌', icon: '🐲', category: 'culture', price: 66, description: '生肖民俗文化纪念', sortOrder: 5, stock: 800 },
+  { name: '五福临门挂饰', icon: '🧧', category: 'culture', price: 58, description: '传统五福民俗挂饰', sortOrder: 6, stock: 800 },
+  // 鲜花供品类
+  { name: '鲜花', icon: '💐', category: 'offering', price: 9.9, description: '新鲜花束，清香雅致', sortOrder: 1, stock: 1000 },
+  { name: '水果', icon: '🍎', category: 'offering', price: 15, description: '时令水果，新鲜可口', sortOrder: 2, stock: 800 },
+  { name: '糕点', icon: '🍰', category: 'offering', price: 12, description: '传统糕点，精致可口', sortOrder: 3, stock: 600 },
+  { name: '茶水', icon: '🍵', category: 'offering', price: 6, description: '清香好茶', sortOrder: 4, stock: 1000 },
+  { name: '香烛', icon: '🕯️', category: 'offering', price: 8, description: '天然香烛，传统祭祀用品', sortOrder: 5, stock: 1000 },
+  // 香烛用品类
+  { name: '铜香炉', icon: '🏺', category: 'ritual', price: 28, description: '传统铜香炉', sortOrder: 1, stock: 500 },
+  { name: '烛台', icon: '🕯️', category: 'ritual', price: 18, description: '传统烛台', sortOrder: 2, stock: 500 },
+  { name: '供盘', icon: '🍽️', category: 'ritual', price: 15, description: '传统供盘', sortOrder: 3, stock: 500 },
 ];
 
 export async function ensureOfferingSupplyTable() {

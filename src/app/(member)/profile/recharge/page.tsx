@@ -34,7 +34,7 @@ export default function RechargePage() {
       const d = await res.json();
       if (res.ok) {
         setBalance(d.balance);
-        alert(`充值成功！获得 ${d.lingzhu} 灵珠`);
+        alert(`充值成功！获得 ${d.lingzhu} 积分`);
       } else {
         alert(d.error || '充值失败');
       }
@@ -46,11 +46,11 @@ export default function RechargePage() {
   return (
     <div className="max-w-lg mx-auto py-10 px-4">
       <Link href="/profile" className="text-sm text-gray-500 hover:text-red-700 mb-4 inline-block">← 返回个人中心</Link>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">灵珠充值</h1>
-      <p className="text-sm text-gray-500 mb-6">1元 = 10灵珠，充值越多赠送越多</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">积分充值</h1>
+      <p className="text-sm text-gray-500 mb-6">1元 = 10积分，充值越多赠送越多</p>
 
       <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 mb-6 text-center border border-purple-200">
-        <div className="text-xs text-purple-600">当前灵珠</div>
+        <div className="text-xs text-purple-600">当前积分</div>
         <div className="text-4xl font-bold text-purple-800 mt-1">{balance} 💎</div>
       </div>
 
@@ -62,7 +62,7 @@ export default function RechargePage() {
             )}
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-lg font-bold text-gray-900">{plan.lingzhu} 灵珠</div>
+                <div className="text-lg font-bold text-gray-900">{plan.lingzhu} 积分</div>
                 <div className="text-sm text-gray-500">
                   ¥{plan.price}
                   {plan.bonus > 0 && <span className="text-green-600 ml-2">+赠送{plan.bonus}</span>}
@@ -80,7 +80,7 @@ export default function RechargePage() {
       <p className="text-xs text-gray-400 text-center mt-6">
         充值即表示同意
         <a href="/terms" target="_blank" className="text-amber-600 hover:text-amber-700 underline mx-0.5">服务协议</a>
-        · 灵珠仅限本平台使用
+        · 积分仅限本平台使用
       </p>
     </div>
   );

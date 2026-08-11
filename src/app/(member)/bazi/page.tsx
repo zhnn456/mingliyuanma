@@ -75,7 +75,7 @@ export default function BaziPage() {
       } else if (r.status === 402) {
         if (useLingzhu) {
           setPaywall(null);
-          addToast('error', j.error || '灵珠不足，请充值');
+          addToast('error', j.error || '积分不足，请充值');
         } else {
           const balance = await fetchBalance();
           setPaywall({ status: 402, cost: j.cost || 50, balance });
@@ -132,7 +132,7 @@ export default function BaziPage() {
           <h1 className="page-header-title">
             <span>四柱八字排盘</span>
           </h1>
-          <p className="page-header-subtitle">输入出生信息，推算天干地支，分析五行旺衰，解读命运密码</p>
+          <p className="page-header-subtitle">输入出生信息，排列天干地支，分析五行能量，提供传统文化视角的性格解读</p>
         </div>
 
         {/* 主Tab切换：排盘 / 合盘 */}

@@ -64,7 +64,7 @@ export default function DashboardPage() {
           <div className="border-t border-parchment-100 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div>
-                    <span className="text-xs text-gray-500">灵珠</span>
+                    <span className="text-xs text-gray-500">积分</span>
                     <div className="text-lg font-bold text-purple-700">{points}</div>
               </div>
               <Link href="/profile/points" className="text-xs text-red-600 hover:text-red-800">明细 →</Link>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
             <div className="text-4xl">🙏</div>
             <div>
               <div className="font-bold text-gray-900">在线供奉</div>
-              <div className="text-sm text-gray-500">虔诚供奉，积累功德，祈福平安</div>
+              <div className="text-sm text-gray-500">民俗祈福，寄托美好心愿</div>
             </div>
           </div>
           <div className="text-red-700 group-hover:translate-x-1 transition-transform">→</div>

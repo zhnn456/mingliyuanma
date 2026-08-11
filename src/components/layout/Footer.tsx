@@ -46,7 +46,7 @@ export function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm tracking-wide">关于我们</h4>
             <ul className="space-y-3">
-              {[{ href: '/about', label: `关于${brand.brandName}` }, { href: '/membership', label: '会员中心' }, { href: '/offering', label: '在线供奉' }, { href: '/contact', label: '联系我们' }].map(item => (
+              {[{ href: '/about', label: `关于${brand.brandName}` }, { href: '/membership', label: '会员中心' }, { href: '/offering', label: '在线祈福' }, { href: '/contact', label: '联系我们' }].map(item => (
                 <li key={item.href}><Link href={item.href} className="text-gray-400 hover:text-gold text-sm transition-colors">{item.label}</Link></li>
               ))}
             </ul>
@@ -71,7 +71,7 @@ export function Footer() {
             <span>|</span>
             <Link href="/copyright" className="hover:text-gray-400 transition-colors">版权声明</Link>
           </div>
-          <p className="text-xs text-gray-700 pt-2">本站部分算法逻辑参考 GitHub 开源项目 · 命理分析仅供娱乐参考</p>
+          <p className="text-xs text-gray-700 pt-2">本站部分算法逻辑参考 GitHub 开源项目 · 内容仅供传统文化研究与娱乐参考，不构成任何现实建议</p>
         </div>
       </div>
     </footer>

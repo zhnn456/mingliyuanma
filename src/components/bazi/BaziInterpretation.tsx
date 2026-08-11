@@ -204,7 +204,7 @@ export function BaziInterpretation({ dayGan, wuxing, xiYongShen, nayin, shengxia
 
       {/* 免责声明 */}
       <div className="text-center text-xs text-gray-400 py-2">
-        以上命理解读内容仅供传统文化娱乐参考，不构成任何决策建议
+        以上内容基于传统命理文化整理，仅供文化研究与娱乐参考，不构成任何现实建议，不作为投资、医疗、法律等任何决策依据。请理性看待，切勿沉迷。
       </div>
     </div>
   );

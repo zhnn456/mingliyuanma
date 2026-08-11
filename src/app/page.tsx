@@ -4,7 +4,7 @@ const services = [
   {
     title: '四柱八字',
     subtitle: 'Four Pillars of Destiny',
-    description: '根据出生年月日时，推算天干地支，分析五行旺衰，解读命运密码',
+    description: '根据出生年月日时排列干支，分析五行能量，提供传统文化视角的性格解读',
     href: '/bazi',
     icon: '☰',
     gradient: 'from-red-600 to-red-800',
@@ -14,7 +14,7 @@ const services = [
   {
     title: '紫微斗数',
     subtitle: 'Zi Wei Dou Shu',
-    description: '排列十二宫位星曜，揭示人生各方面运势走向',
+    description: '排列十二宫位星曜，解读性格特质与文化意象',
     href: '/ziwei',
     icon: '★',
     gradient: 'from-purple-600 to-indigo-700',
@@ -24,7 +24,7 @@ const services = [
   {
     title: '奇门遁甲',
     subtitle: 'Qi Men Dun Jia',
-    description: '古之帝王之术，预测决策、趋吉避凶',
+    description: '古典决策智慧的文化展示与娱乐解读',
     href: '/qimen',
     icon: '◈',
     gradient: 'from-blue-600 to-cyan-700',
@@ -34,7 +34,7 @@ const services = [
   {
     title: '梅花易数',
     subtitle: 'Mei Hua Yi Shu',
-    description: '以数起卦，以象断事，简洁精准的占卜之术',
+    description: '以数起卦，以象会意，古典哲学思维的趣味呈现',
     href: '/meihua',
     icon: '✿',
     gradient: 'from-pink-600 to-rose-700',
@@ -44,12 +44,12 @@ const services = [
 ];
 
 const features = [
-  { title: '传承经典', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20', desc: '严格遵循《三命通会》《紫微斗数全书》等传统命理典籍，算法经过多位命理师验证', color: 'text-red-600', bg: 'bg-red-50' },
-  { title: '深度解读', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z', desc: '不止排盘，更有格局分析、大运流年、分领域断语等深度命理解读', color: 'text-purple-600', bg: 'bg-purple-50' },
+  { title: '传承经典', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20', desc: '参考《三命通会》《紫微斗数全书》等传统典籍整理而成', color: 'text-red-600', bg: 'bg-red-50' },
+  { title: '深度解读', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z', desc: '不止排盘，更有格局分析、大运流年、分领域断语等深度文化解读', color: 'text-purple-600', bg: 'bg-purple-50' },
   { title: '隐私保护', icon: 'M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z', desc: '您的个人信息和排盘记录严格保密，数据加密存储，安全有保障', color: 'text-green-600', bg: 'bg-green-50' },
-  { title: '即时计算', icon: 'M13 10V3L4 14h7v7l9-11h-7z', desc: '先进计算引擎，毫秒级排盘响应，即时获取完整命理分析结果', color: 'text-orange-600', bg: 'bg-orange-50' },
-  { title: '专业报告', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z', desc: '可导出精美PDF命理报告，含完整排盘数据和深度解读分析', color: 'text-blue-600', bg: 'bg-blue-50' },
-  { title: '多端适配', icon: 'M12 18h.01M8 21h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z', desc: '完美适配手机、平板、电脑，随时随地查看您的命理分析', color: 'text-teal-600', bg: 'bg-teal-50' },
+  { title: '即时计算', icon: 'M13 10V3L4 14h7v7l9-11h-7z', desc: '先进计算引擎，毫秒级排盘响应，即时获取完整解读结果', color: 'text-orange-600', bg: 'bg-orange-50' },
+  { title: '专业报告', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z', desc: '可导出精美PDF文化报告，含完整排盘数据和深度解读分析', color: 'text-blue-600', bg: 'bg-blue-50' },
+  { title: '多端适配', icon: 'M12 18h.01M8 21h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z', desc: '完美适配手机、平板、电脑，随时随地查看您的解读内容', color: 'text-teal-600', bg: 'bg-teal-50' },
 ];
 
 export default function HomePage() {
@@ -80,7 +80,7 @@ export default function HomePage() {
               <span className="text-gradient-gold">知微阁</span>
             </h1>
             <p className="text-2xl md:text-3xl text-red-100 mb-6 font-kai tracking-widest">
-              传承千年智慧 · 解读命运密码
+              传承千年智慧 · 解读文化密码
             </p>
             <p className="text-lg text-red-200/80 mb-12 max-w-2xl mx-auto leading-relaxed">
               融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，

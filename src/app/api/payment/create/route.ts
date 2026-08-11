@@ -35,15 +35,15 @@ export async function POST(req: NextRequest) {
       if (!item) item = await queryFirst('SELECT * FROM OfferingItem WHERE name = ?', targetId) as any;
       const offerType = sanitizeString(body.offerType || 'single');
 
-      // 月供/年供改为灵珠支付，不走人民币
+      // 月供/年供改为积分支付，不走人民币
       if (offerType === 'monthly' || offerType === 'yearly') {
         const lingzhuAmount = offerType === 'monthly' ? 3000 : 30000;
-        const itemName = item?.name || (offerType === 'monthly' ? '月供供奉' : '年供供奉');
+        const itemName = item?.name || (offerType === 'monthly' ? '月祈福' : '年祈福');
         const itemId = item?.id || `sub_${offerType}`;
         const now = new Date().toISOString();
         const userId = session.sub;
 
-        // 扣减灵珠
+        // 扣减积分
         const deductResult = await execute(
           'UPDATE UserPoints SET balance = balance - ?, updatedAt = ? WHERE userId = ? AND balance >= ?',
           lingzhuAmount, now, userId, lingzhuAmount
@@ -52,19 +52,19 @@ export async function POST(req: NextRequest) {
         if (deductResult.changes === 0) {
           const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
           const balance = row?.balance || 0;
-          return NextResponse.json({ error: `灵珠不足，需要${lingzhuAmount}灵珠，当前${balance}灵珠` }, { status: 400 });
+          return NextResponse.json({ error: `积分不足，需要${lingzhuAmount}积分，当前${balance}积分` }, { status: 400 });
         }
 
         const updatedRow = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
         const newBalance = updatedRow?.balance || 0;
 
-        // 灵珠流水
+        // 积分流水
         await execute(
           'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          `pts_${Date.now()}`, userId, -lingzhuAmount, newBalance, 'offering', `供奉${itemName}(${offerType === 'monthly' ? '月供' : '年供'})`, now
+          `pts_${Date.now()}`, userId, -lingzhuAmount, newBalance, 'offering', `祈福${itemName}(${offerType === 'monthly' ? '月祈福' : '年祈福'})`, now
         );
 
-        // 完成供奉记录
+        // 完成祈福记录
         await execute(
           'INSERT INTO OfferingRecord (id, userId, itemId, amount, type, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
           `off_${Date.now()}`, userId, itemId, lingzhuAmount, offerType, 'completed', now
@@ -72,13 +72,13 @@ export async function POST(req: NextRequest) {
 
         await auditLog({ userId, action: 'offering_create', ip, details: { itemId, offerType, cost: lingzhuAmount }, status: 'success' });
 
-        return NextResponse.json({ success: true, cost: lingzhuAmount, balance: newBalance, message: '供奉成功' });
+        return NextResponse.json({ success: true, cost: lingzhuAmount, balance: newBalance, message: '祈福成功' });
       }
 
-      // 单次供奉：保持原有人民币支付逻辑
-      if (!item) return NextResponse.json({ error: '无效的供奉项目' }, { status: 400 });
+      // 单次祈福：保持原有人民币支付逻辑
+      if (!item) return NextResponse.json({ error: '无效的祈福项目' }, { status: 400 });
       amount = item.priceSingle || 0;
-      title = `供奉 - ${item.name}`; targetType = 'offering';
+      title = `祈福 - ${item.name}`; targetType = 'offering';
       targetId = `${item.id}:::single`;
     } else if (type === 'pdf_report') {
       amount = 9.9; title = '命理报告PDF'; targetType = 'pdf_report';

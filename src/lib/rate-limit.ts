@@ -5,7 +5,7 @@
  *
  * 核心策略：
  * - 排盘（chart）：免费不限次
- * - 解读（interpretation）：免费用户每日限免，超出后灵珠付费，会员无限
+ * - 解读（interpretation）：免费用户每日限免，超出后积分付费，会员无限
  */
 import { queryFirst, execute } from '@/lib/d1';
 import { NextRequest, NextResponse } from 'next/server';
@@ -33,12 +33,12 @@ export const INTERPRET_LIMITS: Record<string, LimitConfig> = {
 };
 
 /**
- * 灵珠收费标准（每次解读消耗的灵珠数）
+ * 积分收费标准（每次解读消耗的积分数）
  */
 export const INTERPRET_COST_LINGZHU = 50;
 
 /**
- * 会员开通赠送灵珠
+ * 会员开通赠送积分
  */
 export const MEMBERSHIP_GIFT_LINGZHU: Record<string, number> = {
   monthly: 300,
@@ -73,7 +73,7 @@ async function getEffectiveMemberLevel(userId: string): Promise<{ level: MemberL
 /**
  * 检查解读次数限制
  * 返回 canInterpret = true 表示可以免费解读
- * 返回 canInterpret = false, needLingzhu = true 表示需要扣灵珠
+ * 返回 canInterpret = false, needLingzhu = true 表示需要扣积分
  */
 export async function checkInterpretLimit(moduleName: string, req?: NextRequest) {
   const session = req ? await getSession(req) : null;
@@ -123,7 +123,7 @@ export async function checkInterpretLimit(moduleName: string, req?: NextRequest)
       return { canInterpret: true, session, needLingzhu: false, remainingFree: limit - dailyUsage - 1 };
     }
 
-    // 免费次数用完，需要灵珠
+    // 免费次数用完，需要积分
     return { canInterpret: false, session, needLingzhu: true, cost: INTERPRET_COST_LINGZHU };
   } catch {
     return { canInterpret: true, session, needLingzhu: false };
@@ -131,7 +131,7 @@ export async function checkInterpretLimit(moduleName: string, req?: NextRequest)
 }
 
 /**
- * 扣除灵珠（用于解读付费）
+ * 扣除积分（用于解读付费）
  */
 export async function deductLingzhu(userId: string, amount: number, reason: string): Promise<{ success: boolean; balance: number }> {
   const now = new Date().toISOString();
@@ -158,7 +158,7 @@ export async function deductLingzhu(userId: string, amount: number, reason: stri
 }
 
 /**
- * 赠送灵珠（会员开通时）— 原子操作，防止并发双倍
+ * 赠送积分（会员开通时）— 原子操作，防止并发双倍
  */
 export async function grantLingzhu(userId: string, amount: number, reason: string): Promise<void> {
   const now = new Date().toISOString();

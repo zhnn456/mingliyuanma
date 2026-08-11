@@ -405,7 +405,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">支付成功！</h2>
           <p className="text-gray-500 mb-6">
-            {order.type === 'membership' ? '您的会员已开通，开始享受尊贵服务' : '您的供奉已登记，功德无量'}
+            {order.type === 'membership' ? '您的会员已开通，开始享受尊贵服务' : '您的祈福已登记，心愿已送达'}
           </p>
           <div className="flex gap-3 justify-center">
             <Link href={order.type === 'membership' ? '/dashboard' : '/offering'} className="btn-primary px-6 py-2">

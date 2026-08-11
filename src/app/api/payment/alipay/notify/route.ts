@@ -85,14 +85,14 @@ export async function POST(req: NextRequest) {
 
     await batch(batchStatements);
 
-    // 会员开通赠送灵珠
+    // 会员开通赠送积分
     if (order.type === 'membership') {
       const giftAmount = MEMBERSHIP_GIFT_LINGZHU[order.targetId] || 0;
       if (giftAmount > 0) {
         try {
           await grantLingzhu(order.userId, giftAmount, `开通${order.targetId}会员赠送`);
         } catch (e) {
-          console.error('[支付宝回调] 赠送灵珠失败:', e);
+          console.error('[支付宝回调] 赠送积分失败:', e);
         }
       }
     }

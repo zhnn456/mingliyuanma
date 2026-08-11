@@ -71,7 +71,7 @@ export default function RedeemPage() {
     <div className="max-w-md mx-auto py-10 px-4">
       <Link href="/profile" className="text-sm text-gray-500 hover:text-red-700 mb-4 inline-block">← 返回个人中心</Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">卡密兑换</h1>
-      <p className="text-sm text-gray-500 mb-6">输入您的卡密进行充值，支持灵珠卡和代理商余额卡</p>
+      <p className="text-sm text-gray-500 mb-6">输入您的卡密进行充值，支持积分卡和代理商余额卡</p>
 
       {/* 兑换表单 */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
@@ -109,7 +109,7 @@ export default function RedeemPage() {
               <div className="text-sm text-green-700 mb-3">{result.message}</div>
               {result.balance !== undefined && (
                 <div className="text-xs text-green-600">
-                  {result.type === 'lingzhu' ? `当前灵珠余额：${result.balance}` : `当前代理商余额：¥${result.balance}`}
+                  {result.type === 'lingzhu' ? `当前积分余额：${result.balance}` : `当前代理商余额：¥${result.balance}`}
                 </div>
               )}
               <div className="mt-4 flex gap-2 justify-center">
@@ -141,7 +141,7 @@ export default function RedeemPage() {
       {/* 说明 */}
       <div className="mt-6 bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
         <div className="font-medium text-gray-600 mb-1">使用说明</div>
-        <div>· 灵珠卡：兑换后增加灵珠余额，可用于排盘解读</div>
+        <div>· 积分卡：兑换后增加积分余额，可用于排盘解读</div>
         <div>· 代理商余额卡：仅代理商可使用，兑换后增加代理商余额</div>
         <div>· 卡密为一次性使用，兑换后即失效</div>
         <div>· 如遇问题请联系客服</div>

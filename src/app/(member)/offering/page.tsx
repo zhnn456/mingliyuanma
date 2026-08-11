@@ -51,7 +51,7 @@ export default function OfferingPage() {
     }).catch(() => {});
   }, []);
 
-  // 加载供奉广场
+  // 加载祈福广场
   useEffect(() => {
     fetch('/api/offering/square').then(r => r.json()).then(d => {
       setSquare(d.items || []);
@@ -59,7 +59,7 @@ export default function OfferingPage() {
     }).catch(() => {});
   }, []);
 
-  // 加载灵珠余额
+  // 加载积分余额
   useEffect(() => {
     if (!user) return;
     fetch('/api/user/lingzhu').then(r => r.json()).then(d => setBalance(d.balance || 0)).catch(() => {});
@@ -88,7 +88,7 @@ export default function OfferingPage() {
   const handleSubmit = async () => {
     if (!selectedSupply) { alert('请选择供品'); return; }
     const cost = selectedSupply.price * qty;
-    if (balance < cost) { alert(`灵珠不足！需要${cost}灵珠，当前${balance}灵珠`); window.location.href = '/profile/recharge'; return; }
+    if (balance < cost) { alert(`积分不足！需要${cost}积分，当前${balance}积分`); window.location.href = '/profile/recharge'; return; }
 
     setLoading(true); setMsg(''); setSuccess('');
     try {
@@ -99,11 +99,11 @@ export default function OfferingPage() {
       const d = await res.json();
       if (res.ok) {
         setBalance(d.balance);
-        setSuccess(`✅ 供奉成功！功德无量 🙏`);
+        setSuccess(`✅ 祈福成功！心愿已送达 🙏`);
         setSelectedSupplyId(''); setQty(1); setDedication('');
         loadRecords();
       } else {
-        setMsg(d.error || '供奉失败');
+        setMsg(d.error || '祈福失败');
       }
     } catch { setMsg('网络错误，请重试'); } finally { setLoading(false); }
   };
@@ -111,7 +111,7 @@ export default function OfferingPage() {
   const handleSubscribe = async (offerType: 'monthly' | 'yearly') => {
     if (!user) { alert('请先登录'); return; }
     const cost = offerType === 'monthly' ? 3000 : 30000;
-    if (balance < cost) { alert(`灵珠不足！需要${cost}灵珠，当前${balance}灵珠`); window.location.href = '/profile/recharge'; return; }
+    if (balance < cost) { alert(`积分不足！需要${cost}积分，当前${balance}积分`); window.location.href = '/profile/recharge'; return; }
 
     setLoading(true); setMsg(''); setSuccess('');
     try {
@@ -122,10 +122,10 @@ export default function OfferingPage() {
       const d = await res.json();
       if (res.ok && d.success) {
         setBalance(d.balance);
-        setSuccess(`✅ ${offerType === 'monthly' ? '月供' : '年供'}供奉成功！功德无量 🙏`);
+        setSuccess(`✅ ${offerType === 'monthly' ? '月供' : '年供'}祈福成功！心愿已送达 🙏`);
         loadRecords();
       } else {
-        setMsg(d.error || '供奉失败');
+        setMsg(d.error || '祈福失败');
       }
     } catch { setMsg('网络错误，请重试'); } finally { setLoading(false); }
   };
@@ -139,16 +139,16 @@ export default function OfferingPage() {
         <div className="page-header">
           <div className="section-label justify-center">OFFERING</div>
           <h1 className="page-header-title">
-            <span>在线供奉</span>
+            <span>在线祈福</span>
           </h1>
-          <p className="page-header-subtitle">虔诚供奉，积累功德，祈福平安</p>
+          <p className="page-header-subtitle">民俗祈福，寄托美好心愿</p>
         </div>
         </div>
 
-        {/* 灵珠余额 */}
+        {/* 积分余额 */}
         {user && (
           <div className="flex items-center justify-end gap-3 mb-4">
-            <span className="text-sm text-gray-500">💎 灵珠余额：<strong className="text-purple-700">{balance}</strong></span>
+            <span className="text-sm text-gray-500">💎 积分余额：<strong className="text-purple-700">{balance}</strong></span>
             <Link href="/profile/recharge" className="text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">充值</Link>
           </div>
         )}
@@ -157,7 +157,7 @@ export default function OfferingPage() {
         {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 text-center text-sm">{success}</div>}
         {msg && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">{msg}</div>}
 
-        {/* ======== 供奉广场 ======== */}
+        {/* ======== 祈福广场 ======== */}
         <div className="bg-gradient-to-br from-amber-50 via-stone-50 to-white rounded-xl p-6 mb-6 border border-stone-200 shadow-sm relative overflow-hidden">
           {/* 装饰 - 淡雅水墨 */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-amber-100/40 rounded-full blur-3xl" />
@@ -166,15 +166,15 @@ export default function OfferingPage() {
           {/* 标题 */}
           <div className="flex items-center gap-2 mb-4 relative z-10">
             <span className="text-lg">🏮</span>
-            <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>供奉广场</span>
-            <span className="text-xs text-stone-400 ml-auto">功德无量 · 善念常存</span>
+            <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>祈福广场</span>
+            <span className="text-xs text-stone-400 ml-auto">心之所愿 · 皆有所成</span>
           </div>
 
           {/* 数字统计 - 素雅风格 */}
           <div className="grid grid-cols-3 gap-3 mb-4 relative z-10">
             <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
               <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalOfferings || 0}</div>
-              <div className="text-xs text-stone-500 mt-0.5">累计供奉(场)</div>
+              <div className="text-xs text-stone-500 mt-0.5">累计祈福(次)</div>
             </div>
             <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
               <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalUsers || 0}</div>
@@ -182,11 +182,11 @@ export default function OfferingPage() {
             </div>
             <div className="bg-white/60 rounded-lg p-3 text-center border border-stone-100">
               <div className="text-2xl md:text-3xl font-bold text-amber-700">{squareStats.totalLingzhu || 0}</div>
-              <div className="text-xs text-stone-500 mt-0.5">累计灵珠(💎)</div>
+              <div className="text-xs text-stone-500 mt-0.5">累计积分(💎)</div>
             </div>
           </div>
 
-          {/* 滚动供奉动态 */}
+          {/* 滚动祈福动态 */}
           <div className="relative overflow-hidden rounded-lg bg-white/40 border border-stone-100" style={{ height: '140px' }}>
             <div className="absolute inset-0 flex flex-col gap-2 p-3 animate-scroll-up">
               {[...square, ...square, ...square].map((item: any, idx: number) => (
@@ -195,7 +195,7 @@ export default function OfferingPage() {
                     {(item.userName || '?')[0]}
                   </span>
                   <span className="font-medium text-stone-700 truncate max-w-[70px]">{item.userName}</span>
-                  <span className="text-stone-400">供奉了</span>
+                  <span className="text-stone-400">祈福了</span>
                   <span className="font-bold text-amber-700">{item.itemName}</span>
                   <span className="text-amber-600 text-xs">{item.amount}💎</span>
                   {item.dedication && <span className="text-stone-400 truncate max-w-[100px] text-xs">「{item.dedication}」</span>}
@@ -209,16 +209,16 @@ export default function OfferingPage() {
 
           {/* 引导文案 */}
           <div className="text-center mt-3 text-sm text-stone-500 relative z-10">
-            已有 <strong className="text-amber-700">{squareStats.totalUsers || 0}</strong> 位善信参与供奉 · 心诚则灵，福不唐捐
+            已有 <strong className="text-amber-700">{squareStats.totalUsers || 0}</strong> 位用户参与祈福 · 心意所至，皆是美好
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {[
-            { key: 'offer' as const, label: '供奉', icon: '🙏' },
+            { key: 'offer' as const, label: '祈福', icon: '🙏' },
             { key: 'records' as const, label: '我的记录', icon: '📋' },
-            { key: 'leaderboard' as const, label: '功德榜', icon: '🏆' },
+            { key: 'leaderboard' as const, label: '祈福榜', icon: '🏆' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${tab === t.key ? 'bg-amber-700 text-white' : 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200'}`}>
@@ -227,10 +227,10 @@ export default function OfferingPage() {
           ))}
         </div>
 
-        {/* ======== 供奉 Tab ======== */}
+        {/* ======== 祈福 Tab ======== */}
         {tab === 'offer' && (
           <>
-            {/* 供奉分类 */}
+            {/* 祈福分类 */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               {categories.map(cat => (
                 <button key={cat.value} onClick={() => { setSelectedCat(cat.value); setSelectedSupplyId(''); }}
@@ -256,10 +256,10 @@ export default function OfferingPage() {
                 ))}
               </div>
 
-              {/* 供奉表单 */}
+              {/* 祈福表单 */}
               {selectedSupply && (
                 <div className="bg-white rounded-xl border border-stone-200 p-6 mb-6 shadow-sm">
-                  <h2 className="font-bold text-stone-800 mb-4">供奉信息</h2>
+                  <h2 className="font-bold text-stone-800 mb-4">祈福信息</h2>
                   <div className="space-y-4">
                     <div className="bg-amber-50 rounded-lg p-3 border border-amber-100 flex items-center gap-3">
                       <span className="text-3xl">{selectedSupply.icon}</span>
@@ -284,19 +284,19 @@ export default function OfferingPage() {
                     </div>
                     <div className="bg-stone-50 rounded-lg p-4 border border-stone-100">
                       <div className="flex justify-between items-center">
-                        <span className="text-stone-600">供奉费用</span>
+                        <span className="text-stone-600">祈福费用</span>
                         <span className="text-xl font-bold text-amber-700">{selectedSupply.price * qty} 💎</span>
                       </div>
                       <div className="flex justify-between items-center text-sm mt-1">
-                        <span className="text-stone-500">当前灵珠</span>
+                        <span className="text-stone-500">当前积分</span>
                         <span className="font-medium text-stone-700">{balance} 💎</span>
                       </div>
                     </div>
                     <button onClick={handleSubmit} disabled={loading || !user}
                       className="w-full bg-amber-700 text-white py-3 rounded-xl text-lg font-medium disabled:opacity-50 hover:bg-amber-800 transition-colors">
-                      {loading ? '供奉中...' : '开始供奉'}
+                      {loading ? '祈福中...' : '开始祈福'}
                     </button>
-                    {!user && <p className="text-center text-sm text-stone-500">请先 <Link href="/login" className="text-amber-700 hover:underline">登录</Link> 后供奉</p>}
+                    {!user && <p className="text-center text-sm text-stone-500">请先 <Link href="/login" className="text-amber-700 hover:underline">登录</Link> 后祈福</p>}
                   </div>
                 </div>
               )}
@@ -307,45 +307,45 @@ export default function OfferingPage() {
               <div className="text-center py-12 text-stone-400 text-sm">加载供品数据中...</div>
             )}
 
-            {/* 供奉说明 */}
+            {/* 祈福说明 */}
             {selectedCat && supplies.length > 0 && (
               <div className="bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50 rounded-xl p-6 border border-stone-200">
-                <h3 className="font-bold text-stone-800 text-sm mb-2">🙏 关于供奉</h3>
+                <h3 className="font-bold text-stone-800 text-sm mb-2">🙏 关于祈福</h3>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  供奉是一种表达虔诚与敬意的方式，通过供奉可以积累功德、祈福平安。
-                  心诚则灵，每一份供奉都是善念的传递。
+                  祈福是一种表达心意与祝愿的方式，寄托对美好生活的向往。
+                  心意所在，每一份祝愿都是美好的期许。
                 </p>
                 <p className="text-xs text-stone-400 mt-3">
-                  ⚠️ 免责声明：供奉行为仅为传统文化表达，不代表真实生活事件。
-                  所有供奉均为虚拟功德，请理性看待，勿过度依赖。
+                  ⚠️ 免责声明：祈福行为仅为传统文化表达，不构成任何现实承诺。
+                  所有祈福均为虚拟仪式，请理性看待，仅供文化体验。
                 </p>
               </div>
             )}
 
-            {/* 长期供奉（月供/年供）- 灵珠支付 */}
+            {/* 长期祈福（月祈福/年祈福）- 积分支付 */}
             <div className="bg-gradient-to-r from-purple-50 via-amber-50 to-purple-50 rounded-xl p-6 border border-purple-200">
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-lg">📿</span>
-                <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>长期供奉</span>
-                <span className="text-xs text-stone-400 ml-auto">灵珠订阅 · 功德绵长</span>
+                <span className="font-bold text-lg text-stone-800" style={{ fontFamily: 'serif' }}>长期祈福</span>
+                <span className="text-xs text-stone-400 ml-auto">积分订阅 · 心愿常在</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-white rounded-lg p-4 border border-stone-200 text-center">
                   <div className="text-sm text-stone-500 mb-1">月供</div>
-                  <div className="text-2xl font-bold text-purple-700 mb-1">3000<span className="text-sm font-normal text-stone-500"> 灵珠/月</span></div>
-                  <div className="text-xs text-stone-400 mb-3">每月供奉，功德不断</div>
+                  <div className="text-2xl font-bold text-purple-700 mb-1">3000<span className="text-sm font-normal text-stone-500"> 积分/月</span></div>
+                  <div className="text-xs text-stone-400 mb-3">每月祈福，祝福不断</div>
                   <button onClick={() => handleSubscribe('monthly')} disabled={loading || !user}
                     className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-purple-700 transition-colors">
-                    {loading ? '供奉中...' : '订阅月供'}
+                    {loading ? '祈福中...' : '订阅月祈福'}
                   </button>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-stone-200 text-center">
                   <div className="text-sm text-stone-500 mb-1">年供</div>
-                  <div className="text-2xl font-bold text-purple-700 mb-1">30000<span className="text-sm font-normal text-stone-500"> 灵珠/年</span></div>
-                  <div className="text-xs text-stone-400 mb-3">全年供奉，福泽绵长</div>
+                  <div className="text-2xl font-bold text-purple-700 mb-1">30000<span className="text-sm font-normal text-stone-500"> 积分/年</span></div>
+                  <div className="text-xs text-stone-400 mb-3">全年祈福，祝福常在</div>
                   <button onClick={() => handleSubscribe('yearly')} disabled={loading || !user}
                     className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-purple-700 transition-colors">
-                    {loading ? '供奉中...' : '订阅年供'}
+                    {loading ? '祈福中...' : '订阅年祈福'}
                   </button>
                 </div>
               </div>
@@ -363,8 +363,8 @@ export default function OfferingPage() {
             ) : records.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-5xl mb-3">🙏</div>
-                <p className="text-stone-500">暂无供奉记录</p>
-                <button onClick={() => setTab('offer')} className="btn-primary px-6 py-2 mt-4">去供奉</button>
+                <p className="text-stone-500">暂无祈福记录</p>
+                <button onClick={() => setTab('offer')} className="btn-primary px-6 py-2 mt-4">去祈福</button>
               </div>
             ) : (
               <div className="divide-y divide-stone-100">
@@ -372,7 +372,7 @@ export default function OfferingPage() {
                   <div key={r.id} className="flex items-center gap-4 p-4">
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{'🙏'}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-stone-800 text-sm">{r.itemId || '供奉'}</div>
+                      <div className="font-medium text-stone-800 text-sm">{r.itemId || '祈福'}</div>
                       <div className="text-xs text-stone-500 mt-0.5">
                         {r.type === 'monthly' ? '包月' : r.type === 'yearly' ? '包年' : '单次'}
                         {r.endDate && ` · 至 ${new Date(r.endDate).toLocaleDateString('zh-CN')}`}
@@ -406,7 +406,7 @@ export default function OfferingPage() {
                     </div>
                     <div className="flex-1">
                       <div className="font-medium text-stone-800 text-sm">{item.name}</div>
-                      <div className="text-xs text-stone-500">供奉 {item.count} 次</div>
+                      <div className="text-xs text-stone-500">祈福 {item.count} 次</div>
                     </div>
                     <div className="font-bold text-amber-700">{item.totalAmount} 💎</div>
                   </div>

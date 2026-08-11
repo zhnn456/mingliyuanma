@@ -5,10 +5,10 @@ import Link from 'next/link';
 
 // ========== 数据定义 ==========
 const services = [
-  { title: '四柱八字', subtitle: 'Four Pillars of Destiny', description: '根据出生年月日时，推算天干地支，分析五行旺衰，解读命运密码', href: '/bazi', icon: '☰', features: ['四柱排盘', '大运流年', '格局分析', '用神取法'] },
+  { title: '四柱八字', subtitle: 'Four Pillars of Destiny', description: '根据出生年月日时排列干支，分析五行能量，提供传统文化视角的性格解读', href: '/bazi', icon: '☰', features: ['四柱排盘', '大运流年', '格局分析', '用神取法'] },
   { title: '紫微斗数', subtitle: 'Zi Wei Dou Shu', description: '排列十二宫位星曜，揭示人生各方面运势走向', href: '/ziwei', icon: '★', features: ['十二宫位', '十四主星', '四化飞星', '大运运势'] },
-  { title: '奇门遁甲', subtitle: 'Qi Men Dun Jia', description: '古之帝王之术，预测决策、趋吉避凶', href: '/qimen', icon: '◈', features: ['天地人神', '三奇六仪', '十干克应', '用神分析'] },
-  { title: '梅花易数', subtitle: 'Mei Hua Yi Shu', description: '以数起卦，以象断事，简洁精准的占卜之术', href: '/meihua', icon: '✿', features: ['六种起卦', '体用分析', '卦象演变', '应期推断'] },
+  { title: '奇门遁甲', subtitle: 'Qi Men Dun Jia', description: '古典决策智慧的文化展示与娱乐解读', href: '/qimen', icon: '◈', features: ['天地人神', '三奇六仪', '十干克应', '用神分析'] },
+  { title: '梅花易数', subtitle: 'Mei Hua Yi Shu', description: '以数起卦，以象会意，古典哲学思维的趣味呈现', href: '/meihua', icon: '✿', features: ['六种起卦', '体用分析', '卦象演变', '应期推断'] },
 ];
 
 const features = [
@@ -170,7 +170,7 @@ function HeroVariantA({ theme }: { theme: typeof themes[0] }) {
             <span className={theme.hero.titleGrad}>知微阁</span>
           </h1>
           <p className={`text-2xl md:text-3xl ${theme.hero.subtitle} mb-6 font-kai tracking-widest`}>
-            传承千年智慧 · 解读命运密码
+            传承千年智慧 · 解读文化密码
           </p>
           <p className={`text-lg ${theme.hero.body} mb-12 max-w-2xl mx-auto leading-relaxed`}>
             融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，
@@ -305,7 +305,7 @@ function HeroVariantC() {
           知微阁
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-4 font-kai tracking-widest">
-          传承千年智慧 · 解读命运密码
+          传承千年智慧 · 解读文化密码
         </p>
         <p className="text-gray-500 max-w-xl mx-auto mb-12 leading-relaxed">
           融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系

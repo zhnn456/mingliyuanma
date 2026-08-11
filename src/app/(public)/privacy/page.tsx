@@ -59,7 +59,7 @@ export default function PrivacyPage() {
               <ul className="text-sm text-gray-600 space-y-2 pl-5 list-disc">
                 <li>我们不会收集您的身份证号码、银行卡密码等敏感信息。</li>
                 <li>我们不会强制要求您上传真实照片或进行实名认证。</li>
-                <li>排盘信息中的出生数据仅用于计算命理结果，不会与您的真实身份关联（除非您主动绑定）。</li>
+                <li>排盘信息中的出生数据仅用于生成传统文化解读内容，不会与您的真实身份关联（除非您主动绑定）。</li>
               </ul>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">2. 信息的使用</h2>
           <ul className="text-sm text-gray-600 space-y-3 pl-5 list-disc">
-            <li><strong>提供服务：</strong>使用您的排盘信息计算命理结果，提供测算服务。</li>
+            <li><strong>提供服务：</strong>使用您的排盘信息生成解读内容，提供文化解读服务。</li>
             <li><strong>账号管理：</strong>用于账号注册、登录、身份验证和账号安全保护。</li>
             <li><strong>优化体验：</strong>分析用户访问数据，优化网站功能和用户体验。</li>
             <li><strong>安全防护：</strong>检测异常访问行为，防范欺诈、诈骗等违法活动。</li>

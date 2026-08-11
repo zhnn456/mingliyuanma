@@ -1,0 +1,33 @@
+SELECT 'User' AS t, COUNT(*) AS c FROM User
+UNION ALL SELECT 'Agent', COUNT(*) FROM Agent
+UNION ALL SELECT 'Order', COUNT(*) FROM "Order"
+UNION ALL SELECT 'BaziRecord', COUNT(*) FROM BaziRecord
+UNION ALL SELECT 'ZiweiRecord', COUNT(*) FROM ZiweiRecord
+UNION ALL SELECT 'QimenRecord', COUNT(*) FROM QimenRecord
+UNION ALL SELECT 'MeihuaRecord', COUNT(*) FROM MeihuaRecord
+UNION ALL SELECT 'OfferingRecord', COUNT(*) FROM OfferingRecord
+UNION ALL SELECT 'OfferingItem', COUNT(*) FROM OfferingItem
+UNION ALL SELECT 'OfferingCategory', COUNT(*) FROM OfferingCategory
+UNION ALL SELECT 'OfferingSupply', COUNT(*) FROM OfferingSupply
+UNION ALL SELECT 'MembershipPlan', COUNT(*) FROM MembershipPlan
+UNION ALL SELECT 'Coupon', COUNT(*) FROM Coupon
+UNION ALL SELECT 'SiteConfig', COUNT(*) FROM SiteConfig
+UNION ALL SELECT 'Ticket', COUNT(*) FROM Ticket
+UNION ALL SELECT 'PointsLedger', COUNT(*) FROM PointsLedger
+UNION ALL SELECT 'UpdateLog', COUNT(*) FROM UpdateLog
+UNION ALL SELECT 'Notification', COUNT(*) FROM Notification
+UNION ALL SELECT 'MessageTemplate', COUNT(*) FROM MessageTemplate
+UNION ALL SELECT 'FortuneTeller', COUNT(*) FROM FortuneTeller
+UNION ALL SELECT 'Encyclopedia', COUNT(*) FROM Encyclopedia
+UNION ALL SELECT 'KnowledgeArticle', COUNT(*) FROM KnowledgeArticle
+UNION ALL SELECT 'Campaign', COUNT(*) FROM Campaign
+UNION ALL SELECT 'Channel', COUNT(*) FROM Channel
+UNION ALL SELECT 'Withdrawal', COUNT(*) FROM Withdrawal
+UNION ALL SELECT 'Version', COUNT(*) FROM Version
+UNION ALL SELECT 'CommissionRule', COUNT(*) FROM CommissionRule
+UNION ALL SELECT 'CommissionRecord', COUNT(*) FROM CommissionRecord
+UNION ALL SELECT 'Settlement', COUNT(*) FROM Settlement
+UNION ALL SELECT 'AgentLicense', COUNT(*) FROM AgentLicense
+UNION ALL SELECT 'ReferralCode', COUNT(*) FROM ReferralCode
+UNION ALL SELECT 'CardKey', COUNT(*) FROM CardKey
+ORDER BY c DESC;

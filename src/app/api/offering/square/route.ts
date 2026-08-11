@@ -2,18 +2,16 @@ import { NextResponse } from 'next/server';
 import { queryAll, queryFirst } from '@/lib/d1';
 
 const ANON_NAMES = [
-  '善信·慧', '善信·明', '善信·诚', '善信·德', '善信·仁',
-  '虔诚·行者', '虔诚·居士', '虔诚·信士', '虔诚·善人',
-  '福慧·双修', '福慧·随缘', '福慧·清净',
-  '菩提·心', '菩提·愿', '菩提·行',
-  '妙音·天', '妙音·海',
-  '净心·莲', '净心·禅',
-  '如意·珠', '如意·宝',
-  '吉祥·云', '吉祥·光',
-  '慈悲·喜', '慈悲·舍',
+  '心愿·慧', '心愿·明', '心愿·诚', '心愿·德', '心愿·仁',
+  '静心·行者', '清风·远客', '明月·照心', '松间·听雨',
+  '福慧·常乐', '随缘·欢喜', '安然·自在',
+  '山间·清风', '溪畔·白云',
+  '初心·不改', '心愿·常新',
+  '吉祥·如意', '喜乐·安康',
+  '雅集·知音', '悠然·南山',
 ];
 
-const ITEMS = ['清香', '鲜花', '水果', '素食', '供灯', '宝鼎'];
+const ITEMS = ['清香', '鲜花', '水果', '素食', '祈福灯', '香炉'];
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -41,8 +39,8 @@ export async function GET() {
       let dedication = '';
       try { const d = JSON.parse(r.supplyIds || '{}'); dedication = d.dedication || ''; } catch {}
       return {
-        userName: r.userName || '善信',
-        itemName: r.itemId || '供奉',
+        userName: r.userName || '用户',
+        itemName: r.itemId || '祈福',
         amount: r.amount || 0,
         dedication,
         timeAgo: timeAgo(r.createdAt),
@@ -65,7 +63,7 @@ export async function GET() {
     for (let i = 0; i < fakeCount; i++) {
       const name = ANON_NAMES[Math.floor(Math.random() * ANON_NAMES.length)];
       const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-      const prices: Record<string, number> = { '清香': 100, '鲜花': 200, '水果': 300, '素食': 500, '供灯': 1000, '宝鼎': 2000 };
+      const prices: Record<string, number> = { '清香': 100, '鲜花': 200, '水果': 300, '素食': 500, '祈福灯': 1000, '香炉': 2000 };
       const amount = prices[item] || 100;
       const minutesAgo = Math.floor(Math.random() * 10080);
       const dedication = ['阖家平安', '身体健康', '工作顺利', '学业有成', '姻缘美满', '', '', ''][Math.floor(Math.random() * 8)];
@@ -96,7 +94,7 @@ export async function GET() {
       },
     });
   } catch (error: any) {
-    console.error('供奉广场获取失败:', error?.message);
+    console.error('祈福广场获取失败:', error?.message);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
 }

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知微阁 · 通知预览（移动端）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Serif SC', serif;
+    background:
+      radial-gradient(ellipse at 20% 10%, #2a1f1a 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, #1a1a2e 0%, transparent 50%),
+      #0f0f14;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    color: #eae6e2;
+  }
+
+  /* 顶部说明 */
+  .page-head {
+    text-align: center;
+    margin-bottom: 1.8rem;
+  }
+  .page-head h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    background: linear-gradient(90deg, #D4916A, #E8B589);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .page-head p {
+    font-size: 0.82rem;
+    color: rgba(234,230,226,0.5);
+    letter-spacing: 0.08em;
+  }
+
+  /* 控制条 */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    margin-bottom: 1.8rem;
+  }
+  .ctrl-btn {
+    padding: 0.55rem 1.1rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    background: rgba(212,145,106,0.08);
+    border: 1px solid rgba(212,145,106,0.25);
+    color: #E8B589;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+  }
+  .ctrl-btn:hover { background: rgba(212,145,106,0.16); border-color: #D4916A; }
+  .ctrl-btn.active {
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    color: #1a0f08;
+    border-color: transparent;
+    font-weight: 600;
+  }
+
+  /* 手机外壳 */
+  .phone-wrap {
+    position: relative;
+    width: 375px;
+    max-width: 100%;
+  }
+  .phone {
+    width: 375px;
+    height: 760px;
+    background: #0a0a0f;
+    border-radius: 44px;
+    border: 10px solid #1c1c24;
+    box-shadow:
+      0 0 0 2px #2a2a36,
+      0 30px 80px rgba(0,0,0,0.6),
+      0 10px 30px rgba(212,145,106,0.1);
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+  /* 刘海 */
+  .notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 26px;
+    background: #1c1c24;
+    border-radius: 0 0 16px 16px;
+    z-index: 100;
+  }
+  /* 状态栏 */
+  .status-bar {
+    height: 44px;
+    padding: 0 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #fff;
+    position: relative;
+    z-index: 50;
+    background: linear-gradient(180deg, #0a0a0f 0%, transparent 100%);
+  }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; }
+  .status-bar .icons span { font-size: 0.7rem; }
+
+  /* 屏幕内容区 */
+  .screen {
+    position: relative;
+    height: calc(100% - 44px);
+    overflow: hidden;
+    background: #0a0a0f;
+  }
+  /* 模拟首页背景 */
+  .app-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(212,145,106,0.18) 0%, transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(122,59,42,0.25) 0%, transparent 50%),
+      #0a0a0f;
+  }
+  .app-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 45% 65%, rgba(212,145,106,0.4), transparent),
+      radial-gradient(1px 1px at 75% 35%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 85% 75%, rgba(200,164,92,0.4), transparent);
+  }
+  /* 模拟 logo / 标题 */
+  .app-mock {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+  .app-mock .brand {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: #D4916A;
+    margin-bottom: 0.6rem;
+  }
+  .app-mock .title {
+    font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(180deg, #fff 0%, #E8B589 60%, #D4916A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.4rem;
+  }
+  .app-mock .sub {
+    font-family: 'KaiTi', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    color: rgba(232,181,137,0.7);
+  }
+  .app-mock .btns {
+    margin-top: 1.4rem;
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+  }
+  .app-mock .btn {
+    padding: 0.5rem 1.1rem;
+    font-size: 0.72rem;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+  }
+  .app-mock .btn-1 {
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    color: #1a0f08;
+    font-weight: 600;
+  }
+  .app-mock .btn-2 {
+    border: 1px solid rgba(212,145,106,0.3);
+    color: #E8B589;
+  }
+
+  /* ============ 通知形态1：顶部公告条 ============ */
+  .notice-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: linear-gradient(90deg, rgba(212,145,106,0.95), rgba(184,112,79,0.95));
+    color: #1a0f08;
+    padding: 0.6rem 2.4rem 0.6rem 1rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transform: translateY(-100%);
+    transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 2px 12px rgba(212,145,106,0.3);
+  }
+  .notice-bar.show { transform: translateY(0); }
+  .notice-bar .ico { font-size: 0.9rem; flex-shrink: 0; }
+  .notice-bar .txt { flex: 1; font-weight: 500; }
+  .notice-bar .txt strong { font-weight: 700; }
+  .notice-bar .close {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: #1a0f08;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  /* ============ 通知形态2：右下角浮动卡片 ============ */
+  .notice-float {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 1rem;
+    z-index: 40;
+    width: calc(100% - 1.6rem);
+    max-width: 320px;
+    background: rgba(18,18,26,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(212,145,106,0.3);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,145,106,0.1);
+    transform: translateY(120%);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.16,1,0.3,1);
+  }
+  .notice-float.show { transform: translateY(0); opacity: 1; }
+  .notice-float .head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .notice-float .badge {
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    color: #1a0f08;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+  .notice-float .title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #E8B589;
+    font-family: 'KaiTi', serif;
+  }
+  .notice-float .desc {
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: rgba(234,230,226,0.75);
+    margin-bottom: 0.6rem;
+  }
+  .notice-float .desc strong { color: #D4916A; }
+  .notice-float .actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .notice-float .btn-go {
+    flex: 1;
+    text-align: center;
+    padding: 0.45rem;
+    font-size: 0.72rem;
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    color: #1a0f08;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+  .notice-float .btn-later {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.72rem;
+    color: rgba(234,230,226,0.5);
+    letter-spacing: 0.08em;
+  }
+  .notice-float .close-x {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    color: rgba(234,230,226,0.4);
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  /* ============ 通知形态3：全屏弹窗公告 ============ */
+  .modal-mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .modal-mask.show { opacity: 1; pointer-events: auto; }
+  .modal {
+    width: 100%;
+    max-width: 320px;
+    background: linear-gradient(180deg, #14141c 0%, #0a0a0f 100%);
+    border: 1px solid rgba(212,145,106,0.3);
+    border-radius: 14px;
+    overflow: hidden;
+    transform: scale(0.92);
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,145,106,0.15);
+  }
+  .modal-mask.show .modal { transform: scale(1); }
+  .modal-banner {
+    height: 90px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(212,145,106,0.3) 0%, transparent 70%),
+      linear-gradient(135deg, #2a1a14 0%, #14141c 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-bottom: 1px solid rgba(212,145,106,0.2);
+  }
+  .modal-banner .tag-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    color: #1a0f08;
+    box-shadow: 0 0 30px rgba(212,145,106,0.5);
+  }
+  .modal-banner .close-x {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.7rem;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    color: rgba(255,255,255,0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .modal-body {
+    padding: 1.2rem 1.3rem 1.3rem;
+  }
+  .modal-title {
+    text-align: center;
+    font-family: 'KaiTi', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #E8B589;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.05em;
+  }
+  .modal-subtitle {
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: rgba(212,145,106,0.7);
+    margin-bottom: 1rem;
+  }
+  .modal-section {
+    margin-bottom: 0.85rem;
+  }
+  .modal-section .sec-head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+  }
+  .modal-section .sec-ico {
+    font-size: 0.85rem;
+  }
+  .modal-section .sec-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #D4916A;
+  }
+  .modal-section .sec-desc {
+    font-size: 0.72rem;
+    line-height: 1.65;
+    color: rgba(234,230,226,0.72);
+    padding-left: 1.25rem;
+  }
+  .modal-promo {
+    background: rgba(212,145,106,0.08);
+    border: 1px dashed rgba(212,145,106,0.3);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin: 0.8rem 0;
+  }
+  .modal-promo .p-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #E8B589;
+    margin-bottom: 0.3rem;
+    text-align: center;
+  }
+  .modal-promo ul {
+    list-style: none;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: rgba(234,230,226,0.8);
+  }
+  .modal-promo ul li::before {
+    content: '·';
+    color: #D4916A;
+    margin-right: 0.4rem;
+    font-weight: 700;
+  }
+  .modal-deadline {
+    text-align: center;
+    font-size: 0.7rem;
+    color: rgba(234,230,226,0.5);
+    margin: 0.7rem 0 0.9rem;
+    letter-spacing: 0.05em;
+  }
+  .modal-deadline strong { color: #D4916A; }
+  .modal-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .modal-actions .btn {
+    flex: 1;
+    padding: 0.6rem;
+    font-size: 0.78rem;
+    border-radius: 5px;
+    text-align: center;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .modal-actions .btn-primary {
+    background: linear-gradient(135deg, #D4916A, #b8704f);
+    color: #1a0f08;
+    box-shadow: 0 4px 14px rgba(212,145,106,0.3);
+  }
+  .modal-actions .btn-ghost {
+    border: 1px solid rgba(212,145,106,0.3);
+    color: #E8B589;
+    background: transparent;
+  }
+  .modal-footer {
+    text-align: center;
+    margin-top: 0.9rem;
+    font-size: 0.65rem;
+    color: rgba(234,230,226,0.35);
+    letter-spacing: 0.1em;
+  }
+
+  /* 提示文字 */
+  .hint {
+    margin-top: 1.5rem;
+    font-size: 0.72rem;
+    color: rgba(234,230,226,0.4);
+    text-align: center;
+    letter-spacing: 0.08em;
+    max-width: 375px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>知微阁 · 通知预览</h1>
+  <p>移动端效果展示 · 点击下方按钮切换不同形态</p>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn active" data-mode="bar">顶部公告条</button>
+  <button class="ctrl-btn" data-mode="float">右下角浮动卡</button>
+  <button class="ctrl-btn" data-mode="modal">全屏弹窗</button>
+</div>
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="icons">
+        <span>●●●</span>
+        <span>📶</span>
+        <span>🔋</span>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="app-bg"></div>
+
+      <!-- 模拟首页内容 -->
+      <div class="app-mock">
+        <div class="brand">XIAN ZHI MING LI</div>
+        <div class="title">知微阁</div>
+        <div class="sub">传承千年 · 解读命盘</div>
+        <div class="btns">
+          <div class="btn btn-1">开始排盘</div>
+          <div class="btn btn-2">开通会员</div>
+        </div>
+      </div>
+
+      <!-- 通知形态1：顶部公告条 -->
+      <div class="notice-bar show" id="noticeBar">
+        <span class="ico">🎁</span>
+        <span class="txt"><strong>源码部署 · 贴牌开户</strong>限时开放！8 月专享折扣，名额有限 →</span>
+        <span class="close" onclick="hideEl('noticeBar')">×</span>
+      </div>
+
+      <!-- 通知形态2：右下角浮动卡 -->
+      <div class="notice-float" id="noticeFloat">
+        <span class="close-x" onclick="hideEl('noticeFloat')">×</span>
+        <div class="head">
+          <span class="badge">限时</span>
+          <span class="title">源码部署 · 贴牌开户</span>
+        </div>
+        <div class="desc">
+          自主部署、自有品牌，<strong>8 月专享折扣</strong>，名额有限，立即咨询 →
+        </div>
+        <div class="actions">
+          <div class="btn-go" onclick="hideEl('noticeFloat')">立即咨询</div>
+          <div class="btn-later" onclick="hideEl('noticeFloat')">稍后</div>
+        </div>
+      </div>
+
+      <!-- 通知形态3：全屏弹窗 -->
+      <div class="modal-mask" id="noticeModal">
+        <div class="modal">
+          <div class="modal-banner">
+            <div class="tag-icon">🎁</div>
+            <span class="close-x" onclick="hideEl('noticeModal')">×</span>
+          </div>
+          <div class="modal-body">
+            <div class="modal-title">源码部署 · 贴牌开户</div>
+            <div class="modal-subtitle">8 月限时优惠</div>
+
+            <div class="modal-section">
+              <div class="sec-head">
+                <span class="sec-ico">📦</span>
+                <span class="sec-title">源码部署</span>
+              </div>
+              <div class="sec-desc">获取完整源码，自主部署至自有服务器，数据独立掌控，永久授权一次买断。</div>
+            </div>
+
+            <div class="modal-section">
+              <div class="sec-head">
+                <span class="sec-ico">🏷</span>
+                <span class="sec-title">贴牌开户（OEM）</span>
+              </div>
+              <div class="sec-desc">自定义品牌、Logo、域名，独立管理后台，适合工作室与个人 IP。</div>
+            </div>
+
+            <div class="modal-promo">
+              <div class="p-title">🎁 8 月限时优惠</div>
+              <ul>
+                <li>源码部署：立减 ¥XXX</li>
+                <li>贴牌开户：首年授权费 8 折</li>
+                <li>双项同办：赠送 3 个月技术支持</li>
+              </ul>
+            </div>
+
+            <div class="modal-deadline">
+              ⏰ 优惠时间：即日起 — <strong>2026 年 8 月 31 日</strong>
+            </div>
+
+            <div class="modal-actions">
+              <div class="btn btn-primary" onclick="hideEl('noticeModal')">立即咨询</div>
+              <div class="btn btn-ghost" onclick="hideEl('noticeModal')">稍后再说</div>
+            </div>
+
+            <div class="modal-footer">知微阁运营团队</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="hint">提示：此为纯前端预览页，仅用于查看通知在移动端的视觉效果，非实际线上页面。</p>
+
+<script>
+  function hideEl(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  const modes = {
+    bar: ['noticeBar'],
+    float: ['noticeFloat'],
+    modal: ['noticeModal']
+  };
+
+  const btns = document.querySelectorAll('.ctrl-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // 隐藏所有
+      ['noticeBar','noticeFloat','noticeModal'].forEach(id => {
+        document.getElementById(id).classList.remove('show');
+      });
+      // 显示当前
+      const mode = btn.dataset.mode;
+      setTimeout(() => {
+        modes[mode].forEach(id => {
+          document.getElementById(id).classList.add('show');
+        });
+      }, 150);
+    });
+  });
+</script>
+
+</body>
+</html>

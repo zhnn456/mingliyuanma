@@ -60,8 +60,8 @@ export interface CardKeyItem {
 /**
  * 批量生成卡密
  * @param count      数量
- * @param type       类型：lingzhu(灵珠) / agent_balance(代理商余额)
- * @param value      面值（灵珠数或元数）
+ * @param type       类型：lingzhu(积分) / agent_balance(代理商余额)
+ * @param value      面值（积分数或元数）
  * @param price      售价（元）
  * @param expiryDays 有效期天数（0 或负数表示永久）
  * @param createdBy  创建者 userId

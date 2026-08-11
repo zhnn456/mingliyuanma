@@ -72,7 +72,7 @@ export default function AdminTransactionsExportPage() {
   };
 
   const typeMap: Record<string, string> = { membership: '会员', offering: '供奉', pdf_report: 'PDF', divination: '占卜' };
-  const methodMap: Record<string, string> = { wechat: '微信', alipay: '支付宝', points: '灵珠', stripe: 'Stripe', paypal: 'PayPal', cardkey: '卡密' };
+  const methodMap: Record<string, string> = { wechat: '微信', alipay: '支付宝', points: '积分', stripe: 'Stripe', paypal: 'PayPal', cardkey: '卡密' };
   const statusMap: Record<string, string> = { pending: '待支付', paid: '已支付', failed: '失败', refunded: '已退款' };
   const statusColor: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',

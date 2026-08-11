@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-client';
 import { generateZiweiInterpretation, PALACE_MEANING, MAIN_STAR_INTERPRETATION } from '@/lib/interpretation/ziwei';
 import { PaipanForm } from '@/components/PaipanForm';
 import { InterpretPaywall } from '@/components/InterpretPaywall';
+import Disclaimer from '@/components/Disclaimer';
 import { useToast } from '@/components/Toast';
 import ZiweiChart, { ViewMode, TimeMode } from '@/components/ZiweiChart';
 
@@ -303,7 +304,7 @@ export default function ZiweiPage() {
       } else if (response.status === 402) {
         if (useLingzhu) {
           setPaywall(null);
-          addToast('error', json.error || '灵珠不足，请充值');
+          addToast('error', json.error || '积分不足，请充值');
         } else {
           const balance = await fetchBalance();
           setPaywall({ status: 402, cost: json.cost || 50, balance });
@@ -931,6 +932,8 @@ export default function ZiweiPage() {
                 )}
               </div>
             )}
+
+            <Disclaimer />
 
             {/* 查看详细解读按钮 */}
             {!interpretData && (

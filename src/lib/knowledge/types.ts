@@ -105,7 +105,7 @@ export const KNOWLEDGE_CATEGORIES: Omit<KnowledgeCategory, 'articleCount'>[] = [
     subCategories: [
       { name: '基础入门', description: '阴阳遁、节气定局、九宫八卦', articleIds: [] },
       { name: '天地人神', description: '九星、八门、八神、十干克应', articleIds: [] },
-      { name: '实战应用', description: '决策占卜、趋吉避凶、案例分析', articleIds: [] },
+      { name: '实战应用', description: '决策文化、经典案例、灵活运用', articleIds: [] },
     ],
   },
   {

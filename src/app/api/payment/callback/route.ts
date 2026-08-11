@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
         status: 'success',
       });
     } else if (order.type === 'recharge') {
-      // 充值灵珠到账
+      // 充值积分到账
       const points = RECHARGE_PACKAGES[order.targetId];
       if (points) {
         batchStatements.push({
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         });
         batchStatements.push({
           sql: 'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, (SELECT balance FROM UserPoints WHERE userId = ?), ?, ?, ?)',
-          params: [`pts_${Date.now()}_${randSuffix}`, order.userId, points, order.userId, 'recharge', `充值${points}灵珠`, now],
+          params: [`pts_${Date.now()}_${randSuffix}`, order.userId, points, order.userId, 'recharge', `充值${points}积分`, now],
         });
       }
 
@@ -136,14 +136,14 @@ export async function POST(req: NextRequest) {
       console.error('分润处理失败:', err);
     }
 
-    // 会员开通赠送灵珠
+    // 会员开通赠送积分
     if (order.type === 'membership') {
       const giftAmount = MEMBERSHIP_GIFT_LINGZHU[order.targetId] || 0;
       if (giftAmount > 0) {
         try {
-          await grantLingzhu(order.userId, giftAmount, `开通会员赠送${giftAmount}灵珠`);
+          await grantLingzhu(order.userId, giftAmount, `开通会员赠送${giftAmount}积分`);
         } catch (err) {
-          console.error('会员赠送灵珠失败:', err);
+          console.error('会员赠送积分失败:', err);
         }
       }
     }

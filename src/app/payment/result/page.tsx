@@ -64,7 +64,7 @@ export default function PaymentResultPage() {
               ? order?.type === 'membership'
                 ? '您的会员权益已开通，开始探索命理世界'
                 : order?.type === 'offering'
-                  ? '您的供奉已登记，功德无量 🙏'
+                  ? '您的祈福已登记，心愿已送达 🙏'
                   : '支付已完成'
               : '您的支付尚未完成，请返回重试或联系客服'}
           </p>

@@ -6,13 +6,13 @@ import Link from 'next/link';
 interface PaywallProps {
   /** 401=未登录 402=需要付费 */
   status: 401 | 402;
-  /** 需要的灵珠数 */
+  /** 需要的积分数 */
   cost?: number;
-  /** 当前灵珠余额 */
+  /** 当前积分余额 */
   balance?: number;
   /** 模块名称 */
   moduleLabel: string;
-  /** 确认消耗灵珠 */
+  /** 确认消耗积分 */
   onConfirmPay?: () => void;
   /** 关闭弹窗 */
   onClose?: () => void;
@@ -62,7 +62,7 @@ export function InterpretPaywall({
                   请先<span className="font-bold">登录</span>或<span className="font-bold">注册</span>。
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  新用户注册即送100灵珠，可免费解读2次
+                  新用户注册即送100积分，可免费解读2次
                 </p>
               </div>
               <Link href="/login" className="block w-full text-center py-3 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-xl hover:opacity-90 transition">
@@ -82,25 +82,25 @@ export function InterpretPaywall({
                 </p>
               </div>
 
-              {/* 灵珠支付选项 */}
+              {/* 积分支付选项 */}
               <div className="border-2 border-red-500 rounded-xl p-4 bg-red-50">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-gray-900">灵珠解锁</span>
+                  <span className="font-bold text-gray-900">积分解锁</span>
                   <span className="text-2xl">💎 {cost}</span>
                 </div>
                 <p className="text-xs text-gray-500 mb-3">
-                  当前余额：<span className={balance >= cost ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>{balance}</span> 灵珠
+                  当前余额：<span className={balance >= cost ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>{balance}</span> 积分
                 </p>
                 <button
                   onClick={handlePay}
                   disabled={paying || balance < cost}
                   className="w-full py-2.5 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {paying ? '支付中...' : balance >= cost ? `消耗 ${cost} 灵珠解锁` : '灵珠不足，去充值'}
+                  {paying ? '支付中...' : balance >= cost ? `消耗 ${cost} 积分解锁` : '积分不足，去充值'}
                 </button>
                 {balance < cost && (
                   <Link href="/profile/recharge" className="block text-center text-xs text-red-600 mt-2 hover:underline">
-                    点击充值灵珠 →
+                    点击充值积分 →
                   </Link>
                 )}
               </div>
@@ -119,7 +119,7 @@ export function InterpretPaywall({
                   <span className="text-lg">👑</span>
                 </div>
                 <p className="text-xs text-gray-500 mb-3">
-                  会员无限次免费解读，每月还送300灵珠
+                  会员无限次免费解读，每月还送300积分
                 </p>
                 <Link href="/membership" className="block w-full text-center py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-lg hover:opacity-90 transition">
                   查看会员套餐

@@ -23,7 +23,7 @@ export function Header() {
     { href: '/ziwei', label: '紫微' },
     { href: '/qimen', label: '奇门' },
     { href: '/meihua', label: '梅花' },
-    { href: '/offering', label: '供奉' },
+    { href: '/offering', label: '祈福' },
     { href: '/knowledge', label: '知识' },
     { href: '/membership', label: '会员' },
   ];

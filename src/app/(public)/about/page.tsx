@@ -29,7 +29,7 @@ export default function AboutPage() {
           <h2 className="card-title">品牌故事</h2>
           <div className="prose max-w-none text-gray-700 space-y-4">
             <p>
-              知微阁成立于2024年，是一群热爱中国传统文化的技术团队和命理学研究者共同打造的在线测算平台。
+              知微阁成立于2024年，是一群热爱中国传统文化的技术团队和传统文化爱好者共同打造的文化交流平台。
               我们坚信，千年传承的命理智慧不应仅存于古籍之中，而应该借助现代科技的力量，让更多人了解、学习和受益。
             </p>
             <p>
@@ -82,7 +82,7 @@ export default function AboutPage() {
               {
                 icon: '🏛️',
                 title: '四柱八字',
-                desc: '基于出生年月日时推算四柱八字，分析五行旺衰、十神关系，解读命运密码。提供日主性格分析、大运流年推演、喜用神建议等全面解读。',
+                desc: '基于出生年月日时排列四柱八字，分析五行能量、十神关系，提供传统文化视角的性格解读。包括日主性格分析、大运流年推演、喜用神参考等全面解读。',
                 href: '/bazi',
               },
               {
@@ -123,7 +123,7 @@ export default function AboutPage() {
           <h2 className="card-title">开源项目致谢</h2>
           <p className="text-gray-600 mb-6">
             本站在开发过程中参考和借鉴了以下 GitHub 开源项目，在此向原作者表示衷心的感谢！
-            正是这些优秀的开源项目，让我们能够站在前人的肩膀上，为用户提供更优质的命理测算服务。
+            正是这些优秀的开源项目，让我们能够站在前人的肩膀上，为用户提供更优质的文化解读服务。
           </p>
           
           <div className="space-y-4">

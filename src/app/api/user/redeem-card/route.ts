@@ -7,7 +7,7 @@ import { auditLog } from '@/lib/audit';
  * 用户兑换卡密 API
  * POST 兑换卡密
  *  - 验证卡密有效性（存在、未使用、未过期、未禁用）
- *  - 根据类型充值：lingzhu 给用户加灵珠；agent_balance 给代理商加余额
+ *  - 根据类型充值：lingzhu 给用户加积分；agent_balance 给代理商加余额
  *  - 更新卡密状态为 used
  *  - 记录审计日志
  */
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // 根据卡密类型进行充值
     if (card.type === 'lingzhu') {
-      // 灵珠卡：给用户加灵珠（使用 addPoints 写入 UserPoints + PointsLedger）
+      // 积分卡：给用户加积分（使用 addPoints 写入 UserPoints + PointsLedger）
       await addPoints(userId, cardValue, 'card_key_redeem', `兑换卡密 ${normalizedCode}`);
 
       // 记录审计日志
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         success: true,
         type: 'lingzhu',
         value: cardValue,
-        message: `兑换成功，获得 ${cardValue} 灵珠`,
+        message: `兑换成功，获得 ${cardValue} 积分`,
         balance: pointsRow?.balance || 0,
       });
     } else if (card.type === 'agent_balance') {

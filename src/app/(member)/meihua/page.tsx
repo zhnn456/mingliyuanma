@@ -7,6 +7,7 @@ import { MEIHUA_QUESTION_TYPES, type MeihuaDetailedAnalysis } from '@/lib/interp
 import { HexagramLookup } from '@/components/HexagramLookup';
 import { InterpretPaywall } from '@/components/InterpretPaywall';
 import { useToast } from '@/components/Toast';
+import Disclaimer from '@/components/Disclaimer';
 
 interface MeihuaResult {
   method: string;
@@ -200,7 +201,7 @@ export default function MeihuaPage() {
       } else if (response.status === 402) {
         if (useLingzhu) {
           setPaywall(null);
-          addToast('error', json.error || '灵珠不足，请充值');
+          addToast('error', json.error || '积分不足，请充值');
         } else {
           const balance = await fetchBalance();
           setPaywall({ status: 402, cost: json.cost || 50, balance });
@@ -269,7 +270,7 @@ export default function MeihuaPage() {
           <h1 className="page-header-title">
             <span>梅花易数</span>
           </h1>
-          <p className="page-header-subtitle">以数起卦，以象断事，简洁精准的占卜之术</p>
+          <p className="page-header-subtitle">以数起卦，以象会意，古典哲学思维的趣味呈现</p>
         </div>
 
         {/* 主Tab切换 */}
@@ -918,6 +919,8 @@ export default function MeihuaPage() {
                     )}
                   </div>
                 )}
+
+                <Disclaimer />
 
                 {/* 查看详细解读按钮 */}
                 {!interpretData && (

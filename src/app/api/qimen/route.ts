@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // === 解读（收费：每日限免 + 灵珠付费） ===
+    // === 解读（收费：每日限免 + 积分付费） ===
     const { canInterpret, session, needLingzhu, cost, error, remainingFree } = await checkInterpretLimit('qimen', req);
 
     if (!canInterpret && error) return error;
 
     if (!canInterpret && needLingzhu) {
-      // 需要灵珠付费
+      // 需要积分付费
       if (!useLingzhu) {
         // 用户还没确认付费，返回付费提示
         return NextResponse.json({
@@ -83,17 +83,17 @@ export async function POST(req: NextRequest) {
           needLingzhu: true,
           cost: cost || INTERPRET_COST_LINGZHU,
           module: 'qimen',
-          message: `本次解读需要消耗 ${cost || INTERPRET_COST_LINGZHU} 灵珠`,
+          message: `本次解读需要消耗 ${cost || INTERPRET_COST_LINGZHU} 积分`,
           result, // 同时返回排盘数据
         }, { status: 402 }); // 402 Payment Required
       }
 
-      // 用户确认付费，扣灵珠
+      // 用户确认付费，扣积分
       if (session) {
         const deductResult = await deductLingzhu(session.sub, cost || INTERPRET_COST_LINGZHU, '奇门解读');
         if (!deductResult.success) {
           return NextResponse.json({
-            error: `灵珠不足，需要 ${cost || INTERPRET_COST_LINGZHU} 灵珠，当前余额 ${deductResult.balance} 灵珠`,
+            error: `积分不足，需要 ${cost || INTERPRET_COST_LINGZHU} 积分，当前余额 ${deductResult.balance} 积分`,
             needLingzhu: true,
             cost: cost || INTERPRET_COST_LINGZHU,
             balance: deductResult.balance,

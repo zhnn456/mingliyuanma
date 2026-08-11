@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryAll } from '@/lib/d1';
 
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
-  buddha: { label: '佛像类', icon: '🪷', color: 'bg-amber-50 text-amber-700' },
-  deity: { label: '神像类', icon: '⚡', color: 'bg-blue-50 text-blue-700' },
-  ritual: { label: '法器类', icon: '🔔', color: 'bg-purple-50 text-purple-700' },
-  offering: { label: '供品类', icon: '🌸', color: 'bg-pink-50 text-pink-700' },
-  deliverance: { label: '追思祈福类', icon: '🪷', color: 'bg-indigo-50 text-indigo-700' },
+  wish: { label: '心愿祈福', icon: '🏮', color: 'bg-amber-50 text-amber-700' },
+  culture: { label: '文化纪念', icon: '🎐', color: 'bg-blue-50 text-blue-700' },
+  offering: { label: '鲜花供品', icon: '🌸', color: 'bg-pink-50 text-pink-700' },
+  ritual: { label: '香烛用品', icon: '🕯️', color: 'bg-purple-50 text-purple-700' },
 };
 
 function formatSupply(s: any) {
@@ -68,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ categories, supplies });
   } catch (error) {
-    console.error('获取供奉供品数据失败:', error);
+    console.error('获取祈福供品数据失败:', error);
     return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
 }

@@ -48,7 +48,7 @@ export const AGENT_ADDONS = {
   },
 } as const;
 
-// ============ 用户灵珠充值 ============
+// ============ 用户积分充值 ============
 export const LINGZHU_PLANS = [
   { lingzhu: 100, price: 10, bonus: 0 },     // 修改这里调整充值档位
   { lingzhu: 500, price: 50, bonus: 20 },
@@ -58,7 +58,7 @@ export const LINGZHU_PLANS = [
 
 // ============ 解读费用 ============
 export const INTERPRET_COST = {
-  bazi: 50,          // 修改这里调整八字解读灵珠消耗
+  bazi: 50,          // 修改这里调整八字解读积分消耗
   ziwei: 50,          // 紫微斗数
   qimen: 80,         // 奇门遁甲
   meihua: 30,         // 梅花易数
@@ -67,11 +67,11 @@ export const INTERPRET_COST = {
 
 // ============ 卡密面额 ============
 export const CARD_KEY_DENOMINATIONS = [
-  { value: 10, lingzhu: 100, label: '10元卡(100灵珠)' },
-  { value: 50, lingzhu: 500, label: '50元卡(500灵珠)' },
-  { value: 100, lingzhu: 1000, label: '100元卡(1000灵珠)' },
-  { value: 500, lingzhu: 5000, label: '500元卡(5000灵珠)' },
+  { value: 10, lingzhu: 100, label: '10元卡(100积分)' },
+  { value: 50, lingzhu: 500, label: '50元卡(500积分)' },
+  { value: 100, lingzhu: 1000, label: '100元卡(1000积分)' },
+  { value: 500, lingzhu: 5000, label: '500元卡(5000积分)' },
 ] as const;
 
 // ============ 汇率 ============
-export const LINGZHU_PER_YUAN = 10;  // 1元 = 10灵珠
+export const LINGZHU_PER_YUAN = 10;  // 1元 = 10积分
