@@ -1,9 +1,12 @@
 import type { MetadataRoute } from 'next';
+import { getAllArticles } from '@/lib/knowledge/server';
+
+const baseUrl = 'https://ming8.online';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://ming8.online';
+  const articles = getAllArticles();
 
-  return [
+  const mainPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'weekly', priority: 1.0 },
     { url: `${baseUrl}/bazi`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/ziwei`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
@@ -17,4 +20,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/login`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/register`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
   ];
+
+  const articlePages: MetadataRoute.Sitemap = articles.map(a => ({
+    url: `${baseUrl}/knowledge/${a.id}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  }));
+
+  return [...mainPages, ...articlePages];
 }

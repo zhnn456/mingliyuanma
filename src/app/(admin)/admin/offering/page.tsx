@@ -166,7 +166,7 @@ export default function AdminOfferingPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">分类名称</label>
-                <input value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="如：佛像" className="w-full px-3 py-2 border rounded-lg text-sm" />
+                <input value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="如：心愿祈福" className="w-full px-3 py-2 border rounded-lg text-sm" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">图标 (emoji)</label>

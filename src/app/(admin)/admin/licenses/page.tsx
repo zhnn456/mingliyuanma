@@ -15,6 +15,11 @@ interface AgentLicense {
   agentName?: string;
 }
 
+// 在授权码的分隔点后插入零宽空格，优先在 LIC/载荷/签名 边界换行，不影响复制内容
+function formatLicenseKey(key: string): string {
+  return key.replace(/\./g, '.\u200B');
+}
+
 export default function AdminLicensesPage() {
   const [licenses, setLicenses] = useState<AgentLicense[]>([]);
   const [total, setTotal] = useState(0);
@@ -142,10 +147,26 @@ export default function AdminLicensesPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">授权码管理</h2>
-          <p className="text-sm text-gray-500">共 {total} 个授权码</p>
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">授权码管理</h2>
+            <p className="text-sm text-gray-500">共 {total} 个授权码</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              生成授权码
+            </button>
+            <button
+              onClick={() => setShowBatchModal(true)}
+              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+            >
+              批量生成
+            </button>
+          </div>
         </div>
         <div className="flex gap-2">
           <input
@@ -154,7 +175,7 @@ export default function AdminLicensesPage() {
             value={searchKeyword}
             onChange={e => setSearchKeyword(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchLicenses(); } }}
-            className="px-3 py-2 border rounded-lg text-sm w-64"
+            className="px-3 py-2 border rounded-lg text-sm flex-1 max-w-xs"
           />
           <select
             value={statusFilter}
@@ -166,33 +187,21 @@ export default function AdminLicensesPage() {
             <option value="expired">已过期</option>
             <option value="revoked">已撤销</option>
           </select>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-          >
-            生成授权码
-          </button>
-          <button
-            onClick={() => setShowBatchModal(true)}
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-          >
-            批量生成
-          </button>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="bg-gray-50 border-b text-left">
-              <th className="px-4 py-3 text-gray-500 font-medium">授权码</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">代理商</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">域名</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">有效期至</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">用户上限</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">功能</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
-              <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
+              <th className="w-[28%] px-4 py-3 text-gray-500 font-medium">授权码</th>
+              <th className="w-[11%] px-4 py-3 text-gray-500 font-medium">代理商</th>
+              <th className="w-[14%] px-4 py-3 text-gray-500 font-medium">域名</th>
+              <th className="w-[11%] px-4 py-3 text-gray-500 font-medium">有效期至</th>
+              <th className="w-[8%] px-4 py-3 text-gray-500 font-medium">用户上限</th>
+              <th className="w-[12%] px-4 py-3 text-gray-500 font-medium">功能</th>
+              <th className="w-[7%] px-4 py-3 text-gray-500 font-medium">状态</th>
+              <th className="w-[9%] px-4 py-3 text-gray-500 font-medium">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -207,12 +216,12 @@ export default function AdminLicensesPage() {
             ) : (
               licenses.map((lic) => (
                 <tr key={lic.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-gray-700">{lic.licenseKey}</span>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="font-mono text-xs text-gray-700 break-all leading-relaxed">{formatLicenseKey(lic.licenseKey)}</span>
                       <button
                         onClick={() => handleCopy(lic.licenseKey)}
-                        className="text-blue-600 text-xs hover:underline"
+                        className="text-blue-600 text-xs hover:underline self-start"
                       >
                         复制
                       </button>
@@ -413,7 +422,7 @@ function EditLicenseModal({ license, onClose, onSubmit }: { license: AgentLicens
   return (
     <Modal title="编辑授权码" onClose={onClose} onSubmit={handleSubmit}>
       <FormField label="授权码">
-        <div className="px-3 py-2 bg-gray-50 border rounded-lg text-sm font-mono">{license.licenseKey}</div>
+        <div className="px-3 py-2 bg-gray-50 border rounded-lg text-sm font-mono break-all leading-relaxed">{formatLicenseKey(license.licenseKey)}</div>
       </FormField>
       <FormField label="代理商">
         <div className="px-3 py-2 bg-gray-50 border rounded-lg text-sm">{license.agentName || license.agentId}</div>

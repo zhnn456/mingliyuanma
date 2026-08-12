@@ -33,6 +33,7 @@ const TYPE_LABELS: Record<string, string> = {
   membership: '会员套餐',
   offering: '供奉',
   pdf_report: 'PDF报告',
+  recharge: '积分充值',
 };
 
 const PAYMENT_METHODS = [
@@ -405,11 +406,13 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">支付成功！</h2>
           <p className="text-gray-500 mb-6">
-            {order.type === 'membership' ? '您的会员已开通，开始享受尊贵服务' : '您的祈福已登记，心愿已送达'}
+            {order.type === 'membership' ? '您的会员已开通，开始享受尊贵服务'
+              : order.type === 'recharge' ? '积分充值成功，已到账'
+              : '您的祈福已登记，心愿已送达'}
           </p>
           <div className="flex gap-3 justify-center">
-            <Link href={order.type === 'membership' ? '/dashboard' : '/offering'} className="btn-primary px-6 py-2">
-              {order.type === 'membership' ? '开始使用' : '返回供奉'}
+            <Link href={order.type === 'membership' ? '/dashboard' : order.type === 'recharge' ? '/profile' : '/offering'} className="btn-primary px-6 py-2">
+              {order.type === 'membership' ? '开始使用' : order.type === 'recharge' ? '查看积分' : '返回供奉'}
             </Link>
           </div>
         </div>

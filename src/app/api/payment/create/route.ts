@@ -24,12 +24,20 @@ export async function POST(req: NextRequest) {
 
     let amount = 0;
     let title = '';
-    let targetType: 'membership' | 'offering' | 'pdf_report' = 'membership';
+    let targetType: 'membership' | 'offering' | 'pdf_report' | 'recharge' = 'membership';
 
     if (type === 'membership') {
       const plan = MEMBERSHIP_PLANS.find(p => p.level === targetId);
       if (!plan) return NextResponse.json({ error: '无效的会员套餐' }, { status: 400 });
       amount = plan.price; title = `知微阁${plan.name}`; targetType = 'membership';
+    } else if (type === 'recharge') {
+      // 充值积分套餐：targetId 为 packageId（如 pkg_10）
+      const { findRechargePackage } = await import('@/lib/recharge-packages');
+      const pkg = findRechargePackage(targetId);
+      if (!pkg) return NextResponse.json({ error: '无效的充值套餐' }, { status: 400 });
+      amount = pkg.price;
+      title = `积分充值 ${pkg.points + pkg.bonus} 积分`;
+      targetType = 'recharge';
     } else if (type === 'offering') {
       let item = await queryFirst('SELECT * FROM OfferingItem WHERE id = ?', targetId) as any;
       if (!item) item = await queryFirst('SELECT * FROM OfferingItem WHERE name = ?', targetId) as any;

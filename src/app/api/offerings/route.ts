@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll } from '@/lib/d1';
+import { queryAll, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';
 
 const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
   wish: { label: '心愿祈福', icon: '🏮', color: 'bg-amber-50 text-amber-700' },
@@ -15,6 +15,8 @@ function formatSupply(s: any) {
     icon: s.icon,
     image: s.image,
     price: s.price,
+    priceMonth: s.priceMonth,
+    priceYear: s.priceYear,
     description: s.description,
     category: s.category,
     sortOrder: s.sortOrder,
@@ -24,6 +26,10 @@ function formatSupply(s: any) {
 
 export async function GET(req: NextRequest) {
   try {
+    // 确保表存在且有默认数据
+    await ensureOfferingSupplyTable();
+    await seedDefaultSupplies(false);
+
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
 

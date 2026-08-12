@@ -3,14 +3,7 @@ import { queryFirst, execute, batch } from '@/lib/d1';
 import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 import { grantLingzhu, MEMBERSHIP_GIFT_LINGZHU } from '@/lib/rate-limit';
-
-// 充值套餐（与 recharge/route.ts 保持一致）
-const RECHARGE_PACKAGES: Record<string, number> = {
-  pkg_100: 100,
-  pkg_500: 550,
-  pkg_1000: 1200,
-  pkg_3000: 3800,
-};
+import { PACKAGE_POINTS } from '@/lib/recharge-packages';
 
 export async function POST(req: NextRequest) {
   try {
@@ -106,11 +99,12 @@ export async function POST(req: NextRequest) {
       });
     } else if (order.type === 'recharge') {
       // 充值积分到账
-      const points = RECHARGE_PACKAGES[order.targetId];
-      if (points) {
+      const points = PACKAGE_POINTS[order.targetId] || 0;
+      if (points > 0) {
+        // MySQL 8.0 已弃用 VALUES(col)，改用显式参数
         batchStatements.push({
-          sql: 'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + VALUES(balance), updatedAt = VALUES(updatedAt)',
-          params: [order.userId, points, now],
+          sql: 'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + ?, updatedAt = ?',
+          params: [order.userId, points, now, points, now],
         });
         batchStatements.push({
           sql: 'INSERT INTO PointsLedger (id, userId, amount, balance, type, remark, createdAt) VALUES (?, ?, ?, (SELECT balance FROM UserPoints WHERE userId = ?), ?, ?, ?)',

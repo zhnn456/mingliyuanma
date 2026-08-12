@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryFirst, execute, batch } from '@/lib/d1';
+import { queryFirst, execute, batch, addPoints } from '@/lib/d1';
 import { requireAuth } from '@/lib/auth-server';
 import { MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
+import { PACKAGE_POINTS } from '@/lib/recharge-packages';
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,6 +66,28 @@ export async function POST(req: NextRequest) {
         details: { orderNo: order.orderNo, targetId: order.targetId },
         status: 'success',
       });
+    } else if (order.type === 'recharge') {
+      // 充值积分到账（mock-confirm 在 batch 之外单独处理，因为 addPoints 内部已含原子 upsert + 流水）
+      const points = PACKAGE_POINTS[order.targetId] || 0;
+      if (points > 0) {
+        // 先提交订单/支付记录的批次
+        await batch(batchStatements);
+        // 再发放积分（addPoints 已封装为原子操作）
+        await addPoints(order.userId, points, 'recharge', `充值${points}积分（订单${order.orderNo}）`);
+
+        await auditLog({
+          userId: order.userId,
+          action: 'recharge_success',
+          details: { orderNo: order.orderNo, points, amount: order.amount, method: 'mock' },
+          status: 'success',
+        });
+
+        return NextResponse.json({
+          message: '支付成功',
+          order: { orderNo: order.orderNo, amount: order.amount, status: 'paid', type: order.type },
+          points,
+        });
+      }
     }
 
     await batch(batchStatements);

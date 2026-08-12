@@ -55,7 +55,7 @@ export interface CreateOrderParams {
   description?: string;
   method: PaymentMethod;
   userId: string;
-  targetType: 'membership' | 'offering' | 'pdf_report';
+  targetType: 'membership' | 'offering' | 'pdf_report' | 'recharge';
   targetId?: string;
   openid?: string;
   returnUrl?: string;

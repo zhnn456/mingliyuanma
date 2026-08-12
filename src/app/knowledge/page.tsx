@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { KNOWLEDGE_CATEGORIES, LEARNING_PATHS } from '@/lib/knowledge/types';
 import type { LearningPath } from '@/lib/knowledge/types';
 
@@ -508,14 +509,14 @@ export default function KnowledgePage() {
                               // 假设通过文章标题查找（简化处理）
                               const article = articles.find(a => a.id === aid);
                               return article ? (
-                                <button
+                                <Link
                                   key={aid}
-                                  onClick={() => fetchArticleDetail(aid)}
+                                  href={`/knowledge/${aid}`}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-gray-200 text-sm text-gray-700 hover:text-red-700 hover:border-red-200 transition-colors"
                                 >
                                   <span>{article.icon}</span>
                                   <span>{article.title}</span>
-                                </button>
+                                </Link>
                               ) : (
                                 <span key={aid} className="px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-400">
                                   {aid}
@@ -643,9 +644,9 @@ export default function KnowledgePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredArticles.map(article => (
-                  <button
+                  <Link
                     key={article.id}
-                    onClick={() => fetchArticleDetail(article.id)}
+                    href={`/knowledge/${article.id}`}
                     className="card overflow-hidden text-left hover:shadow-lg transition-all group"
                   >
                     {article.image || getArticleImage(article) ? (
@@ -686,7 +687,7 @@ export default function KnowledgePage() {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}

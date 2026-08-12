@@ -20,6 +20,7 @@ nul
 .next_copy/
 .next-build/
 .next-mingli/
+.next_new/
 .dev.vars
 
 # 部署构建产物（大文件，不进仓库）

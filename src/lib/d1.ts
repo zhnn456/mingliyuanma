@@ -630,6 +630,8 @@ export async function ensureOfferingSupplyTable() {
     "icon" TEXT,
     "image" TEXT,
     "price" REAL NOT NULL,
+    "priceMonth" REAL NOT NULL DEFAULT 0,
+    "priceYear" REAL NOT NULL DEFAULT 0,
     "description" TEXT,
     "category" VARCHAR(50) NOT NULL DEFAULT 'general',
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
@@ -642,6 +644,8 @@ export async function ensureOfferingSupplyTable() {
   const colNames = cols.map(c => c.Field);
   const alters: Array<[string, string]> = [
     ['stock', 'INTEGER NOT NULL DEFAULT 0'],
+    ['priceMonth', 'REAL NOT NULL DEFAULT 0'],
+    ['priceYear', 'REAL NOT NULL DEFAULT 0'],
   ];
   for (const [col, def] of alters) {
     if (!colNames.includes(col)) {

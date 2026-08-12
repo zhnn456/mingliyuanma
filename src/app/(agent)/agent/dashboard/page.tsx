@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
-interface DashboardData {
+interface SaaSDashboardData {
+  mode: 'saas';
   stats: {
     pendingCommission: number;
     settledCommission: number;
@@ -18,10 +19,35 @@ interface DashboardData {
   agent: { brandName: string; companyName: string };
 }
 
+interface SourceDashboardData {
+  mode: 'source';
+  stats: {
+    totalRevenue: number;
+    totalOrders: number;
+    monthRevenue: number;
+    monthOrders: number;
+    totalCustomers: number;
+    newCustomers: number;
+  };
+  license: {
+    status: 'active' | 'expiring_soon' | 'expired';
+    expiryDate: string | null;
+    remainingDays: number | null;
+    planType: string;
+    updateServiceExpiry: string | null;
+  };
+  recentOrders: any[];
+  monthlyTrend: { month: string; amount: number }[];
+  agent: { brandName: string; companyName: string; domain: string };
+}
+
+type DashboardData = SaaSDashboardData | SourceDashboardData;
+
 export default function AgentDashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -30,20 +56,24 @@ export default function AgentDashboardPage() {
         if (res.ok) {
           const json = await res.json();
           setData(json);
+        } else {
+          setError('加载失败');
         }
-      } catch {}
+      } catch {
+        setError('网络错误');
+      }
       setLoading(false);
     };
     loadData();
   }, []);
 
   if (loading) return <div className="text-center py-20 text-gray-400">加载中...</div>;
+  if (error) return <div className="text-center py-20 text-red-500">{error}</div>;
+  if (!data) return <div className="text-center py-20 text-gray-400">暂无数据</div>;
 
-  const stats = data?.stats;
-  const recentOrders = data?.recentOrders || [];
-  const monthlyTrend = data?.monthlyTrend || [];
-  const agent = data?.agent;
-
+  const recentOrders = data.recentOrders || [];
+  const monthlyTrend = data.monthlyTrend || [];
+  const agent = data.agent;
   const maxMonthAmount = Math.max(...monthlyTrend.map(m => m.amount), 1);
 
   const orderStatusMap: Record<string, string> = {
@@ -56,6 +86,12 @@ export default function AgentDashboardPage() {
     refunded: 'bg-gray-100 text-gray-600',
   };
 
+  const licenseStatusMap: Record<string, { label: string; color: string }> = {
+    active: { label: '授权有效', color: 'bg-green-100 text-green-800' },
+    expiring_soon: { label: '即将到期', color: 'bg-orange-100 text-orange-800' },
+    expired: { label: '已过期', color: 'bg-red-100 text-red-800' },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -63,52 +99,74 @@ export default function AgentDashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             您好{agent?.brandName ? `，${agent.brandName}` : ''} 👋
           </h1>
-          <p className="text-sm text-gray-500 mt-1">欢迎回到代理商后台，以下是您的分润数据概览</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {data.mode === 'source'
+              ? '欢迎回到代理商后台，以下是您的经营数据概览'
+              : '欢迎回到代理商后台，以下是您的分润数据概览'}
+          </p>
         </div>
       </div>
 
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border p-5">
-            <div className="text-xs text-gray-500 mb-2">本月GMV</div>
-            <div className="text-2xl font-bold text-blue-600">
-              ¥{stats.monthCommission.toFixed(2)}
-            </div>
-            <div className="text-xs text-gray-400 mt-1">{stats.monthCount} 笔订单</div>
+      {/* 统计卡片 */}
+      {data.mode === 'source' ? (
+        <SourceStats data={data} />
+      ) : (
+        <SaaSStats data={data} />
+      )}
+
+      {/* 源码部署代理：授权状态 */}
+      {data.mode === 'source' && data.license && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-gray-800">授权状态</h3>
+            <span className={`text-xs px-3 py-1 rounded-full ${licenseStatusMap[data.license.status]?.color || 'bg-gray-100'}`}>
+              {licenseStatusMap[data.license.status]?.label || data.license.status}
+            </span>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-5">
-            <div className="text-xs text-gray-500 mb-2">本月佣金</div>
-            <div className="text-2xl font-bold text-green-600">
-              ¥{stats.monthCommission.toFixed(2)}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="text-gray-500">到期日期</div>
+              <div className="font-medium text-gray-900 mt-1">
+                {data.license.expiryDate ? new Date(data.license.expiryDate).toLocaleDateString('zh-CN') : '-'}
+              </div>
             </div>
-            <div className="text-xs text-gray-400 mt-1">{stats.monthCount} 笔分润</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border p-5">
-            <div className="text-xs text-gray-500 mb-2">待结算佣金</div>
-            <div className="text-2xl font-bold text-orange-600">
-              ¥{stats.pendingCommission.toFixed(2)}
+            <div>
+              <div className="text-gray-500">剩余天数</div>
+              <div className="font-medium text-gray-900 mt-1">
+                {data.license.remainingDays !== null ? `${data.license.remainingDays} 天` : '-'}
+              </div>
             </div>
-            <div className="text-xs text-gray-400 mt-1">{stats.pendingCount} 笔待处理</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border p-5">
-            <div className="text-xs text-gray-500 mb-2">累计佣金</div>
-            <div className="text-2xl font-bold text-red-600">
-              ¥{stats.totalCommission.toFixed(2)}
+            <div>
+              <div className="text-gray-500">套餐类型</div>
+              <div className="font-medium text-gray-900 mt-1">
+                {data.license.planType === 'lifetime' ? '终身版' :
+                 data.license.planType === 'yearly' ? '年费版' :
+                 data.license.planType === 'monthly' ? '月费版' : data.license.planType}
+              </div>
             </div>
-            <div className="text-xs text-gray-400 mt-1">含已结算 ¥{stats.settledCommission.toFixed(2)}</div>
+            <div>
+              <div className="text-gray-500">更新服务到期</div>
+              <div className="font-medium text-gray-900 mt-1">
+                {data.license.updateServiceExpiry ? new Date(data.license.updateServiceExpiry).toLocaleDateString('zh-CN') : '-'}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border p-5">
-          <h3 className="font-bold text-gray-800 mb-4">近6个月分润趋势</h3>
+          <h3 className="font-bold text-gray-800 mb-4">
+            {data.mode === 'source' ? '近6个月收入趋势' : '近6个月分润趋势'}
+          </h3>
           <div className="space-y-3">
-            {monthlyTrend.map((m) => (
+            {monthlyTrend.length === 0 ? (
+              <p className="text-center py-4 text-gray-400 text-sm">暂无数据</p>
+            ) : monthlyTrend.map((m) => (
               <div key={m.month}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-500">{m.month}</span>
-                  <span className="font-medium">¥{m.amount.toFixed(2)}</span>
+                  <span className="font-medium">¥{(m.amount || 0).toFixed(2)}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -134,7 +192,7 @@ export default function AgentDashboardPage() {
                       {order.userEmail || order.userName || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {order.productTypeName || order.productType} · {order.createdAt ? new Date(order.createdAt).toLocaleDateString('zh-CN') : '-'}
+                      {order.productTypeName || order.productType || order.type} · {order.createdAt ? new Date(order.createdAt).toLocaleDateString('zh-CN') : '-'}
                     </div>
                   </div>
                   <div className="text-right ml-2">
@@ -163,6 +221,64 @@ export default function AgentDashboardPage() {
           <div className="text-3xl mb-2">🏦</div>
           <div className="text-sm font-medium text-gray-700">结算中心</div>
         </Link>
+      </div>
+    </div>
+  );
+}
+
+/** SaaS 代理统计卡片 */
+function SaaSStats({ data }: { data: SaaSDashboardData }) {
+  const stats = data.stats;
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">本月GMV</div>
+        <div className="text-2xl font-bold text-blue-600">¥{(stats.monthCommission || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">{stats.monthCount || 0} 笔订单</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">本月佣金</div>
+        <div className="text-2xl font-bold text-green-600">¥{(stats.monthCommission || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">{stats.monthCount || 0} 笔分润</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">待结算佣金</div>
+        <div className="text-2xl font-bold text-orange-600">¥{(stats.pendingCommission || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">{stats.pendingCount || 0} 笔待处理</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">累计佣金</div>
+        <div className="text-2xl font-bold text-red-600">¥{(stats.totalCommission || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">含已结算 ¥{(stats.settledCommission || 0).toFixed(2)}</div>
+      </div>
+    </div>
+  );
+}
+
+/** 源码部署代理统计卡片 */
+function SourceStats({ data }: { data: SourceDashboardData }) {
+  const stats = data.stats;
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">总收入</div>
+        <div className="text-2xl font-bold text-blue-600">¥{(stats.totalRevenue || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">{stats.totalOrders || 0} 笔订单</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">本月收入</div>
+        <div className="text-2xl font-bold text-green-600">¥{(stats.monthRevenue || 0).toFixed(2)}</div>
+        <div className="text-xs text-gray-400 mt-1">{stats.monthOrders || 0} 笔订单</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">总客户数</div>
+        <div className="text-2xl font-bold text-orange-600">{stats.totalCustomers || 0}</div>
+        <div className="text-xs text-gray-400 mt-1">累计注册</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="text-xs text-gray-500 mb-2">本月新增客户</div>
+        <div className="text-2xl font-bold text-red-600">{stats.newCustomers || 0}</div>
+        <div className="text-xs text-gray-400 mt-1">本月注册</div>
       </div>
     </div>
   );

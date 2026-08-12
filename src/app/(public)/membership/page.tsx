@@ -260,9 +260,21 @@ export default function MembershipPage() {
         </div>
 
         {/* 底部说明 */}
-        <div className="text-center mt-12 p-6 card">
-          <p className="text-sm text-gray-500">
-            所有套餐支持微信/支付宝支付 · 会员权益即时生效 · 如有疑问请联系客服
+        <div className="mt-12 p-6 card space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">💡</span>
+            <div className="text-sm text-gray-600">
+              <p className="font-medium text-gray-800 mb-1">支付方式说明</p>
+              <p>支付宝、微信支付正在配置中，目前可通过以下方式开通会员：</p>
+              <ul className="mt-2 space-y-1 ml-4 list-disc text-gray-500">
+                <li><span className="text-gray-700 font-medium">PayPal 支付</span>：点击上方"立即开通"直接使用（支持信用卡、借记卡）</li>
+                <li><span className="text-gray-700 font-medium">卡密兑换</span>：联系管理员购买激活码，前往<Link href="/profile/redeem" className="text-red-600 underline">卡密兑换</Link>页面激活</li>
+              </ul>
+            </div>
+          </div>
+          <div className="divider-gold" />
+          <p className="text-xs text-gray-400 text-center">
+            会员权益即时生效 · 如有疑问请联系客服
           </p>
         </div>
       </div>

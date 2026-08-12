@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
-import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
+import { queryFirst, queryAll, execute, batch, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';
+
+// 与前台 /api/offerings 保持一致的分类元数据
+const CATEGORY_META: Record<string, { label: string; icon: string }> = {
+  wish: { label: '心愿祈福', icon: '🏮' },
+  culture: { label: '文化纪念', icon: '🎐' },
+  offering: { label: '鲜花供品', icon: '🌸' },
+  ritual: { label: '香烛用品', icon: '🕯️' },
+};
 
 function generateId() {
   return `oitem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function ensureReady() {
+  await ensureOfferingSupplyTable();
+  await seedDefaultSupplies(false);
 }
 
 export async function GET(req: NextRequest) {
   try {
     const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await ensureReady();
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -21,38 +36,32 @@ export async function GET(req: NextRequest) {
     const where: string[] = [];
     const params: any[] = [];
     if (keyword) {
-      where.push('(oi.name LIKE ? OR oi.description LIKE ?)');
+      where.push('(name LIKE ? OR description LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`);
     }
     if (categoryId) {
-      where.push('oi.categoryId = ?');
+      where.push('category = ?');
       params.push(categoryId);
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const rows = await queryAll(
-      `SELECT oi.*, oc.name as categoryName, oc.icon as categoryIcon
-       FROM OfferingItem oi
-       LEFT JOIN OfferingCategory oc ON oi.categoryId = oc.id
-       ${whereSql}
-       ORDER BY oi.sortOrder ASC, oi.id DESC
-       LIMIT ? OFFSET ?`,
+      `SELECT * FROM OfferingSupply ${whereSql} ORDER BY sortOrder ASC, id DESC LIMIT ? OFFSET ?`,
       ...params, pageSize, offset
     );
 
     const countRow = await queryFirst(
-      `SELECT COUNT(*) as total FROM OfferingItem oi ${whereSql}`,
+      `SELECT COUNT(*) as total FROM OfferingSupply ${whereSql}`,
       ...params
     ) as any;
 
     const total = countRow?.total || 0;
 
     // 统计卡片数据
-    const [totalRow, activeRow, inactiveRow, categoryRow] = await Promise.all([
-      queryFirst('SELECT COUNT(*) as cnt FROM OfferingItem') as any,
-      queryFirst('SELECT COUNT(*) as cnt FROM OfferingItem WHERE isActive = 1') as any,
-      queryFirst('SELECT COUNT(*) as cnt FROM OfferingItem WHERE isActive = 0') as any,
-      queryFirst('SELECT COUNT(*) as cnt FROM OfferingCategory') as any,
+    const [totalRow, activeRow, inactiveRow] = await Promise.all([
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply') as any,
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply WHERE isActive = 1') as any,
+      queryFirst('SELECT COUNT(*) as cnt FROM OfferingSupply WHERE isActive = 0') as any,
     ]);
 
     return NextResponse.json({
@@ -64,7 +73,7 @@ export async function GET(req: NextRequest) {
         total: totalRow?.cnt || 0,
         active: activeRow?.cnt || 0,
         inactive: inactiveRow?.cnt || 0,
-        categories: categoryRow?.cnt || 0,
+        categories: Object.keys(CATEGORY_META).length,
       },
     });
   } catch (error) {
@@ -78,33 +87,39 @@ export async function POST(req: NextRequest) {
     const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
+    await ensureReady();
+
     const body = await req.json();
     const {
-      categoryId, name, image, description,
-      priceSingle, priceMonth, priceYear, sortOrder, isActive,
+      category, name, image, description,
+      price, priceMonth, priceYear, sortOrder, isActive,
+      icon, stock,
     } = body;
 
-    if (!categoryId || !name) {
+    if (!category || !name) {
       return NextResponse.json({ error: '分类和名称为必填项' }, { status: 400 });
     }
 
     const id = generateId();
+    const now = new Date().toISOString();
     await execute(
-      `INSERT INTO OfferingItem (id, categoryId, name, image, description, priceSingle, priceMonth, priceYear, isActive, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id, categoryId, name, image || null, description || null,
-      Number(priceSingle) || 0, Number(priceMonth) || 0, Number(priceYear) || 0,
-      isActive === false ? 0 : 1, Number(sortOrder) || 0
+      `INSERT INTO OfferingSupply (id, name, icon, image, price, priceMonth, priceYear, description, category, sortOrder, isActive, createdAt, stock)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, name, icon || null, image || null,
+      Number(price) || 0, Number(priceMonth) || 0, Number(priceYear) || 0,
+      description || null, category,
+      Number(sortOrder) || 0, isActive === false ? 0 : 1, now, Number(stock) || 0
     );
 
     return NextResponse.json({
       item: {
-        id, categoryId, name, image, description,
-        priceSingle: Number(priceSingle) || 0,
+        id, category, name, image, description, icon,
+        price: Number(price) || 0,
         priceMonth: Number(priceMonth) || 0,
         priceYear: Number(priceYear) || 0,
         isActive: isActive === false ? 0 : 1,
         sortOrder: Number(sortOrder) || 0,
+        stock: Number(stock) || 0,
       },
     });
   } catch (error) {
@@ -118,24 +133,28 @@ export async function PUT(req: NextRequest) {
     const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
+    await ensureReady();
+
     const body = await req.json();
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: '缺少项目 ID' }, { status: 400 });
 
-    const existing = await queryFirst('SELECT * FROM OfferingItem WHERE id = ?', id);
+    const existing = await queryFirst('SELECT * FROM OfferingSupply WHERE id = ?', id);
     if (!existing) return NextResponse.json({ error: '项目不存在' }, { status: 404 });
 
     const fields: string[] = [];
     const params: any[] = [];
     const fieldMap: Record<string, string> = {
-      categoryId: 'categoryId',
+      category: 'category',
       name: 'name',
+      icon: 'icon',
       image: 'image',
       description: 'description',
-      priceSingle: 'priceSingle',
+      price: 'price',
       priceMonth: 'priceMonth',
       priceYear: 'priceYear',
       sortOrder: 'sortOrder',
+      stock: 'stock',
     };
     for (const [k, col] of Object.entries(fieldMap)) {
       if (updates[k] !== undefined) {
@@ -153,7 +172,7 @@ export async function PUT(req: NextRequest) {
     }
 
     params.push(id);
-    await execute(`UPDATE OfferingItem SET ${fields.join(', ')} WHERE id = ?`, ...params);
+    await execute(`UPDATE OfferingSupply SET ${fields.join(', ')} WHERE id = ?`, ...params);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -166,6 +185,8 @@ export async function DELETE(req: NextRequest) {
   try {
     const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await ensureReady();
 
     const { searchParams } = new URL(req.url);
     const idsParam = searchParams.get('ids') || '';
@@ -182,10 +203,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (ids.length === 1) {
-      await execute('DELETE FROM OfferingItem WHERE id = ?', ids[0]);
+      await execute('DELETE FROM OfferingSupply WHERE id = ?', ids[0]);
     } else {
       const statements = ids.map((id) => ({
-        sql: 'DELETE FROM OfferingItem WHERE id = ?',
+        sql: 'DELETE FROM OfferingSupply WHERE id = ?',
         params: [id],
       }));
       await batch(statements);

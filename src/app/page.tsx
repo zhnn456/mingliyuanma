@@ -1,4 +1,41 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '八字排盘·紫微斗数·奇门遁甲·梅花易数 - 在线传统文化智慧平台',
+  description: '知微阁提供免费八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦等在线工具，融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，并收录54篇传统文化知识文章。',
+  keywords: ['八字排盘', '紫微斗数', '奇门遁甲', '梅花易数', '在线排盘', '算命', '命理', '传统文化', '国学', '知微阁'],
+  alternates: {
+    canonical: 'https://ming8.online/',
+  },
+  openGraph: {
+    title: '知微阁 - 八字排盘·紫微斗数·奇门遁甲·梅花易数在线工具',
+    description: '免费八字排盘、紫微斗数、奇门遁甲、梅花易数在线工具与传统文化知识库。',
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: '知微阁',
+    url: 'https://ming8.online/',
+  },
+};
+
+const siteJsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: '知微阁',
+      url: 'https://ming8.online/',
+      inLanguage: 'zh-CN',
+      description: '提供八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦在线工具与传统文化知识库的智慧平台。',
+    },
+    {
+      '@type': 'Organization',
+      name: '知微阁',
+      url: 'https://ming8.online/',
+      description: '以传统文化视角，融合现代科技提供八字、紫微斗数、奇门遁甲、梅花易数排盘与解读服务。',
+    },
+  ],
+});
 
 const services = [
   {
@@ -55,6 +92,11 @@ const features = [
 export default function HomePage() {
   return (
     <div>
+      {/* 结构化数据：WebSite + Organization */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: siteJsonLd }}
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-red-950 text-white">
         {/* 背景纹理 */}

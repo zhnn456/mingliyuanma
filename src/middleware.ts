@@ -20,12 +20,39 @@ let lastSyncTime = 0;
 const agentDomainCache = new Map<string, { agentId: string | null; expireAt: number }>();
 const DOMAIN_CACHE_TTL = 5 * 60 * 1000; // 5分钟
 
-// 在线验证缓存（避免每请求都远程验证）
-let licenseValid = true;       // 授权是否有效
-let licenseCheckTime = 0;       // 上次验证时间
-let licenseFailCount = 0;       // 连续失败次数
+// 在线验证状态（使用 globalThis 确保热重载和 instrumentation 共享）
+declare global {
+  // eslint-disable-next-line no-var
+  var __licenseValid: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __licenseCheckTime: number | undefined;
+  // eslint-disable-next-line no-var
+  var __licenseFailCount: number | undefined;
+}
+
 const LICENSE_CHECK_INTERVAL = 10 * 60 * 1000; // 10分钟验证一次
 const LICENSE_FAIL_THRESHOLD = 3; // 连续失败3次后锁定
+
+function getLicenseValid(): boolean {
+  // 优先使用 instrumentation 设置的全局状态
+  if (globalThis.__licenseValid === false) return false;
+  return true;
+}
+function setLicenseValid(valid: boolean) {
+  globalThis.__licenseValid = valid;
+}
+function getLicenseCheckTime(): number {
+  return globalThis.__licenseCheckTime || 0;
+}
+function setLicenseCheckTime(t: number) {
+  globalThis.__licenseCheckTime = t;
+}
+function getLicenseFailCount(): number {
+  return globalThis.__licenseFailCount || 0;
+}
+function setLicenseFailCount(n: number) {
+  globalThis.__licenseFailCount = n;
+}
 
 interface RateEntry {
   count: number;
@@ -127,9 +154,14 @@ export async function middleware(req: NextRequest) {
     } else {
       try {
         // 用 localhost 直接调用，避免 HTTPS 往返（NEXTAUTH_URL 是 https:// 会回到 Nginx）
+        // 设置 2 秒超时，避免数据库查询卡住导致所有请求阻塞
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
         const res = await fetch(`http://localhost:3001/api/internal/agent-domain?host=${encodeURIComponent(host)}`, {
           headers: { 'x-internal-request': '1' },
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (data.agentId) {
@@ -139,7 +171,8 @@ export async function middleware(req: NextRequest) {
         // 缓存结果（包括无代理商的情况，避免重复查询）
         agentDomainCache.set(host, { agentId: resolvedAgentId, expireAt: Date.now() + DOMAIN_CACHE_TTL });
       } catch {
-        // 数据库查询失败时不阻断请求
+        // 数据库查询失败或超时不阻断请求，缓存空结果避免反复查询
+        agentDomainCache.set(host, { agentId: null, expireAt: Date.now() + 60_000 });
       }
     }
   }
@@ -207,10 +240,11 @@ export async function middleware(req: NextRequest) {
   // 代理商路由保护：检查 License（带缓存机制）
   if (isAgentEnv) {
     const now = Date.now();
-    const needCheck = (now - licenseCheckTime) > LICENSE_CHECK_INTERVAL;
+    const isFirstCheck = getLicenseCheckTime() === 0;
+    const needCheck = isFirstCheck || (now - getLicenseCheckTime()) > LICENSE_CHECK_INTERVAL;
 
     if (needCheck) {
-      licenseCheckTime = now;
+      setLicenseCheckTime(now);
       const licenseKey = process.env.APP_LICENSE_KEY || '';
       const centerApi = process.env.CENTER_API || '';
       const domain = process.env.NEXTAUTH_URL || '';
@@ -224,29 +258,38 @@ export async function middleware(req: NextRequest) {
         if (res.ok) {
           const data = await res.json();
           if (data.valid) {
-            licenseValid = true;
-            licenseFailCount = 0;
+            setLicenseValid(true);
+            setLicenseFailCount(0);
           } else {
-            licenseFailCount++;
-            if (licenseFailCount >= LICENSE_FAIL_THRESHOLD) {
-              licenseValid = false;
+            // 首次验证失败立即锁定；运行时复验保留 3 次阈值
+            if (isFirstCheck) {
+              setLicenseValid(false);
+            } else {
+              setLicenseFailCount(getLicenseFailCount() + 1);
+              if (getLicenseFailCount() >= LICENSE_FAIL_THRESHOLD) {
+                setLicenseValid(false);
+              }
             }
           }
         } else {
-          licenseFailCount++;
-          // 网络错误不立即锁定（可能是临时网络问题）
-          if (licenseFailCount >= LICENSE_FAIL_THRESHOLD + 2) {
-            licenseValid = false;
+          // 首次验证失败立即锁定；运行时复验保留阈值
+          if (isFirstCheck) {
+            setLicenseValid(false);
+          } else {
+            setLicenseFailCount(getLicenseFailCount() + 1);
+            if (getLicenseFailCount() >= LICENSE_FAIL_THRESHOLD + 2) {
+              setLicenseValid(false);
+            }
           }
         }
       } catch {
         // 网络异常，不立即锁定
-        licenseFailCount++;
+        setLicenseFailCount(getLicenseFailCount() + 1);
       }
     }
 
-    // 授权失效后锁定核心功能
-    if (!licenseValid) {
+    // 授权失效后锁定核心功能（包括 instrumentation 启动时设置的失败状态）
+    if (!getLicenseValid()) {
       // 允许访问的路径：登录页、静态资源、健康检查
       const allowedPaths = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license'];
       if (!allowedPaths.some(p => pathname.startsWith(p))) {

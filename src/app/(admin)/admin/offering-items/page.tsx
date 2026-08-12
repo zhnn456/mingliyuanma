@@ -10,29 +10,33 @@ type Category = {
 
 type OfferingItem = {
   id: string;
-  categoryId: string;
+  category: string;
   name: string;
+  icon?: string;
   image?: string;
   description?: string;
-  priceSingle: number;
+  price: number;
   priceMonth: number;
   priceYear: number;
   isActive: number | boolean;
   sortOrder: number;
+  stock: number;
   categoryName?: string;
   categoryIcon?: string;
 };
 
 const emptyForm = {
-  categoryId: '',
+  category: '',
   name: '',
+  icon: '',
   image: '',
   description: '',
-  priceSingle: 0,
+  price: 0,
   priceMonth: 0,
   priceYear: 0,
   sortOrder: 0,
   isActive: true,
+  stock: 0,
 };
 
 export default function OfferingItemsPage() {
@@ -98,7 +102,7 @@ export default function OfferingItemsPage() {
     setEditingId(null);
     setForm({
       ...emptyForm,
-      categoryId: categories[0]?.id || '',
+      category: categories[0]?.id || '',
     });
     setModalOpen(true);
   };
@@ -106,21 +110,23 @@ export default function OfferingItemsPage() {
   const openEdit = (it: OfferingItem) => {
     setEditingId(it.id);
     setForm({
-      categoryId: it.categoryId || '',
+      category: it.category || '',
       name: it.name || '',
+      icon: it.icon || '',
       image: it.image || '',
       description: it.description || '',
-      priceSingle: Number(it.priceSingle) || 0,
+      price: Number(it.price) || 0,
       priceMonth: Number(it.priceMonth) || 0,
       priceYear: Number(it.priceYear) || 0,
       sortOrder: Number(it.sortOrder) || 0,
       isActive: it.isActive === true || it.isActive === 1,
+      stock: Number(it.stock) || 0,
     });
     setModalOpen(true);
   };
 
   const submit = async () => {
-    if (!form.name || !form.categoryId) {
+    if (!form.name || !form.category) {
       alert('请填写名称并选择分类');
       return;
     }
@@ -128,10 +134,11 @@ export default function OfferingItemsPage() {
     try {
       const payload = {
         ...form,
-        priceSingle: Number(form.priceSingle) || 0,
+        price: Number(form.price) || 0,
         priceMonth: Number(form.priceMonth) || 0,
         priceYear: Number(form.priceYear) || 0,
         sortOrder: Number(form.sortOrder) || 0,
+        stock: Number(form.stock) || 0,
         isActive: form.isActive,
       };
       const res = await fetch('/api/admin/offering-items', {
@@ -266,6 +273,7 @@ export default function OfferingItemsPage() {
               <th className="px-4 py-3 text-gray-500 font-medium">单次价格</th>
               <th className="px-4 py-3 text-gray-500 font-medium">月价格</th>
               <th className="px-4 py-3 text-gray-500 font-medium">年价格</th>
+              <th className="px-4 py-3 text-gray-500 font-medium">库存</th>
               <th className="px-4 py-3 text-gray-500 font-medium">排序</th>
               <th className="px-4 py-3 text-gray-500 font-medium">状态</th>
               <th className="px-4 py-3 text-gray-500 font-medium">操作</th>
@@ -289,13 +297,18 @@ export default function OfferingItemsPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{it.name}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {it.categoryIcon ? `${it.categoryIcon} ` : ''}{it.categoryName || '-'}
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {it.icon ? <span className="mr-1">{it.icon}</span> : null}
+                    {it.name}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">¥{Number(it.priceSingle || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {categories.find(c => c.id === it.category)?.icon || ''}{' '}
+                    {categories.find(c => c.id === it.category)?.name || it.category || '-'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">¥{Number(it.price || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-gray-700">¥{Number(it.priceMonth || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-gray-700">¥{Number(it.priceYear || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-gray-600">{it.stock ?? 0}</td>
                   <td className="px-4 py-3 text-gray-600">{it.sortOrder ?? 0}</td>
                   <td className="px-4 py-3">
                     <span
@@ -331,7 +344,7 @@ export default function OfferingItemsPage() {
             })}
             {data.length === 0 && !loading && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
                   暂无供奉项目
                 </td>
               </tr>
@@ -385,8 +398,8 @@ export default function OfferingItemsPage() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">所属分类 *</label>
                 <select
-                  value={form.categoryId}
-                  onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="">-- 请选择分类 --</option>
@@ -405,6 +418,27 @@ export default function OfferingItemsPage() {
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="如：清香"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">图标 Emoji</label>
+                  <input
+                    value={form.icon}
+                    onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    placeholder="如：🏮"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">库存数量</label>
+                  <input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    placeholder="如：1000"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">图片 URL</label>
@@ -430,8 +464,8 @@ export default function OfferingItemsPage() {
                   <input
                     type="number"
                     step="0.01"
-                    value={form.priceSingle}
-                    onChange={(e) => setForm({ ...form, priceSingle: parseFloat(e.target.value) || 0 })}
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>

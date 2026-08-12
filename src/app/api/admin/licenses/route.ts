@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || '';
     const search = searchParams.get('search') || '';
 
-    let sql = `SELECT l.*, a.name as agentName FROM "AgentLicense" l LEFT JOIN Agent a ON l.agentId = a.id WHERE 1=1`;
+    let sql = `SELECT l.*, a.brandName as agentName FROM "AgentLicense" l LEFT JOIN Agent a ON l.agentId = a.id WHERE 1=1`;
     let countSql = `SELECT COUNT(*) as total FROM "AgentLicense" WHERE 1=1`;
     const params: any[] = [];
 
@@ -34,14 +34,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (search) {
-      sql += ' AND (l.licenseKey LIKE ? OR l.domain LIKE ? OR a.name LIKE ?)';
+      sql += ' AND (l.licenseKey LIKE ? OR l.domain LIKE ? OR a.brandName LIKE ?)';
       countSql += ' AND (licenseKey LIKE ? OR domain LIKE ?)';
       const searchPattern = `%${search}%`;
-      params.push(searchPattern, searchPattern, `%${search}%`);
+      params.push(searchPattern, searchPattern, searchPattern);
     }
 
-    sql += ' ORDER BY l.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY l.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const licenses = await queryAll(sql, ...params);
     const totalParams = status ? [status] : [];
