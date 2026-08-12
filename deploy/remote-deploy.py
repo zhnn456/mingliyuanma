@@ -2,8 +2,8 @@ import paramiko, os, time, sys
 
 HOST = '47.82.116.220'
 USER = 'root'
-PASSWORD = 'sanBAO1234!'
-LOCAL_ZIP = r'f:\mingliyuanma\next-build.zip'
+PASSWORD = 'Aa20260618'
+LOCAL_ZIP = r'f:\mingliyuanma\next-build-v2.zip'
 REMOTE_ZIP = '/www/ming8/next-build.zip'
 
 def run(ssh, cmd, timeout=180):

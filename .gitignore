@@ -21,6 +21,7 @@ nul
 .next-build/
 .next-mingli/
 .next_new/
+.next_v2/
 .dev.vars
 
 # 部署构建产物（大文件，不进仓库）

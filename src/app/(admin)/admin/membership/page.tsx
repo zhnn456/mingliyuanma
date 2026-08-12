@@ -26,6 +26,13 @@ export default function AdminMembershipPage() {
     sortOrder: 0,
     isActive: true,
   });
+  const [qrForm, setQrForm] = useState({
+    url: '',
+    title: '扫码联系客服',
+    subtitle: '微信/支付宝咨询 · 人工协助开通',
+  });
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrSaved, setQrSaved] = useState(false);
   const pageSize = 20;
 
   const fetchPlans = async () => {
@@ -45,6 +52,22 @@ export default function AdminMembershipPage() {
   };
 
   useEffect(() => { fetchPlans(); }, [page]);
+
+  const fetchQrConfig = async () => {
+    try {
+      const res = await fetch('/api/config/membership-qr');
+      if (res.ok) {
+        const d = await res.json();
+        setQrForm({
+          url: d.url || '',
+          title: d.title || '扫码联系客服',
+          subtitle: d.subtitle || '微信/支付宝咨询 · 人工协助开通',
+        });
+      }
+    } catch {}
+  };
+
+  useEffect(() => { fetchQrConfig(); }, []);
 
   const resetForm = () => {
     setForm({
@@ -151,6 +174,32 @@ export default function AdminMembershipPage() {
   };
 
   const totalUsers = userStats.reduce((sum, s: any) => sum + (s.count || 0), 0);
+
+  const saveQrConfig = async () => {
+    setQrLoading(true);
+    setQrSaved(false);
+    try {
+      const entries = [
+        { key: 'membership_qr_url', value: qrForm.url, category: 'payment', description: '会员页二维码图片URL' },
+        { key: 'membership_qr_title', value: qrForm.title, category: 'payment', description: '会员页二维码标题' },
+        { key: 'membership_qr_subtitle', value: qrForm.subtitle, category: 'payment', description: '会员页二维码副标题' },
+      ];
+      for (const item of entries) {
+        const res = await fetch('/api/admin/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
+        if (!res.ok) throw new Error(item.key + ' 保存失败');
+      }
+      setQrSaved(true);
+      setTimeout(() => setQrSaved(false), 2000);
+    } catch {
+      alert('二维码配置保存失败，请重试');
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -388,6 +437,63 @@ export default function AdminMembershipPage() {
           >
             下一页
           </button>
+        </div>
+      </div>
+
+      {/* 会员页二维码配置 */}
+      <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-1">会员页二维码</h3>
+        <p className="text-xs text-gray-500 mb-4">配置后将显示在会员中心「支付方式说明」右侧。将二维码图片上传至服务器/图床后，把图片地址填入下方。</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">二维码图片 URL</label>
+            <input
+              value={qrForm.url}
+              onChange={(e) => setQrForm({ ...qrForm, url: e.target.value })}
+              placeholder="如：https://ming8.online/images/membership-qr.png"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">标题</label>
+            <input
+              value={qrForm.title}
+              onChange={(e) => setQrForm({ ...qrForm, title: e.target.value })}
+              placeholder="如：扫码联系客服"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">副标题</label>
+            <input
+              value={qrForm.subtitle}
+              onChange={(e) => setQrForm({ ...qrForm, subtitle: e.target.value })}
+              placeholder="如：微信/支付宝咨询 · 人工协助开通"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+        </div>
+        {qrForm.url && (
+          <div className="mb-4 inline-flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+            <div className="w-20 h-20 rounded-lg overflow-hidden bg-white relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrForm.url} alt="预览" className="absolute inset-0 w-full h-full object-contain" />
+            </div>
+            <div className="text-sm text-gray-600">
+              <div className="font-medium text-gray-800">{qrForm.title}</div>
+              <div className="text-xs mt-0.5">{qrForm.subtitle}</div>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={saveQrConfig}
+            disabled={qrLoading}
+            className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm disabled:opacity-50"
+          >
+            {qrLoading ? '保存中...' : '保存配置'}
+          </button>
+          {qrSaved && <span className="text-sm text-green-600">已保存</span>}
         </div>
       </div>
     </div>
