@@ -3,6 +3,34 @@ import { requireAuth } from '@/lib/auth-server';
 import { execute, queryFirst, getUserReferralCode, getAgentByReferralCode } from '@/lib/d1';
 import { calculateCommission, saveCommissionRecord } from '@/lib/commission';
 
+// 会员供奉折扣（月卡9折/年卡8折/终身7折）
+const MEMBER_DISCOUNT: Record<string, number> = {
+  free: 1.0,
+  monthly: 0.9,
+  yearly: 0.8,
+  lifetime: 0.7,
+};
+
+// 获取用户有效会员等级（检查过期）
+async function getUserMemberLevel(userId: string): Promise<string> {
+  const user = await queryFirst(
+    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    userId
+  ) as any;
+  if (!user) return 'free';
+  let level = user.memberLevel || 'free';
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
+    if (new Date(user.memberExpiry) < new Date()) {
+      await execute(
+        'UPDATE User SET memberLevel = ?, memberExpiry = NULL WHERE id = ?',
+        'free', userId
+      );
+      level = 'free';
+    }
+  }
+  return level;
+}
+
 const LEGACY_ITEMS: Record<string, { price: number; id: string }> = {
   '清香': { price: 100, id: 'item_incense' },
   '鲜花': { price: 200, id: 'item_flower' },
@@ -37,8 +65,13 @@ export async function POST(req: NextRequest) {
     }
 
     const qty = Math.max(1, parseInt(quantity) || 1);
-    const totalCost = supply.price * qty;
     const userId = session.sub;
+
+    // 会员折扣
+    const memberLevel = await getUserMemberLevel(userId);
+    const discount = MEMBER_DISCOUNT[memberLevel] ?? 1.0;
+    const originalCost = supply.price * qty;
+    const totalCost = Math.round(originalCost * discount);
 
     if (dedication && dedication.length > 200) {
       return NextResponse.json({ error: '祈愿文字不能超过200字' }, { status: 400 });
@@ -111,7 +144,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, cost: totalCost, balance: newBalance, message: '祈福成功 🙏' });
+    return NextResponse.json({
+      success: true,
+      cost: totalCost,
+      originalCost,
+      discount: discount < 1.0 ? `${Math.round(discount * 10)}折` : null,
+      memberLevel,
+      balance: newBalance,
+      message: discount < 1.0 ? `祈福成功（会员${Math.round(discount * 10)}折优惠）🙏` : '祈福成功 🙏',
+    });
   } catch (error: any) {
     console.error('[offer] Error:', error?.message);
     return NextResponse.json({ error: '操作失败，请稍后重试' }, { status: 500 });

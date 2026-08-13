@@ -47,7 +47,7 @@ def save_hashes(hashes: dict):
 
 def pack_incremental() -> tuple:
     """增量打包：只打包变化的文件"""
-    # 同步 .next/static 到 standalone（standalone 不自动包含）
+    # 同步 .next/static 和 public 到 standalone（standalone 不自动包含）
     import shutil
     src_static = LOCAL_DIR / '.next' / 'static'
     dst_static = LOCAL_STANDALONE / '.next' / 'static'
@@ -55,6 +55,13 @@ def pack_incremental() -> tuple:
         if dst_static.exists():
             shutil.rmtree(dst_static)
         shutil.copytree(src_static, dst_static)
+
+    src_public = LOCAL_DIR / 'public'
+    dst_public = LOCAL_STANDALONE / 'public'
+    if src_public.exists():
+        if dst_public.exists():
+            shutil.rmtree(dst_public)
+        shutil.copytree(src_public, dst_public)
 
     prev_hashes = load_prev_hashes()
     current_hashes = {}
@@ -124,7 +131,9 @@ def pack_full() -> int:
 
     src_public = LOCAL_DIR / 'public'
     dst_public = LOCAL_STANDALONE / 'public'
-    if src_public.exists() and not dst_public.exists():
+    if src_public.exists():
+        if dst_public.exists():
+            shutil.rmtree(dst_public)
         shutil.copytree(src_public, dst_public)
         log('  已复制 public 到 standalone')
 
@@ -183,7 +192,7 @@ def deploy(zip_size: int, is_full: bool):
     elapsed = time.time() - start
     log(f'✓ 上传完成: {elapsed:.0f}s ({zip_size / 1024 / elapsed:.0f} KB/s)')
 
-    # 服务器解压（直接解压到 /www/ming8，因为 PM2 使用 next start 读取该目录）
+    # 服务器解压（直接解压到 /www/ming8，PM2 使用 server.js 启动 standalone 模式）
     log('服务器解压...')
     if is_full:
         run(f'cd {REMOTE_DIR} && mv .next .next.bak 2>/dev/null; rm -rf .next')
@@ -192,9 +201,15 @@ def deploy(zip_size: int, is_full: bool):
         # 增量部署：直接覆盖，不删除 chunks 目录（避免删除未变化的文件）
         run(f'cd {REMOTE_DIR} && unzip -qo {REMOTE_DIR}/incremental-build.zip && rm -f {REMOTE_DIR}/incremental-build.zip')
 
+    # 上传 ecosystem.config.js（PM2 配置）
+    eco_src = LOCAL_DIR / 'deploy' / 'ecosystem.config.js'
+    if eco_src.exists():
+        sftp.put(str(eco_src), f'{REMOTE_DIR}/ecosystem.config.js')
+        log('已更新 ecosystem.config.js')
+
     # 重启 PM2
     log('重启 PM2...')
-    run('su - admin -c "pm2 restart ming8" 2>&1')
+    run('su - admin -c "pm2 restart ecosystem.config.js" 2>&1')
     time.sleep(8)
 
     # 验证

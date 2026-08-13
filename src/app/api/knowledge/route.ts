@@ -8,6 +8,26 @@ import {
   getPrevNextArticle,
 } from '@/lib/knowledge/server';
 import { LEARNING_PATHS } from '@/lib/knowledge';
+import { requireAuth } from '@/lib/auth-server';
+import { queryFirst, execute } from '@/lib/d1';
+
+// 获取用户有效会员等级
+async function getUserMemberLevel(req: NextRequest): Promise<string> {
+  const { allowed, session } = await requireAuth(req);
+  if (!allowed || !session?.sub) return 'free';
+  const user = await queryFirst(
+    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    session.sub
+  ) as any;
+  if (!user) return 'free';
+  let level = user.memberLevel || 'free';
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
+    if (new Date(user.memberExpiry) < new Date()) {
+      level = 'free';
+    }
+  }
+  return level;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,6 +55,26 @@ export async function GET(req: NextRequest) {
       if (!article) {
         return NextResponse.json({ error: '文章不存在' }, { status: 404 });
       }
+
+      // 检查会员权限：进阶/高级文章需要会员
+      const memberLevel = await getUserMemberLevel(req);
+      const isPremiumArticle = article.level && article.level !== 'beginner';
+
+      if (isPremiumArticle && memberLevel === 'free') {
+        const nav = getPrevNextArticle(id);
+        return NextResponse.json({
+          article: {
+            ...article,
+            content: null,
+            locked: true,
+            lockReason: '此为会员专享内容，开通会员后可阅读全文',
+          },
+          prev: nav.prev ? { id: nav.prev.id, title: nav.prev.title } : null,
+          next: nav.next ? { id: nav.next.id, title: nav.next.title } : null,
+          memberLevel,
+        });
+      }
+
       const nav = getPrevNextArticle(id);
       const relatedArticles = getRelatedArticles(id);
       return NextResponse.json({
@@ -42,6 +82,7 @@ export async function GET(req: NextRequest) {
         prev: nav.prev ? { id: nav.prev.id, title: nav.prev.title } : null,
         next: nav.next ? { id: nav.next.id, title: nav.next.title } : null,
         relatedArticles,
+        memberLevel,
       });
     }
 
@@ -67,6 +108,7 @@ export async function GET(req: NextRequest) {
         tags: a.tags,
         order: a.order,
         readingTime: a.readingTime,
+        isPremium: a.level && a.level !== 'beginner',
       })),
       total: articles.length,
     });

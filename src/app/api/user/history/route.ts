@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
 import { queryFirst, queryAll } from '@/lib/d1';
 
+// 获取用户有效会员等级
+async function getUserMemberLevel(userId: string): Promise<string> {
+  const user = await queryFirst(
+    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    userId
+  ) as any;
+  if (!user) return 'free';
+  let level = user.memberLevel || 'free';
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
+    if (new Date(user.memberExpiry) < new Date()) {
+      level = 'free';
+    }
+  }
+  return level;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { allowed, session } = await requireAuth(req);
@@ -15,15 +31,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
+    const userId = (user as any).id;
+    const memberLevel = await getUserMemberLevel(userId);
+    const isFreeUser = memberLevel === 'free';
+
+    // 免费用户只能查看7天内的记录，会员可查看全部
+    const dateFilter = isFreeUser
+      ? "AND createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+      : "";
+
     const type = req.nextUrl.searchParams.get('type');
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '50');
 
     const records: any[] = [];
-    const userId = (user as any).id;
 
     if (!type || type === 'bazi') {
       const baziRecords = await queryAll(
-        'SELECT * FROM BaziRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        `SELECT * FROM BaziRecord WHERE userId = ? ${dateFilter} ORDER BY createdAt DESC LIMIT ?`,
         userId, limit
       );
       records.push(...(baziRecords as any[]).map((r: any) => ({
@@ -41,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     if (!type || type === 'ziwei') {
       const ziweiRecords = await queryAll(
-        'SELECT * FROM ZiweiRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        `SELECT * FROM ZiweiRecord WHERE userId = ? ${dateFilter} ORDER BY createdAt DESC LIMIT ?`,
         userId, limit
       );
       records.push(...(ziweiRecords as any[]).map((r: any) => ({
@@ -58,7 +82,7 @@ export async function GET(req: NextRequest) {
 
     if (!type || type === 'qimen') {
       const qimenRecords = await queryAll(
-        'SELECT * FROM QimenRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        `SELECT * FROM QimenRecord WHERE userId = ? ${dateFilter} ORDER BY createdAt DESC LIMIT ?`,
         userId, limit
       );
       records.push(...(qimenRecords as any[]).map((r: any) => ({
@@ -75,7 +99,7 @@ export async function GET(req: NextRequest) {
 
     if (!type || type === 'meihua') {
       const meihuaRecords = await queryAll(
-        'SELECT * FROM MeihuaRecord WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+        `SELECT * FROM MeihuaRecord WHERE userId = ? ${dateFilter} ORDER BY createdAt DESC LIMIT ?`,
         userId, limit
       );
       records.push(...(meihuaRecords as any[]).map((r: any) => ({

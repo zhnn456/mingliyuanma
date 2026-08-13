@@ -33,6 +33,15 @@ deploy-tmp/
 deploy-root/
 deploy.zip
 
+# 根目录临时文件（不进仓库）
+/*.txt
+/*.sql
+/*.html
+/*.png
+/*.py
+/gen_hash.js
+/verify_hash.js
+
 # IDE/工具目录（不进仓库）
 .agents/
 .codebuddy/

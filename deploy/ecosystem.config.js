@@ -2,8 +2,8 @@ module.exports = {
   apps: [{
     name: 'ming8',
     cwd: '/www/ming8',
-    script: 'node_modules/.bin/next',
-    args: 'start -p 3001',
+    script: 'server.js',
+    args: '',
     env: {
       NODE_ENV: 'production',
       PORT: 3001,
