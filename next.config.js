@@ -3,6 +3,8 @@ const WebpackObfuscator = require('webpack-obfuscator');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // 本地预览时临时改 distDir: '.next_dev' 避免安全钩子干扰
+  // distDir: '.next_dev',
   images: {
     domains: ['localhost'],
   },
