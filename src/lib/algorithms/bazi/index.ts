@@ -162,46 +162,59 @@ function calculateDayun(
   birthYear: number,
   birthMonth: number,
   birthDay: number,
-  birthHour: number
+  birthHour: number,
+  options?: {
+    qiyunDirection?: 'auto' | 'yang-male-yin-female' | 'yin-male-yang-female';
+    dayunMethod?: 'three-days-one-year' | 'precise-minutes';
+  }
 ): { gan: string; zhi: string; startAge: number }[] {
   const yearGanYang = TIAN_GAN_YIN_YANG[yearGan] === '阳';
   const isMale = gender === 'male';
   
-  // 判断顺逆
-  const isForward = (yearGanYang && isMale) || (!yearGanYang && !isMale);
+  // 判断顺逆（受起运方向选项影响）
+  let isForward: boolean;
+  if (options?.qiyunDirection === 'yin-male-yang-female') {
+    // 阴男阳女逆行：阴年男/阳年女顺排，阳年男/阴年女逆排
+    isForward = (!yearGanYang && isMale) || (yearGanYang && !isMale);
+  } else {
+    // auto 或 yang-male-yin-female（默认：阳男阴女顺行）
+    isForward = (yearGanYang && isMale) || (!yearGanYang && !isMale);
+  }
   
   const monthGanIndex = TIAN_GAN.indexOf(monthGan as any);
   const monthZhiIndex = DI_ZHI.indexOf(monthZhi as any);
   
-  // 计算起运岁数（简化计算，基于出生日到下一个/上一个节气的天数）
+  // 计算起运岁数
   const solar = Solar.fromYmd(birthYear, birthMonth, birthDay);
   const lunar = solar.getLunar();
   
-  // 获取当前节气的下一个节气
-  const jieQi = lunar.getJieQi();
   let startAge = 3; // 默认起运年龄
   
-  // 简化的起运计算
   try {
     const prevJie = lunar.getPrevJie();
     const nextJie = lunar.getNextJie();
+    const targetJie = isForward ? nextJie : prevJie;
     
-    if (isForward && nextJie) {
-      const nextJieSolar = nextJie.getSolar();
-      const diffDays = Math.abs(
-        (nextJieSolar.getYear() * 365 + nextJieSolar.getMonth() * 30 + nextJieSolar.getDay()) -
-        (birthYear * 365 + birthMonth * 30 + birthDay)
-      );
-      startAge = Math.round(diffDays / 3);
-      if (startAge < 1) startAge = 1;
-      if (startAge > 10) startAge = 10;
-    } else if (!isForward && prevJie) {
-      const prevJieSolar = prevJie.getSolar();
-      const diffDays = Math.abs(
-        (birthYear * 365 + birthMonth * 30 + birthDay) -
-        (prevJieSolar.getYear() * 365 + prevJieSolar.getMonth() * 30 + prevJieSolar.getDay())
-      );
-      startAge = Math.round(diffDays / 3);
+    if (targetJie) {
+      const targetSolar = targetJie.getSolar();
+      
+      if (options?.dayunMethod === 'precise-minutes') {
+        // 精确到分：按实际日期差（含小时）计算
+        const birthDate = new Date(birthYear, birthMonth - 1, birthDay, birthHour);
+        const jieDate = new Date(targetSolar.getYear(), targetSolar.getMonth() - 1, targetSolar.getDay());
+        const diffMs = Math.abs(jieDate.getTime() - birthDate.getTime());
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        // 三天一岁，精确到小数
+        startAge = Math.round((diffDays / 3) * 10) / 10;
+      } else {
+        // 三天一岁（传统）：按天数计算
+        const diffDays = Math.abs(
+          (targetSolar.getYear() * 365 + targetSolar.getMonth() * 30 + targetSolar.getDay()) -
+          (birthYear * 365 + birthMonth * 30 + birthDay)
+        );
+        startAge = Math.round(diffDays / 3);
+      }
+      
       if (startAge < 1) startAge = 1;
       if (startAge > 10) startAge = 10;
     }
@@ -252,7 +265,13 @@ export function calculateBazi(
   gender: string,
   isLunar: boolean = false,
   isLeapMonth: boolean = false,
-  hourType?: 'early-zi' | 'late-zi'
+  hourType?: 'early-zi' | 'late-zi',
+  options?: {
+    qiyunDirection?: 'auto' | 'yang-male-yin-female' | 'yin-male-yang-female';
+    dayunMethod?: 'three-days-one-year' | 'precise-minutes';
+    cangganMethod?: 'full' | 'benqi-only';
+    shenshaMethod?: 'full' | 'common' | 'none';
+  }
 ): BaziResult {
   let solarYear = year;
   let solarMonth = month;
@@ -314,10 +333,14 @@ export function calculateBazi(
   // 计算十神
   const shishen = calculateShiShen(dayPillar.gan, fourPillars);
   
-  // 计算大运（基础版，保持兼容）
+  // 计算大运（基础版，保持兼容，受高级选项影响）
   const dayun = calculateDayun(
     yearPillar.gan, monthPillar.gan, monthPillar.zhi,
-    gender, solarYear, solarMonth, solarDay, hour || 0
+    gender, solarYear, solarMonth, solarDay, hour || 0,
+    {
+      qiyunDirection: options?.qiyunDirection,
+      dayunMethod: options?.dayunMethod,
+    }
   );
 
   // 大运详细信息（含十神、神煞、流年）
@@ -361,17 +384,33 @@ export function calculateBazi(
     }
   }
   
-  // 藏干
+  // 藏干（受藏干排法选项影响）
   const canggan: Record<string, string[]> = {};
   for (let i = 0; i < 4; i++) {
     const p = fourPillars[pillarNames[i] as keyof typeof fourPillars];
     if (p.zhi) {
-      canggan[pillarLabels[i]] = DI_ZHI_CANG_GAN[p.zhi] || [];
+      const fullCanggan = DI_ZHI_CANG_GAN[p.zhi] || [];
+      canggan[pillarLabels[i]] = options?.cangganMethod === 'benqi-only'
+        ? (fullCanggan.length > 0 ? [fullCanggan[0]] : [])
+        : fullCanggan;
     }
   }
   
   // 生肖
   const shengxiao = SHENG_XIAO[yearPillar.zhi] || '';
+  
+  // 神煞排法处理
+  let filteredDayunDetails = dayunDetails;
+  let filteredLiunian = liunian;
+  if (options?.shenshaMethod === 'none') {
+    // 不显示神煞：清空大运和流年中的神煞字段
+    filteredDayunDetails = dayunDetails.map(d => ({
+      ...d,
+      shensha: [],
+      liunian: (d.liunian || []).map(l => ({ ...l, shensha: [] })),
+    }));
+    filteredLiunian = liunian.map(l => ({ ...l, shensha: l.shensha ? [] : l.shensha }));
+  }
   
   return {
     fourPillars,
@@ -388,8 +427,8 @@ export function calculateBazi(
     geju,
     gongWei,
     shishenCombinations,
-    dayunDetails,
-    liunian,
+    dayunDetails: filteredDayunDetails,
+    liunian: filteredLiunian,
     unknownHour,
   };
 }

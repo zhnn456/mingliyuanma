@@ -11,6 +11,13 @@ export async function POST(req: NextRequest) {
     const { year, month, day, hour, gender, isLunar = false, isLeapMonth = false, hourType } = body;
     const mode = body.mode || 'full'; // 默认 full 向后兼容
     const useLingzhu = body.useLingzhu || false;
+    // 高级选项
+    const advancedOptions = {
+      qiyunDirection: body.qiyunDirection,
+      dayunMethod: body.dayunMethod,
+      cangganMethod: body.cangganMethod,
+      shenshaMethod: body.shenshaMethod,
+    };
 
     if (!year || !month || !day) {
       return NextResponse.json(
@@ -32,7 +39,8 @@ export async function POST(req: NextRequest) {
       gender || 'male',
       isLunar,
       isLeapMonth,
-      hourType
+      hourType,
+      advancedOptions
     );
 
     // 如果只请求排盘数据，直接返回（不收费）

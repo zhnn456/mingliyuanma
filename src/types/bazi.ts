@@ -112,6 +112,11 @@ export interface PaipanFormData {
   isLunar?: boolean;
   isLeapMonth?: boolean;
   hourType?: 'early-zi' | 'late-zi';
+  // 高级选项
+  qiyunDirection?: 'auto' | 'yang-male-yin-female' | 'yin-male-yang-female';
+  dayunMethod?: 'three-days-one-year' | 'precise-minutes';
+  cangganMethod?: 'full' | 'benqi-only';
+  shenshaMethod?: 'full' | 'common' | 'none';
 }
 
 export interface BaziResult {

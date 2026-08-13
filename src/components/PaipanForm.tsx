@@ -52,6 +52,12 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
   const [isLeapMonth, setIsLeapMonth] = useState(false);
   const [birthCity, setBirthCity] = useState('');
   const [trueSolarTime, setTrueSolarTime] = useState(true);
+  // 高级选项
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [qiyunDirection, setQiyunDirection] = useState<'auto' | 'yang-male-yin-female' | 'yin-male-yang-female'>('auto');
+  const [dayunMethod, setDayunMethod] = useState<'three-days-one-year' | 'precise-minutes'>('three-days-one-year');
+  const [cangganMethod, setCangganMethod] = useState<'full' | 'benqi-only'>('full');
+  const [shenshaMethod, setShenshaMethod] = useState<'full' | 'common' | 'none'>('full');
 
   const dstWarning = useMemo(() => {
     const y = parseInt(year);
@@ -118,6 +124,10 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
       birthCity,
       trueSolarTime,
       paipanType: 'bazi',
+      qiyunDirection,
+      dayunMethod,
+      cangganMethod,
+      shenshaMethod,
     });
   };
 
@@ -347,6 +357,77 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
         )}
       </div>
 
+      {/* 高级选项 - 双列卡片式布局 */}
+      <div className="border-t border-parchment-200 pt-5">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex items-center justify-between w-full text-left mb-4 group"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-1 h-5 bg-gradient-to-b from-red-700 to-amber-600 rounded-full" />
+            <span className="form-label !mb-0">高级选项</span>
+            <span className="text-xs text-gray-400">· 排盘细节自定义</span>
+          </div>
+          <svg className={`w-5 h-5 text-gray-400 transition-transform group-hover:text-gray-600 ${showAdvanced ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showAdvanced && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* 起运方向 - 紫色主题 */}
+            <AdvancedOptionCard color="violet" icon="🧭" name="起运方向" desc="按性别与年干阴阳决定大运排布方向">
+              <select
+                value={qiyunDirection}
+                onChange={(e) => setQiyunDirection(e.target.value as any)}
+                className={`w-full px-3 py-2 text-sm bg-white border rounded-lg outline-none transition-colors focus:ring-2 ${ADVANCED_COLOR_MAP.violet.selectBorder}`}
+              >
+                <option value="auto">自动判断（阳男阴女顺行）</option>
+                <option value="yang-male-yin-female">阳男阴女顺行</option>
+                <option value="yin-male-yang-female">阴男阳女逆行</option>
+              </select>
+            </AdvancedOptionCard>
+
+            {/* 大运排法 - 青色主题 */}
+            <AdvancedOptionCard color="cyan" icon="⏳" name="大运排法" desc="三天一岁为传统排法，精确到分按实际节令间隔计算">
+              <select
+                value={dayunMethod}
+                onChange={(e) => setDayunMethod(e.target.value as any)}
+                className={`w-full px-3 py-2 text-sm bg-white border rounded-lg outline-none transition-colors focus:ring-2 ${ADVANCED_COLOR_MAP.cyan.selectBorder}`}
+              >
+                <option value="three-days-one-year">三天一岁（传统）</option>
+                <option value="precise-minutes">精确到分（更准）</option>
+              </select>
+            </AdvancedOptionCard>
+
+            {/* 藏干排法 - 琥珀主题 */}
+            <AdvancedOptionCard color="amber" icon="🪨" name="藏干排法" desc="完整藏干含本气中气余气，简略仅显示本气">
+              <select
+                value={cangganMethod}
+                onChange={(e) => setCangganMethod(e.target.value as any)}
+                className={`w-full px-3 py-2 text-sm bg-white border rounded-lg outline-none transition-colors focus:ring-2 ${ADVANCED_COLOR_MAP.amber.selectBorder}`}
+              >
+                <option value="full">本气·中气·余气（完整）</option>
+                <option value="benqi-only">仅本气（简略）</option>
+              </select>
+            </AdvancedOptionCard>
+
+            {/* 神煞排法 - 翠绿主题 */}
+            <AdvancedOptionCard color="emerald" icon="✨" name="神煞排法" desc="完整神煞约30+种，常用约10种核心神煞">
+              <select
+                value={shenshaMethod}
+                onChange={(e) => setShenshaMethod(e.target.value as any)}
+                className={`w-full px-3 py-2 text-sm bg-white border rounded-lg outline-none transition-colors focus:ring-2 ${ADVANCED_COLOR_MAP.emerald.selectBorder}`}
+              >
+                <option value="full">完整神煞</option>
+                <option value="common">常用神煞</option>
+                <option value="none">不显示神煞</option>
+              </select>
+            </AdvancedOptionCard>
+          </div>
+        )}
+      </div>
+
       {/* 提交按钮 */}
       <button
         type="submit"
@@ -366,5 +447,79 @@ export function PaipanForm({ onSubmit, loading, title, submitText = '开始排�
         )}
       </button>
     </form>
+  );
+}
+
+// ========== 高级选项卡片样式配置 ==========
+
+const ADVANCED_COLOR_MAP: Record<string, {
+  bg: string;
+  border: string;
+  accent: string;
+  text: string;
+  iconBg: string;
+  selectBorder: string;
+}> = {
+  violet: {
+    bg: 'bg-violet-50/40',
+    border: 'border-violet-200/60',
+    accent: 'bg-violet-500',
+    text: 'text-violet-700',
+    iconBg: 'bg-violet-100',
+    selectBorder: 'border-violet-200 focus:border-violet-400 focus:ring-violet-100',
+  },
+  cyan: {
+    bg: 'bg-cyan-50/40',
+    border: 'border-cyan-200/60',
+    accent: 'bg-cyan-500',
+    text: 'text-cyan-700',
+    iconBg: 'bg-cyan-100',
+    selectBorder: 'border-cyan-200 focus:border-cyan-400 focus:ring-cyan-100',
+  },
+  amber: {
+    bg: 'bg-amber-50/40',
+    border: 'border-amber-200/60',
+    accent: 'bg-amber-500',
+    text: 'text-amber-700',
+    iconBg: 'bg-amber-100',
+    selectBorder: 'border-amber-200 focus:border-amber-400 focus:ring-amber-100',
+  },
+  emerald: {
+    bg: 'bg-emerald-50/40',
+    border: 'border-emerald-200/60',
+    accent: 'bg-emerald-500',
+    text: 'text-emerald-700',
+    iconBg: 'bg-emerald-100',
+    selectBorder: 'border-emerald-200 focus:border-emerald-400 focus:ring-emerald-100',
+  },
+};
+
+// 高级选项卡片组件
+function AdvancedOptionCard({
+  color,
+  icon,
+  name,
+  desc,
+  children,
+}: {
+  color: string;
+  icon: string;
+  name: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  const theme = ADVANCED_COLOR_MAP[color] || ADVANCED_COLOR_MAP.violet;
+  return (
+    <div className={`relative rounded-xl border ${theme.border} ${theme.bg} p-4 overflow-hidden transition-all hover:shadow-sm`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${theme.accent}`} />
+      <div className="flex items-center gap-2 mb-2.5 ml-1">
+        <div className={`w-7 h-7 rounded-lg ${theme.iconBg} flex items-center justify-center text-sm`}>
+          {icon}
+        </div>
+        <div className={`text-sm font-bold ${theme.text}`}>{name}</div>
+      </div>
+      <div className="ml-1">{children}</div>
+      <p className="text-xs text-gray-400 mt-2 ml-1 leading-relaxed">{desc}</p>
+    </div>
   );
 }
