@@ -187,10 +187,10 @@ def deploy(zip_size: int, is_full: bool):
     log('服务器解压...')
     if is_full:
         run(f'cd {REMOTE_DIR} && mv .next .next.bak 2>/dev/null; rm -rf .next')
-        run(f'cd {REMOTE_DIR} && rm -rf .next/static/chunks .next/server && unzip -qo {REMOTE_DIR}/incremental-build.zip && rm -f {REMOTE_DIR}/incremental-build.zip')
+        run(f'cd {REMOTE_DIR} && unzip -qo {REMOTE_DIR}/incremental-build.zip && rm -f {REMOTE_DIR}/incremental-build.zip')
     else:
-        # 增量部署也清理 chunks 目录，确保旧 JS 不残留
-        run(f'cd {REMOTE_DIR} && rm -rf .next/static/chunks && unzip -qo {REMOTE_DIR}/incremental-build.zip && rm -f {REMOTE_DIR}/incremental-build.zip')
+        # 增量部署：直接覆盖，不删除 chunks 目录（避免删除未变化的文件）
+        run(f'cd {REMOTE_DIR} && unzip -qo {REMOTE_DIR}/incremental-build.zip && rm -f {REMOTE_DIR}/incremental-build.zip')
 
     # 重启 PM2
     log('重启 PM2...')
