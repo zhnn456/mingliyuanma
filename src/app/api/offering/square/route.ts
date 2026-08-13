@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryAll, queryFirst } from '@/lib/d1';
+import { queryAll, queryFirst, getMockConfig, seedMockConfig, calcMockStats } from '@/lib/d1';
 
 const ANON_NAMES = [
   '心愿·慧', '心愿·明', '心愿·诚', '心愿·德', '心愿·仁',
@@ -12,6 +12,16 @@ const ANON_NAMES = [
 ];
 
 const ITEMS = ['清香', '鲜花', '水果', '素食', '祈福灯', '香炉'];
+const DEDICATIONS = ['阖家平安', '身体健康', '工作顺利', '学业有成', '姻缘美满', '心想事成', '财源广进', '福寿安康'];
+
+/** 基于日期的伪随机数生成器（同一天同一索引返回相同值） */
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -27,6 +37,7 @@ function timeAgo(dateStr: string): string {
 
 export async function GET() {
   try {
+    // 真实数据
     const real = await queryAll(`
       SELECT o.id, o.userId, o.itemId, o.amount, o.supplyIds, o.createdAt,
              u.name as userName
@@ -48,49 +59,73 @@ export async function GET() {
       };
     });
 
-    const stats = await queryFirst(`
+    const realStats = await queryFirst(`
       SELECT COUNT(*) as totalOff, COALESCE(SUM(amount),0) as totalLing,
              (SELECT COUNT(DISTINCT userId) FROM OfferingRecord) as totalUsers
       FROM OfferingRecord
     `) as any;
-    const totalOff = stats?.totalOff || 0;
-    const totalLing = stats?.totalLing || 0;
-    const totalUsers = stats?.totalUsers || 0;
 
-    const fakeCount = Math.max(50, 100 - realItems.length);
-    const fakeItems: any[] = [];
-    const now = Date.now();
-    for (let i = 0; i < fakeCount; i++) {
-      const name = ANON_NAMES[Math.floor(Math.random() * ANON_NAMES.length)];
-      const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-      const prices: Record<string, number> = { '清香': 100, '鲜花': 200, '水果': 300, '素食': 500, '祈福灯': 1000, '香炉': 2000 };
+    // 模拟数据
+    await seedMockConfig();
+    const config = await getMockConfig();
+    const mockStats = config ? calcMockStats(config) : { totalOfferings: 0, totalUsers: 0, totalLingzhu: 0, daysDiff: 0 };
+    const isActive = config?.isActive ?? true;
+
+    // 基于日期种子的伪随机生成模拟动态（同一天数据一致）
+    const today = new Date();
+    const dateSeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const rand = seededRandom(dateSeed);
+
+    const mockCount = 60;
+    const mockItems: any[] = [];
+    const prices: Record<string, number> = { '清香': 100, '鲜花': 200, '水果': 300, '素食': 500, '祈福灯': 1000, '香炉': 2000 };
+    for (let i = 0; i < mockCount; i++) {
+      const nameIdx = Math.floor(rand() * ANON_NAMES.length);
+      const itemIdx = Math.floor(rand() * ITEMS.length);
+      const item = ITEMS[itemIdx];
       const amount = prices[item] || 100;
-      const minutesAgo = Math.floor(Math.random() * 10080);
-      const dedication = ['阖家平安', '身体健康', '工作顺利', '学业有成', '姻缘美满', '', '', ''][Math.floor(Math.random() * 8)];
-      fakeItems.push({
-        userName: name,
+      const minutesAgo = Math.floor(rand() * 10080); // 0-7天
+      const dedIdx = Math.floor(rand() * (DEDICATIONS.length + 3)); // 可能为空
+      const dedication = dedIdx < DEDICATIONS.length ? DEDICATIONS[dedIdx] : '';
+      mockItems.push({
+        userName: ANON_NAMES[nameIdx],
         itemName: item,
         amount,
-        dedication: dedication || '',
+        dedication,
         timeAgo: minutesAgo < 1 ? '刚刚' : minutesAgo < 60 ? `${minutesAgo}分钟前` : minutesAgo < 1440 ? `${Math.floor(minutesAgo / 60)}小时前` : `${Math.floor(minutesAgo / 1440)}天前`,
         isReal: false,
       });
     }
 
-    const allItems = [...realItems, ...fakeItems].sort((a, b) => {
+    // 混合排序
+    const allItems = [...realItems, ...mockItems].sort((a, b) => {
       const ta = a.timeAgo === '刚刚' ? 0 : parseInt(a.timeAgo) || 99999;
       const tb = b.timeAgo === '刚刚' ? 0 : parseInt(b.timeAgo) || 99999;
       return ta - tb;
     });
 
     return NextResponse.json({
+      // 供前台展示：混合数据
       items: allItems,
       stats: {
-        totalOfferings: totalOff + fakeCount,
-        totalUsers: totalUsers + 18,
-        totalLingzhu: totalLing + fakeItems.reduce((s: number, i: any) => s + i.amount, 0),
-        realCount: realItems.length,
-        fakeCount,
+        totalOfferings: (realStats?.totalOff || 0) + (isActive ? mockStats.totalOfferings : 0),
+        totalUsers: (realStats?.totalUsers || 0) + (isActive ? mockStats.totalUsers : 0),
+        totalLingzhu: (realStats?.totalLing || 0) + (isActive ? mockStats.totalLingzhu : 0),
+      },
+      // 分离数据供调试/后台使用
+      _debug: {
+        mock: {
+          stats: isActive ? mockStats : { totalOfferings: 0, totalUsers: 0, totalLingzhu: 0 },
+          items: mockItems,
+        },
+        real: {
+          stats: {
+            totalOfferings: realStats?.totalOff || 0,
+            totalUsers: realStats?.totalUsers || 0,
+            totalLingzhu: realStats?.totalLing || 0,
+          },
+          items: realItems,
+        },
       },
     });
   } catch (error: any) {

@@ -90,6 +90,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/admin/offering-records', label: '供奉记录', isNew: true },
       { href: '/admin/supplies', label: '供品管理', isNew: true },
       { href: '/admin/offering-calendar', label: '排期日历', isNew: true },
+      { href: '/admin/offering-mock', label: '模拟数据', isNew: true },
     ],
   },
   {

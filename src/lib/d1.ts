@@ -694,6 +694,83 @@ export async function seedDefaultSupplies(force = false) {
   if (errors.length > 0) console.error('Seed errors:', errors);
 }
 
+// ============ 祈福模拟数据配置表 ============
+
+/** 确保 OfferingMockConfig 表存在 */
+export async function ensureOfferingMockConfigTable() {
+  await execute(`CREATE TABLE IF NOT EXISTS "OfferingMockConfig" (
+    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
+    "baseDate" TEXT NOT NULL DEFAULT '2026-01-01',
+    "baseOfferings" INTEGER NOT NULL DEFAULT 12800,
+    "baseUsers" INTEGER NOT NULL DEFAULT 3200,
+    "baseLingzhu" INTEGER NOT NULL DEFAULT 256000,
+    "dailyOfferingsInc" INTEGER NOT NULL DEFAULT 80,
+    "dailyUsersInc" INTEGER NOT NULL DEFAULT 15,
+    "dailyLingzhuInc" INTEGER NOT NULL DEFAULT 12000,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+}
+
+/** 获取模拟数据配置 */
+export async function getMockConfig(): Promise<{
+  baseDate: string;
+  baseOfferings: number;
+  baseUsers: number;
+  baseLingzhu: number;
+  dailyOfferingsInc: number;
+  dailyUsersInc: number;
+  dailyLingzhuInc: number;
+  isActive: boolean;
+} | null> {
+  await ensureOfferingMockConfigTable();
+  const row = await queryFirst('SELECT * FROM OfferingMockConfig WHERE id = ?', 'default') as any;
+  if (!row) return null;
+  return {
+    baseDate: row.baseDate,
+    baseOfferings: row.baseOfferings,
+    baseUsers: row.baseUsers,
+    baseLingzhu: row.baseLingzhu,
+    dailyOfferingsInc: row.dailyOfferingsInc,
+    dailyUsersInc: row.dailyUsersInc,
+    dailyLingzhuInc: row.dailyLingzhuInc,
+    isActive: !!row.isActive,
+  };
+}
+
+/** 计算当前模拟数据 */
+export function calcMockStats(config: {
+  baseDate: string;
+  baseOfferings: number;
+  baseUsers: number;
+  baseLingzhu: number;
+  dailyOfferingsInc: number;
+  dailyUsersInc: number;
+  dailyLingzhuInc: number;
+}) {
+  const baseDate = new Date(config.baseDate);
+  const today = new Date();
+  const daysDiff = Math.max(0, Math.floor((today.getTime() - baseDate.getTime()) / 86400000));
+  return {
+    totalOfferings: config.baseOfferings + daysDiff * config.dailyOfferingsInc,
+    totalUsers: config.baseUsers + daysDiff * config.dailyUsersInc,
+    totalLingzhu: config.baseLingzhu + daysDiff * config.dailyLingzhuInc,
+    daysDiff,
+  };
+}
+
+/** 种子默认模拟配置 */
+export async function seedMockConfig() {
+  await ensureOfferingMockConfigTable();
+  const existing = await queryFirst('SELECT id FROM OfferingMockConfig WHERE id = ?', 'default') as any;
+  if (!existing) {
+    await execute(
+      `INSERT INTO OfferingMockConfig (id, baseDate, baseOfferings, baseUsers, baseLingzhu, dailyOfferingsInc, dailyUsersInc, dailyLingzhuInc, isActive)
+       VALUES ('default', '2026-01-01', 12800, 3200, 256000, 80, 15, 12000, 1)`
+    );
+  }
+}
+
 // ============ 卡密系统表 ============
 
 /** 确保 CardKey 表存在 */
