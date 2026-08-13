@@ -20,6 +20,8 @@ interface ToolSeoContentProps {
   faqs: SeoFaq[];
   /** 相关文章知识库分类：basic | bazi | ziwei | qimen | meihua */
   relatedCategory: string;
+  /** 展示模式：full=底部宽屏（默认），sidebar=右侧紧凑侧栏 */
+  variant?: 'full' | 'sidebar';
 }
 
 /**
@@ -33,9 +35,11 @@ export default function ToolSeoContent({
   introParagraphs,
   faqs,
   relatedCategory,
+  variant = 'full',
 }: ToolSeoContentProps) {
   const related: KnowledgeArticle[] = getArticlesByCategory(relatedCategory).slice(0, 6);
   const toolUrl = `${BASE_URL}${toolPath}`;
+  const isSidebar = variant === 'sidebar';
 
   const jsonLd = JSON.stringify({
     '@context': 'https://schema.org',
@@ -81,63 +85,130 @@ export default function ToolSeoContent({
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
 
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* 工具说明 */}
-        <article className="card p-6 md:p-8 mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 font-kai mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-red-700 rounded-full" aria-hidden="true" />
-            {toolName}介绍
-          </h2>
-          <div className="space-y-3">
-            {introParagraphs.map((p, i) => (
-              <p key={i} className="text-gray-700 leading-relaxed text-[15px]">
-                {p}
-              </p>
-            ))}
-          </div>
-        </article>
+      {isSidebar ? (
+        /* ===== 侧栏紧凑模式 ===== */
+        <div className="space-y-4">
+          {/* 工具说明 */}
+          <article className="card p-4">
+            <h2 className="text-sm font-bold text-gray-900 font-kai mb-3 flex items-center gap-1.5">
+              <span className="w-0.5 h-4 bg-red-700 rounded-full" aria-hidden="true" />
+              {toolName}介绍
+            </h2>
+            <div className="space-y-2">
+              {introParagraphs.map((p, i) => (
+                <p key={i} className="text-gray-600 leading-relaxed text-xs">
+                  {p}
+                </p>
+              ))}
+            </div>
+          </article>
 
-        {/* 常见问题 */}
-        <article className="card p-6 md:p-8 mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 font-kai mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-red-700 rounded-full" aria-hidden="true" />
-            常见问题
-          </h2>
-          <div className="space-y-4">
-            {faqs.map((f, i) => (
-              <div key={i} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                <h3 className="font-semibold text-gray-800 mb-1.5">{f.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{f.a}</p>
-              </div>
-            ))}
-          </div>
-        </article>
+          {/* 常见问题 - 折叠式 */}
+          <article className="card p-4">
+            <h2 className="text-sm font-bold text-gray-900 font-kai mb-3 flex items-center gap-1.5">
+              <span className="w-0.5 h-4 bg-red-700 rounded-full" aria-hidden="true" />
+              常见问题
+            </h2>
+            <div className="space-y-1">
+              {faqs.map((f, i) => (
+                <details key={i} className="group border-b border-gray-50 last:border-0 py-1.5">
+                  <summary className="text-xs font-medium text-gray-700 cursor-pointer hover:text-red-700 flex items-center justify-between list-none">
+                    <span>{f.q}</span>
+                    <svg className="w-3 h-3 text-gray-400 transition-transform group-open:rotate-180 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </summary>
+                  <p className="text-xs text-gray-500 mt-1.5 leading-relaxed pl-1">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </article>
 
-        {/* 相关阅读（内链到知识库，构建内链架构） */}
-        {related.length > 0 && (
-          <article className="card p-6 md:p-8">
+          {/* 相关阅读 */}
+          {related.length > 0 && (
+            <article className="card p-4">
+              <h2 className="text-sm font-bold text-gray-900 font-kai mb-3 flex items-center gap-1.5">
+                <span className="w-0.5 h-4 bg-red-700 rounded-full" aria-hidden="true" />
+                相关阅读
+              </h2>
+              <ul className="space-y-1.5">
+                {related.map(a => (
+                  <li key={a.id}>
+                    <Link
+                      href={`/knowledge/${a.id}`}
+                      className="flex items-center gap-2 p-1.5 rounded-md hover:bg-red-50/50 transition-colors group"
+                    >
+                      <span aria-hidden="true" className="text-xs">{a.icon}</span>
+                      <span className="text-xs text-gray-600 group-hover:text-red-700 transition-colors line-clamp-1">
+                        {a.title}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
+        </div>
+      ) : (
+        /* ===== 底部宽屏模式（默认，向后兼容） ===== */
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {/* 工具说明 */}
+          <article className="card p-6 md:p-8 mb-6">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 font-kai mb-4 flex items-center gap-2">
               <span className="w-1 h-6 bg-red-700 rounded-full" aria-hidden="true" />
-              相关阅读
+              {toolName}介绍
             </h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {related.map(a => (
-                <li key={a.id}>
-                  <Link
-                    href={`/knowledge/${a.id}`}
-                    className="flex items-center gap-2.5 p-3 rounded-lg border border-gray-100 hover:border-red-200 hover:shadow-sm transition-all group"
-                  >
-                    <span aria-hidden="true">{a.icon}</span>
-                    <span className="text-sm text-gray-700 group-hover:text-red-700 transition-colors">
-                      {a.title}
-                    </span>
-                  </Link>
-                </li>
+            <div className="space-y-3">
+              {introParagraphs.map((p, i) => (
+                <p key={i} className="text-gray-700 leading-relaxed text-[15px]">
+                  {p}
+                </p>
               ))}
-            </ul>
+            </div>
           </article>
-        )}
-      </section>
+
+          {/* 常见问题 */}
+          <article className="card p-6 md:p-8 mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 font-kai mb-4 flex items-center gap-2">
+              <span className="w-1 h-6 bg-red-700 rounded-full" aria-hidden="true" />
+              常见问题
+            </h2>
+            <div className="space-y-4">
+              {faqs.map((f, i) => (
+                <div key={i} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                  <h3 className="font-semibold text-gray-800 mb-1.5">{f.q}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          {/* 相关阅读（内链到知识库，构建内链架构） */}
+          {related.length > 0 && (
+            <article className="card p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 font-kai mb-4 flex items-center gap-2">
+                <span className="w-1 h-6 bg-red-700 rounded-full" aria-hidden="true" />
+                相关阅读
+              </h2>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {related.map(a => (
+                  <li key={a.id}>
+                    <Link
+                      href={`/knowledge/${a.id}`}
+                      className="flex items-center gap-2.5 p-3 rounded-lg border border-gray-100 hover:border-red-200 hover:shadow-sm transition-all group"
+                    >
+                      <span aria-hidden="true">{a.icon}</span>
+                      <span className="text-sm text-gray-700 group-hover:text-red-700 transition-colors">
+                        {a.title}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
+        </section>
+      )}
     </>
   );
 }

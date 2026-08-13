@@ -351,9 +351,9 @@ export default function ZiweiPage() {
   const selectedPalace = selectedPalaceIdx !== null ? displayResult?.palaces.find(p => p.index === selectedPalaceIdx) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
+    <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white">
       <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="relative z-10">
         {/* 页面标题 */}
         <div className="page-header">
           <div className="section-label justify-center">ZI WEI DOU SHU</div>

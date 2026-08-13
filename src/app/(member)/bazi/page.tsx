@@ -125,7 +125,7 @@ export default function BaziPage() {
       {/* 页面装饰背景 */}
       <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
 
-      <div className="max-w-5xl mx-auto px-4 py-12 relative z-10">
+      <div className="relative z-10">
         {/* 页面标题 */}
         <div className="page-header">
           <div className="section-label justify-center">FOUR PILLARS OF DESTINY</div>

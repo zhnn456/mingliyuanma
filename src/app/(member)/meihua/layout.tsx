@@ -45,15 +45,20 @@ const FAQS = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {children}
-      <ToolSeoContent
-        toolName="梅花易数起卦"
-        toolPath="/meihua"
-        introParagraphs={INTRO}
-        faqs={FAQS}
-        relatedCategory="meihua"
-      />
-    </>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-8 py-12">
+      <main className="min-w-0">{children}</main>
+      <aside className="hidden lg:block">
+        <div className="sticky top-8">
+          <ToolSeoContent
+            toolName="梅花易数起卦"
+            toolPath="/meihua"
+            introParagraphs={INTRO}
+            faqs={FAQS}
+            relatedCategory="meihua"
+            variant="sidebar"
+          />
+        </div>
+      </aside>
+    </div>
   );
 }
