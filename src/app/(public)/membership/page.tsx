@@ -191,7 +191,9 @@ export default function MembershipPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
       <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid lg:grid-cols-[1fr_280px] gap-8">
+        {/* 左侧主内容 */}
+        <div className="min-w-0">
         {/* 页面标题 */}
         <div className="page-header">
           <div className="section-label justify-center">MEMBERSHIP</div>
@@ -456,6 +458,44 @@ export default function MembershipPage() {
             会员权益即时生效 · 如有疑问请联系客服
           </p>
         </div>
+        </div>{/* 左侧主内容结束 */}
+
+        {/* 右侧客服二维码 */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 space-y-6">
+            <div className="card p-6 text-center bg-white/80 backdrop-blur-sm border border-parchment-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-4">扫码添加客服</h3>
+              <div className="w-40 h-40 mx-auto mb-4 rounded-xl overflow-hidden border-2 border-parchment-100">
+                <img
+                  src="/images/qr-customer-service.jpg"
+                  alt="客服二维码"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mb-3">微信/支付宝正在配置中</p>
+              <div className="divider-gold" />
+              <p className="text-xs text-gray-600 mt-3 font-medium">充值 · 购买卡密 · 咨询</p>
+              <p className="text-xs text-gray-400 mt-1">请扫码联系客服</p>
+            </div>
+
+            {/* 移动端显示二维码入口 */}
+            <div className="card p-4 text-center bg-gold/5 border border-gold/20 lg:hidden">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-16 h-16 rounded-lg overflow-hidden border border-parchment-100 flex-shrink-0">
+                  <img
+                    src="/images/qr-customer-service.jpg"
+                    alt="客服二维码"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-bold text-gray-700">扫码添加客服</p>
+                  <p className="text-xs text-gray-500">充值 · 购买卡密 · 咨询</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
