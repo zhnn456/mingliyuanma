@@ -699,7 +699,7 @@ export async function seedDefaultSupplies(force = false) {
 /** 确保 OfferingMockConfig 表存在 */
 export async function ensureOfferingMockConfigTable() {
   await execute(`CREATE TABLE IF NOT EXISTS "OfferingMockConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
+    "id" VARCHAR(50) NOT NULL PRIMARY KEY DEFAULT 'default',
     "baseDate" TEXT NOT NULL DEFAULT '2026-01-01',
     "baseOfferings" INTEGER NOT NULL DEFAULT 12800,
     "baseUsers" INTEGER NOT NULL DEFAULT 3200,
@@ -762,12 +762,24 @@ export function calcMockStats(config: {
 /** 种子默认模拟配置 */
 export async function seedMockConfig() {
   await ensureOfferingMockConfigTable();
-  const existing = await queryFirst('SELECT id FROM OfferingMockConfig WHERE id = ?', 'default') as any;
-  if (!existing) {
-    await execute(
-      `INSERT INTO OfferingMockConfig (id, baseDate, baseOfferings, baseUsers, baseLingzhu, dailyOfferingsInc, dailyUsersInc, dailyLingzhuInc, isActive)
-       VALUES ('default', '2026-01-01', 12800, 3200, 256000, 80, 15, 12000, 1)`
-    );
+  try {
+    const existing = await queryFirst('SELECT id FROM OfferingMockConfig WHERE id = ?', 'default') as any;
+    if (!existing) {
+      await execute(
+        `INSERT INTO OfferingMockConfig (id, baseDate, baseOfferings, baseUsers, baseLingzhu, dailyOfferingsInc, dailyUsersInc, dailyLingzhuInc, isActive)
+         VALUES ('default', '2026-01-01', 12800, 3200, 256000, 80, 15, 12000, 1)`
+      );
+    }
+  } catch (e: any) {
+    // 旧表 id 字段是 TEXT 带默认值，MySQL 严格模式报错，需要重建
+    if (e?.message?.includes('default value') || e?.message?.includes("can't have a default")) {
+      await execute('DROP TABLE IF EXISTS "OfferingMockConfig"');
+      await ensureOfferingMockConfigTable();
+      await execute(
+        `INSERT INTO OfferingMockConfig (id, baseDate, baseOfferings, baseUsers, baseLingzhu, dailyOfferingsInc, dailyUsersInc, dailyLingzhuInc, isActive)
+         VALUES ('default', '2026-01-01', 12800, 3200, 256000, 80, 15, 12000, 1)`
+      );
+    }
   }
 }
 
