@@ -45,8 +45,7 @@ export async function GET(req: NextRequest) {
   const params: any[] = [];
   if (status) { sql += ' AND t.status = ?'; params.push(status); }
   if (q) { sql += ' AND (t.title LIKE ? OR u.name LIKE ? OR u.email LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
-  sql += ' ORDER BY t.updatedAt DESC LIMIT ? OFFSET ?';
-  params.push(pageSize, offset);
+  sql += ` ORDER BY t.updatedAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
   const tickets = await queryAll(sql, ...params);
 
   let countSql = 'SELECT COUNT(*) as total FROM Ticket t LEFT JOIN User u ON t.userId = u.id WHERE 1=1';

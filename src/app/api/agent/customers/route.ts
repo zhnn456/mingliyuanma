@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
        (SELECT COUNT(*) FROM ZiweiRecord WHERE userId = u.id) as ziweiCount,
        (SELECT COUNT(*) FROM QimenRecord WHERE userId = u.id) as qimenCount,
        (SELECT COUNT(*) FROM MeihuaRecord WHERE userId = u.id) as meihuaCount
-       FROM User u WHERE u.id IN (${placeholders}) ORDER BY u.createdAt DESC LIMIT ? OFFSET ?`,
-      ...customerIds, limit, offset
+       FROM User u WHERE u.id IN (${placeholders}) ORDER BY u.createdAt DESC LIMIT ${limit} OFFSET ${offset}`,
+      ...customerIds
     );
 
     const totalResult = await queryFirst(

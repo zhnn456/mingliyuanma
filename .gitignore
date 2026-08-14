@@ -7,6 +7,7 @@ node_modules/
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+backups/
 
 # 工具临时目录
 .workbuddy/

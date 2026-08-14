@@ -74,8 +74,9 @@ async function getSecretKey(): Promise<string> {
     }
   } catch {}
 
-  // 回退密钥（与配置文件中保持一致，生产环境务必设置 NEXTAUTH_SECRET）
-  _cachedSecret = 'zhiwei-secret-key-2026-production';
+  // 生产环境必须设置 NEXTAUTH_SECRET，否则服务无法启动
+  console.error('[FATAL] NEXTAUTH_SECRET 未设置，请检查 .env.production 配置');
+  _cachedSecret = '';
   return _cachedSecret;
 }
 
@@ -200,7 +201,13 @@ export async function middleware(req: NextRequest) {
           status: 'online',
         }),
       };
-      await fetch(`${centerApi}/api/agent/sync`, initOptions);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      try {
+        await fetch(`${centerApi}/api/agent/sync`, { ...initOptions, signal: controller.signal });
+      } catch {} finally {
+        clearTimeout(timeout);
+      }
     } catch {}
   }
 
@@ -221,16 +228,11 @@ export async function middleware(req: NextRequest) {
             { status: 403 }
           );
         }
-        // 非 API 页面返回锁定提示页
+        // 非 API 页面返回禁止访问
         if (!pathname.startsWith('/_next')) {
           return new NextResponse(
-            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>授权验证失败</title></head>
-            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;background:#fef2f2;">
-            <div style="text-align:center;padding:2rem;">
-            <h1 style="color:#dc2626;">⚠️ 授权验证失败</h1>
-            <p style="color:#7f1d1d;">当前域名未获授权，请联系平台管理员。</p>
-            </div></body></html>`,
-            { status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+            JSON.stringify({ error: '授权验证失败：域名不匹配', code: 'DOMAIN_MISMATCH' }),
+            { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
           );
         }
       }

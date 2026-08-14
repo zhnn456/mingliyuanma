@@ -12,8 +12,7 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * pageSize;
 
   const rows = await queryAll(
-    'SELECT * FROM MembershipPlan ORDER BY sortOrder ASC, createdAt DESC LIMIT ? OFFSET ?',
-    pageSize, offset
+    `SELECT * FROM MembershipPlan ORDER BY sortOrder ASC, createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
   );
   const countRow = await queryFirst('SELECT COUNT(*) as total FROM MembershipPlan') as any;
 

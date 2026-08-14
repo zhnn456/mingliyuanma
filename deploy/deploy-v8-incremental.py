@@ -190,7 +190,7 @@ def deploy(zip_size: int, is_full: bool):
     with open(LOCAL_ZIP, 'rb') as f:
         sftp.putfo(f, f'{REMOTE_DIR}/incremental-build.zip', callback=progress)
     elapsed = time.time() - start
-    log(f'✓ 上传完成: {elapsed:.0f}s ({zip_size / 1024 / elapsed:.0f} KB/s)')
+    log(f'[OK] 上传完成: {elapsed:.0f}s ({zip_size / 1024 / elapsed:.0f} KB/s)')
 
     # 服务器解压（直接解压到 /www/ming8，PM2 使用 server.js 启动 standalone 模式）
     log('服务器解压...')
@@ -209,16 +209,27 @@ def deploy(zip_size: int, is_full: bool):
 
     # 重启 PM2
     log('重启 PM2...')
-    run('su - admin -c "pm2 restart ecosystem.config.js" 2>&1')
+    # 先用 fuser 释放端口，避免旧进程占用导致 PM2 启动失败
+    run('fuser -k 3001/tcp 2>/dev/null; sleep 1')
+    run(f'cd {REMOTE_DIR} && pm2 start ecosystem.config.js')
     time.sleep(8)
+
+    # 清理 deploy 目录，只保留 4 个必要文件
+    log('清理 deploy 目录...')
+    run(f'''cd {REMOTE_DIR}/deploy && for f in *; do
+      case "$f" in
+        deploy-v8-incremental.py|ecosystem.config.js|nginx-ming8.conf|deploy.sh) ;;
+        *) rm -rf "$f" ;;
+      esac
+    done''')
 
     # 验证
     out, _ = run('curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://localhost:3001')
     log(f'首页: HTTP {out}')
     if out == '200':
-        log('✓ 部署成功！')
+        log('[OK] 部署成功！')
     else:
-        log('✗ 部署失败，检查日志', 'ERROR')
+        log('[ERROR] 部署失败，检查日志', 'ERROR')
         out, _ = run('su - admin -c "pm2 logs ming8 --lines 5 --nostream --err" 2>&1')
         print(out)
 
@@ -241,14 +252,14 @@ def main():
     if is_full:
         log('首次部署，完整打包...')
         zip_size = pack_full()
-        log(f'✓ 完整包: {zip_size / 1024 / 1024:.1f} MB')
+        log(f'[OK] 完整包: {zip_size / 1024 / 1024:.1f} MB')
     else:
         log('增量打包...')
         changed, zip_size = pack_incremental()
         if changed == 0:
             log('没有文件变化，跳过部署')
             return
-        log(f'✓ 增量包: {zip_size / 1024 / 1024:.1f} MB ({changed} 个文件)')
+        log(f'[OK] 增量包: {zip_size / 1024 / 1024:.1f} MB ({changed} 个文件)')
 
     deploy(zip_size, is_full)
 

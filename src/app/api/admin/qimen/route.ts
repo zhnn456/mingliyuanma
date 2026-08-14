@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
       `SELECT qr.id, qr.userId, qr.queryTime, qr.dunType, qr.juNumber, qr.createdAt,
               u.name as userName, u.email as userEmail, u.phone as userPhone
        FROM QimenRecord qr LEFT JOIN User u ON qr.userId = u.id
-       ${whereSql} ORDER BY qr.createdAt DESC LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       ${whereSql} ORDER BY qr.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(

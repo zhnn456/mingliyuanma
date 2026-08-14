@@ -119,6 +119,7 @@ export default function QimenPage() {
   const [questionType, setQuestionType] = useState('general');
   const [showFactors, setShowFactors] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState<number>(Date.now());
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const displayResult = interpretData || chartData;
 
@@ -223,6 +224,11 @@ export default function QimenPage() {
     } finally {
       setLoadingInterpret(false);
     }
+  };
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+    setTimeout(() => { window.print(); setIsPrinting(false); }, 300);
   };
 
   // 上一局：往前推1小时
@@ -449,6 +455,20 @@ export default function QimenPage() {
 
         {(chartData || interpretData) && displayResult && (
           <div className="space-y-6 animate-fade-in">
+            {/* 打印按钮 — 右上角独立位置 */}
+            {interpretData && (
+              <div className="flex justify-end">
+                <button
+                  onClick={handlePrint}
+                  className="no-print px-5 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition flex items-center gap-2 text-sm shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  打印报告
+                </button>
+              </div>
+            )}
             {/* 排盘详细信息 */}
             <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-amber-200/50 p-5">
               <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
@@ -939,6 +959,57 @@ export default function QimenPage() {
             )}
 
             <Disclaimer />
+
+            {/* ===== 打印视图 ===== */}
+            {isPrinting && displayResult && (
+              <div className="print-only print-container">
+                <h1 className="print-title">奇门遁甲命理分析报告</h1>
+                <p style={{textAlign:'center', color:'#666', marginBottom:'6mm', fontSize:'10pt'}}>
+                  生成时间：{new Date().toLocaleString('zh-CN')} | 知微阁 · 传承经典
+                </p>
+
+                <h2 className="print-section-title">一、起局信息</h2>
+                <div className="print-card">
+                  <table className="print-table">
+                    <tbody>
+                      <tr><td style={{fontWeight:600}}>四柱</td><td>{displayResult.fourPillars.year.stem}{displayResult.fourPillars.year.branch} {displayResult.fourPillars.month.stem}{displayResult.fourPillars.month.branch} {displayResult.fourPillars.day.stem}{displayResult.fourPillars.day.branch} {displayResult.fourPillars.hour.stem}{displayResult.fourPillars.hour.branch}</td></tr>
+                      <tr><td style={{fontWeight:600}}>局数</td><td>{displayResult.ju.type}{displayResult.ju.number}局</td></tr>
+                      <tr><td style={{fontWeight:600}}>值符</td><td>{displayResult.zhiFu.star}（落{displayResult.zhiFu.position}宫）</td></tr>
+                      <tr><td style={{fontWeight:600}}>值使</td><td>{displayResult.zhiShi.gate}（落{displayResult.zhiShi.position}宫）</td></tr>
+                      <tr><td style={{fontWeight:600}}>节气</td><td>{displayResult.timeInfo.solarTerm || '-'}</td></tr>
+                      <tr><td style={{fontWeight:600}}>日期</td><td>{displayResult.timeInfo.lunarDate} / {displayResult.timeInfo.solarDate}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {displayResult.specialPatterns && (
+                  <>
+                    <h2 className="print-section-title">二、特殊格局</h2>
+                    {displayResult.specialPatterns.fuYinFanYin?.description && (
+                      displayResult.specialPatterns.fuYinFanYin.description.map((d: any, i: number) => (
+                        <div key={i} className="print-card">{d}</div>
+                      ))
+                    )}
+                  </>
+                )}
+
+                {interpretData && detailedAnalysis && (
+                  <>
+                    <h2 className="print-section-title print-page-break">三、详细分析</h2>
+                    {detailedAnalysis.overallAnalysis && (
+                      <div className="print-card">
+                        <h3 style={{fontSize:'12pt',fontWeight:600}}>综合断局</h3>
+                        <p style={{whiteSpace:'pre-line'}}>{detailedAnalysis.overallAnalysis}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className="print-footer">
+                  知微阁 ZHIWEI · 奇门遁甲命理分析报告 · 仅供传统文化研究参考
+                </div>
+              </div>
+            )}
 
             {/* 查看详细解读按钮 */}
             {!interpretData && (

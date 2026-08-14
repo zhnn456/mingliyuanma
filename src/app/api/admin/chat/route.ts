@@ -68,8 +68,7 @@ export async function GET(req: NextRequest) {
       sql += ' AND (s.subject LIKE ? OR s.lastMessage LIKE ? OR u.name LIKE ? OR u.email LIKE ?)';
       params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     }
-    sql += ' ORDER BY s.lastMessageAt DESC NULLS LAST LIMIT ? OFFSET ?';
-    params.push(pageSize, offset);
+    sql += ` ORDER BY s.lastMessageAt DESC NULLS LAST LIMIT ${pageSize} OFFSET ${offset}`;
     const rows = await queryAll(sql, ...params);
 
     let countSql = 'SELECT COUNT(*) as total FROM ChatSession s LEFT JOIN User u ON s.userId = u.id WHERE 1=1';

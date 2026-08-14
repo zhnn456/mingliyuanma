@@ -42,8 +42,7 @@ export async function GET(req: NextRequest) {
       sql += ' AND (title LIKE ? OR content LIKE ? OR shortcut LIKE ?)';
       params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     }
-    sql += ' ORDER BY sortOrder ASC, updatedAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, offset);
+    sql += ` ORDER BY sortOrder ASC, updatedAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
     const rows = await queryAll(sql, ...params);
 
     let countSql = 'SELECT COUNT(*) as total FROM QuickReply WHERE 1=1';

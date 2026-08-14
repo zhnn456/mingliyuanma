@@ -34,8 +34,7 @@ export async function GET(req: NextRequest) {
       params.push(kw, kw, kw);
     }
 
-    sql += ' ORDER BY p.refundAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY p.refundAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const refunds = await queryAll(sql, ...params);
     const countParams = [

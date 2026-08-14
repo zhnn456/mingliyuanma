@@ -66,8 +66,7 @@ export async function GET(req: NextRequest) {
       queryParams.push(kw, kw, kw);
     }
 
-    sql += ' ORDER BY r.createdAt DESC LIMIT ? OFFSET ?';
-    queryParams.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY r.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const users = await queryAll(sql, ...queryParams);
     const total = (await queryFirst(countSql, ...countParams)) as any;

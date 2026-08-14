@@ -52,11 +52,10 @@ export async function GET(req: NextRequest) {
       params.push(endDate);
     }
 
-    sql += ' ORDER BY s.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY s.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const shares = await queryAll(sql, ...params);
-    const totalResult = await queryFirst(countSql, ...params.filter((_, i) => i < params.length - 2));
+    const totalResult = await queryFirst(countSql, ...params);
     const total = (totalResult as any)?.total || 0;
 
     return NextResponse.json({ shares, total, page, pageSize });

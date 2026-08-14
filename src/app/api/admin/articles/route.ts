@@ -62,8 +62,7 @@ export async function GET(req: NextRequest) {
       sql += ' AND (title LIKE ? OR summary LIKE ? OR content LIKE ? OR tags LIKE ? OR author LIKE ?)';
       params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     }
-    sql += ' ORDER BY sortOrder ASC, updatedAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, offset);
+    sql += ` ORDER BY sortOrder ASC, updatedAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
     const rows = await queryAll(sql, ...params);
 
     let countSql = 'SELECT COUNT(*) as total FROM Article WHERE 1=1';

@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
       `SELECT ft.id, ft.userId, ft.name, ft.avatar, ft.bio, ft.specialties, ft.rating, ft.isActive, ft.createdAt, ft.updatedAt,
               u.email as userEmail, u.phone as userPhone, u.name as userUserName, u.role as userRole
        FROM FortuneTeller ft LEFT JOIN User u ON ft.userId = u.id
-       ${whereSql} ORDER BY ft.createdAt DESC LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       ${whereSql} ORDER BY ft.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(

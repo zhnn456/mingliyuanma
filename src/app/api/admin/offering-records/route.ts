@@ -44,8 +44,8 @@ export async function GET(req: NextRequest) {
        LEFT JOIN OfferingItem oi ON r.itemId = oi.id
        ${whereSql}
        ORDER BY r.createdAt DESC
-       LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(

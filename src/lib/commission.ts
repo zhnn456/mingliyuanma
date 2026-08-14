@@ -135,7 +135,7 @@ export async function saveCommissionRecord(result: CommissionResult) {
   // 累加代理商待结算佣金
   await execute(
     'UPDATE "Agent" SET pendingCommission = COALESCE(pendingCommission, 0) + ?, totalCommission = COALESCE(totalCommission, 0) + ?, currentMonthGMV = COALESCE(currentMonthGMV, 0) + ? WHERE id = ?',
-    result.totalCommission, result.commissionAmount, result.baseAmount, result.agentId
+    result.totalCommission, result.totalCommission, result.baseAmount, result.agentId
   );
 
   return id;

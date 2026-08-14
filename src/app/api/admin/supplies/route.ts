@@ -155,8 +155,8 @@ export async function GET(req: NextRequest) {
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const rows = await queryAll(
-      `SELECT * FROM OfferingSupply ${whereSql} ORDER BY sortOrder ASC, createdAt DESC LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+      `SELECT * FROM OfferingSupply ${whereSql} ORDER BY sortOrder ASC, createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(

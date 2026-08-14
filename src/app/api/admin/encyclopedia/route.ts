@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * pageSize;
     const records = await queryAll(
       `SELECT id, title, category, content, tags, viewCount, sortOrder, isActive, createdAt, updatedAt
-       FROM Encyclopedia ${whereSql} ORDER BY sortOrder ASC, updatedAt DESC LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       FROM Encyclopedia ${whereSql} ORDER BY sortOrder ASC, updatedAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(

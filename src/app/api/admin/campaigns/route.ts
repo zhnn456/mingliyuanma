@@ -66,8 +66,7 @@ export async function GET(req: NextRequest) {
       params.push(now);
     }
 
-    sql += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const data = await queryAll(sql, ...params);
 

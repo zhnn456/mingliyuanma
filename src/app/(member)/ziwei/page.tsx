@@ -227,6 +227,7 @@ export default function ZiweiPage() {
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('sanhe');
   const [timeMode, setTimeMode] = useState<TimeMode>('base');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const displayResult = interpretData || chartData;
 
@@ -328,6 +329,11 @@ export default function ZiweiPage() {
     }
   };
 
+  const handlePrint = () => {
+    setIsPrinting(true);
+    setTimeout(() => { window.print(); setIsPrinting(false); }, 300);
+  };
+
   // 使用API返回的decadal数据
   const ageLimits = useMemo(() => {
     if (!displayResult) return [];
@@ -379,6 +385,21 @@ export default function ZiweiPage() {
 
         {(chartData || interpretData) && displayResult && (
           <div className="space-y-6 animate-fade-in">
+            {/* 打印按钮 — 右上角独立位置 */}
+            {interpretData && (
+              <div className="flex justify-end">
+                <button
+                  onClick={handlePrint}
+                  className="no-print px-5 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition flex items-center gap-2 text-sm shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  打印报告
+                </button>
+              </div>
+            )}
+
             {/* 功能切换 */}
             <div className="tab-nav">
               <button
@@ -934,6 +955,87 @@ export default function ZiweiPage() {
             )}
 
             <Disclaimer />
+
+            {/* ===== 打印视图 ===== */}
+            {isPrinting && displayResult && (
+              <div className="print-only print-container">
+                <h1 className="print-title">紫微斗数命理分析报告</h1>
+                <p style={{textAlign:'center', color:'#666', marginBottom:'6mm', fontSize:'10pt'}}>
+                  生成时间：{new Date().toLocaleString('zh-CN')} | 知微阁 · 传承经典
+                </p>
+
+                {/* 命盘基本信息 */}
+                <h2 className="print-section-title">一、命盘基本信息</h2>
+                <div className="print-card">
+                  <table className="print-table">
+                    <tbody>
+                      {[
+                        ['农历', displayResult.basic.lunarDate],
+                        ['四柱八字', displayResult.basic.chineseDate],
+                        ['五行局', displayResult.basic.fiveElementsClass],
+                        ['生肖', displayResult.basic.zodiac],
+                        ['命主', displayResult.basic.soul || '--'],
+                        ['身主', displayResult.basic.body || '--'],
+                        ['命宫', displayResult.basic.earthlyBranchOfSoulPalace || '--'],
+                        ['身宫', displayResult.basic.earthlyBranchOfBodyPalace || '--'],
+                      ].map(([label, value]) => (
+                        <tr key={label as string}>
+                          <td style={{fontWeight:600,width:'30%'}}>{label}</td>
+                          <td>{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 命盘格局 */}
+                {combinations.length > 0 && (
+                  <>
+                    <h2 className="print-section-title">二、命盘格局</h2>
+                    {combinations.map((c, i) => (
+                      <div key={i} className="print-card">{c}</div>
+                    ))}
+                  </>
+                )}
+
+                {/* 详细解析 */}
+                {interpretData?.detailedAnalysis && (
+                  <>
+                    <h2 className="print-section-title print-page-break">三、命盘综合解析</h2>
+                    {interpretData.detailedAnalysis.overallSummary && (
+                      <div className="print-card">
+                        <p>{interpretData.detailedAnalysis.overallSummary}</p>
+                      </div>
+                    )}
+                    {interpretData.detailedAnalysis.patterns?.length > 0 && (
+                      <>
+                        <h3 style={{fontSize:'12pt',fontWeight:600,marginTop:'4mm'}}>格局分析</h3>
+                        {interpretData.detailedAnalysis.patterns.map((p: any, i: number) => (
+                          <div key={i} className="print-card">
+                            <strong>{p.name}</strong>
+                            <p>{p.description}</p>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {interpretData.detailedAnalysis.sihuaOverview?.length > 0 && (
+                      <>
+                        <h3 style={{fontSize:'12pt',fontWeight:600,marginTop:'4mm'}}>四化飞星总论</h3>
+                        {interpretData.detailedAnalysis.sihuaOverview.map((s: any, i: number) => (
+                          <div key={i} className="print-card">
+                            <strong>{s.star}</strong> → {s.meaning}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+
+                <div className="print-footer">
+                  知微阁 ZHIWEI · 紫微斗数命理分析报告 · 仅供传统文化研究参考
+                </div>
+              </div>
+            )}
 
             {/* 查看详细解读按钮 */}
             {!interpretData && (

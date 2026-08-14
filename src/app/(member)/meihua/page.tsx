@@ -83,6 +83,7 @@ export default function MeihuaPage() {
   const [activeTab, setActiveTab] = useState<'divination' | 'lookup'>('divination');
   const [questionType, setQuestionType] = useState('general');
   const [detailedAnalysis, setDetailedAnalysis] = useState<MeihuaDetailedAnalysis | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const { addToast } = useToast();
   const [initialLoaded, setInitialLoaded] = useState(false);
 
@@ -224,6 +225,11 @@ export default function MeihuaPage() {
     } finally {
       setLoadingInterpret(false);
     }
+  };
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+    setTimeout(() => { window.print(); setIsPrinting(false); }, 300);
   };
 
   const interpretation = displayResult ? generateMeihuaInterpretation(displayResult) : null;
@@ -685,6 +691,21 @@ export default function MeihuaPage() {
                   </div>
                 </div>
 
+                {/* 打印按钮 — 右上角独立位置 */}
+              {interpretData && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={handlePrint}
+                    className="no-print px-5 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition flex items-center gap-2 text-sm shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    打印报告
+                  </button>
+                </div>
+              )}
+
                 {/* 功能切换 */}
                 <div className="tab-nav">
                   <button onClick={() => setShowInterpretation(true)}
@@ -920,7 +941,64 @@ export default function MeihuaPage() {
                   </div>
                 )}
 
-                <Disclaimer />
+                {/* ===== 打印视图 ===== */}
+            {isPrinting && displayResult && (
+              <div className="print-only print-container">
+                <h1 className="print-title">梅花易数卦象分析报告</h1>
+                <p style={{textAlign:'center', color:'#666', marginBottom:'6mm', fontSize:'10pt'}}>
+                  生成时间：{new Date().toLocaleString('zh-CN')} | 知微阁 · 传承经典
+                </p>
+
+                <h2 className="print-section-title">一、起卦信息</h2>
+                <div className="print-card">
+                  <table className="print-table">
+                    <tbody>
+                      <tr><td style={{fontWeight:600}}>本卦</td><td>{displayResult.benGua.name}</td></tr>
+                      <tr><td style={{fontWeight:600}}>互卦</td><td>{displayResult.huGua.name}</td></tr>
+                      <tr><td style={{fontWeight:600}}>变卦</td><td>{displayResult.bianGua.name}</td></tr>
+                      <tr><td style={{fontWeight:600}}>体卦</td><td>{displayResult.tiYong.ti}</td></tr>
+                      <tr><td style={{fontWeight:600}}>用卦</td><td>{displayResult.tiYong.yong}</td></tr>
+                      <tr><td style={{fontWeight:600}}>体用关系</td><td>{displayResult.tiYong.relation}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {interpretData && interpretation && (
+                  <>
+                    <h2 className="print-section-title print-page-break">二、卦象详细解析</h2>
+                    {interpretation.tiyongDetail && (
+                      <div className="print-card">
+                        <h3 style={{fontSize:'12pt',fontWeight:600}}>综合吉凶：{interpretation.tiyongDetail.level}</h3>
+                        <p>{interpretation.tiyongDetail.description}</p>
+                        <p style={{fontStyle:'italic'}}>{interpretation.tiyongDetail.advice}</p>
+                      </div>
+                    )}
+                    {interpretation.dongYaoData && (
+                      <div className="print-card">
+                        <h3 style={{fontSize:'12pt',fontWeight:600}}>动爻解析：第{displayResult.dongYao}爻</h3>
+                        <p style={{fontWeight:600}}>爻辞：{interpretation.dongYaoData.yaoCi}</p>
+                        <p>象曰：{interpretation.dongYaoData.xiangYue}</p>
+                        <p>{interpretation.dongYaoData.meaning}</p>
+                      </div>
+                    )}
+                    {interpretation.benDetail && (
+                      <div className="print-card">
+                        <h3 style={{fontSize:'12pt',fontWeight:600}}>本卦详解：{displayResult.benGua.name}</h3>
+                        <p style={{fontWeight:600}}>卦辞：{interpretation.benDetail.guaCi}</p>
+                        {interpretation.benDetail.xiangYue && <p>象曰：{interpretation.benDetail.xiangYue}</p>}
+                        <p>{interpretation.benDetail.summary}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className="print-footer">
+                  知微阁 ZHIWEI · 梅花易数卦象分析报告 · 仅供传统文化研究参考
+                </div>
+              </div>
+            )}
+
+            <Disclaimer />
 
                 {/* 查看详细解读按钮 */}
                 {!interpretData && (

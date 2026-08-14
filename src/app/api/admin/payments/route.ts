@@ -38,8 +38,7 @@ export async function GET(req: NextRequest) {
       params.push(endDate);
     }
 
-    sql += ' ORDER BY p.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY p.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const payments = await queryAll(sql, ...params);
     const total = (await queryFirst(countSql, ...(status ? [status] : []), ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])) as any)?.total || 0;

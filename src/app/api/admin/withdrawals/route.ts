@@ -32,11 +32,10 @@ export async function GET(req: NextRequest) {
     if (minAmount) { sql += ' AND w.amount >= ?'; countSql += ' AND amount >= ?'; params.push(parseFloat(minAmount)); }
     if (maxAmount) { sql += ' AND w.amount <= ?'; countSql += ' AND amount <= ?'; params.push(parseFloat(maxAmount)); }
 
-    sql += ' ORDER BY w.createdAt DESC LIMIT ? OFFSET ?';
-    params.push(pageSize, (page - 1) * pageSize);
+    sql += ` ORDER BY w.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const withdrawals = await queryAll(sql, ...params);
-    const total = (await queryFirst(countSql, ...params.slice(0, -2)) as any)?.total || 0;
+    const total = (await queryFirst(countSql, ...params) as any)?.total || 0;
     const stats = await getWithdrawalStats();
 
     return NextResponse.json({ withdrawals, total, page, pageSize, stats });

@@ -25,6 +25,7 @@ export default function BaziPage() {
   const [loadingInterpret, setLoadingInterpret] = useState(false);
   const [birthYear, setBirthYear] = useState<number>(0);
   const [tab, setTab] = useState<'chart'|'baihua'|'lunming'|'dayun'>('chart');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // 合盘相关 state
   const [mainTab, setMainTab] = useState<'paipan'|'hepan'>('paipan');
@@ -97,7 +98,15 @@ export default function BaziPage() {
     }
   };
 
-  // 合盘提交
+  // 打印报告
+  const handlePrint = () => {
+    setIsPrinting(true);
+    // 等待 React 渲染完成后再打印
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 300);
+  };
   const handleHePanSubmit = async (person1: any, person2: any) => {
     setHepanLoading(true); setHepanError('');
     try {
@@ -172,6 +181,21 @@ export default function BaziPage() {
 
             {(chartData || interpretData) && displayResult && (
               <div className="space-y-8 animate-fade-in">
+                {/* 打印按钮 — 右上角独立位置 */}
+                {interpretData && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handlePrint}
+                      className="no-print px-5 py-2.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition flex items-center gap-2 text-sm shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      打印报告
+                    </button>
+                  </div>
+                )}
+
                 {/* Tab导航 */}
                 <div className="tab-nav">
                   {[
@@ -218,6 +242,58 @@ export default function BaziPage() {
                       >
                         {loadingInterpret ? '加载中...' : '查看详细解读'}
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ===== 打印视图：所有 Tab 内容合并为一页 ===== */}
+                {isPrinting && displayResult && (
+                  <div className="print-only print-container">
+                    <h1 className="print-title">八字命理分析报告</h1>
+                    <p style={{textAlign:'center', color:'#666', marginBottom:'6mm', fontSize:'10pt'}}>
+                      生成时间：{new Date().toLocaleString('zh-CN')} | 知微阁 · 传承经典
+                    </p>
+
+                    {/* 一、命盘总览 */}
+                    <h2 className="print-section-title">一、命盘总览</h2>
+                    <BaziChart result={displayResult} />
+
+                    {/* 二、白话解读 */}
+                    {displayXiYongShen && (
+                      <>
+                        <h2 className="print-section-title print-page-break">二、白话解读</h2>
+                        <BaziInterpretation
+                          dayGan={displayResult.fourPillars.day.gan}
+                          wuxing={displayResult.wuxing}
+                          xiYongShen={displayXiYongShen}
+                          nayin={displayResult.nayin}
+                          shengxiao={displayResult.shengxiao}
+                        />
+                      </>
+                    )}
+
+                    {/* 三、论命版 */}
+                    {displayXiYongShen && (
+                      <>
+                        <h2 className="print-section-title print-page-break">三、专业论命分析</h2>
+                        <BaziProfessionalAnalysis result={displayResult} xiYongShen={displayXiYongShen} />
+                      </>
+                    )}
+
+                    {/* 四、大运流年 */}
+                    {birthYear > 0 && interpretData && (
+                      <>
+                        <h2 className="print-section-title print-page-break">四、大运流年</h2>
+                        <LifeKLineChart
+                          dayun={displayResult.dayun}
+                          xiYongShen={displayXiYongShen}
+                          birthYear={birthYear}
+                        />
+                      </>
+                    )}
+
+                    <div className="print-footer">
+                      知微阁 ZHIWEI · 八字命理分析报告 · 仅供传统文化研究参考
                     </div>
                   </div>
                 )}

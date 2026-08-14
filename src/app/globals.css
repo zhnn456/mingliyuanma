@@ -756,3 +756,115 @@ input:focus, select:focus, textarea:focus,
 .animate-scroll-up {
   animation: scroll-up 30s linear infinite;
 }
+
+/* ========== 打印报告样式 ========== */
+@media screen {
+  .print-only { display: none !important; }
+}
+
+@media print {
+  /* 隐藏所有非打印内容 */
+  nav, header, footer, .no-print,
+  .tab-nav, .form-card, .tab-btn, .toggle-btn,
+  .page-header, .page-header-subtitle,
+  button:not(.print-only),
+  .sidebar, .tool-seo-content,
+  .fixed, .sticky,
+  .print-hide { display: none !important; }
+
+  /* 显示打印内容 */
+  .print-only { display: block !important; }
+
+  /* 页面设置 */
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 11pt;
+    line-height: 1.7;
+  }
+
+  /* 打印容器 */
+  .print-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* 打印标题 */
+  .print-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 20pt;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8mm;
+    padding-bottom: 4mm;
+    border-bottom: 2px solid #991B1B;
+    color: #991B1B;
+  }
+
+  .print-section-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14pt;
+    font-weight: 700;
+    color: #991B1B;
+    margin-top: 8mm;
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    border-bottom: 1px solid #e0d5c0;
+    page-break-after: avoid;
+  }
+
+  /* 打印卡片 */
+  .print-card {
+    background: white;
+    border: 1px solid #e0d5c0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+
+  /* 打印表格 */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+  .print-table th {
+    background: #f5f0e8;
+    padding: 6px 8px;
+    border: 1px solid #d0c8b8;
+    text-align: center;
+    font-weight: 600;
+  }
+  .print-table td {
+    padding: 5px 8px;
+    border: 1px solid #d0c8b8;
+    text-align: center;
+  }
+
+  /* 分页控制 */
+  .print-page-break {
+    page-break-before: always;
+  }
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* 保证 SVG 图表正常显示 */
+  svg { max-width: 100%; }
+
+  /* 页脚水印 */
+  .print-footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #999;
+    margin-top: 8mm;
+    padding-top: 4mm;
+    border-top: 1px solid #e0d5c0;
+  }
+}

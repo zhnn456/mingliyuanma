@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
               mr.benGua, mr.huGua, mr.bianGua, mr.tiYong, mr.createdAt,
               u.name as userName, u.email as userEmail, u.phone as userPhone
        FROM MeihuaRecord mr LEFT JOIN User u ON mr.userId = u.id
-       ${whereSql} ORDER BY mr.createdAt DESC LIMIT ? OFFSET ?`,
-      ...params, pageSize, offset
+       ${whereSql} ORDER BY mr.createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`,
+      ...params
     );
 
     const countRow = await queryFirst(
