@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
+import CustomerServiceQR from '@/components/CustomerServiceQR';
 
 interface OrderData {
   id: string;
@@ -435,7 +436,8 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-10">
-      <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-center gap-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-xl flex-1">
         {/* 订单信息 */}
         <div className="card mb-6">
           <h1 className="text-xl font-bold text-gray-900 mb-4 text-center">确认订单</h1>
@@ -548,6 +550,8 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           支付即表示同意 <span className="underline cursor-pointer">服务协议</span>
         </p>
       </div>
+      <CustomerServiceQR />
+    </div>
     </div>
   );
 }

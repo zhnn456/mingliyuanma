@@ -211,6 +211,7 @@ export default function OfferingPage() {
           <div className="text-center mt-3 text-sm text-stone-500 relative z-10">
             已有 <strong className="text-amber-700">{squareStats.totalUsers || 0}</strong> 位用户参与祈福 · 心意所至，皆是美好
           </div>
+          <p className="text-center text-xs text-stone-400 mt-2 relative z-10">以上数值仅为测试使用，不代表真实情况</p>
         </div>
 
         {/* Tabs */}
@@ -317,7 +318,7 @@ export default function OfferingPage() {
                 </p>
                 <p className="text-xs text-stone-400 mt-3">
                   ⚠️ 免责声明：祈福行为仅为传统文化表达，不构成任何现实承诺。
-                  所有祈福均为虚拟仪式，请理性看待，仅供文化体验。
+                  所有祈福均为虚拟仪式，请理性看待，仅供文化体验。以上数值仅为测试使用，不代表真实情况。
                 </p>
               </div>
             )}
