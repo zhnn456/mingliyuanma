@@ -700,7 +700,7 @@ export async function seedDefaultSupplies(force = false) {
 export async function ensureOfferingMockConfigTable() {
   await execute(`CREATE TABLE IF NOT EXISTS "OfferingMockConfig" (
     "id" VARCHAR(50) NOT NULL PRIMARY KEY DEFAULT 'default',
-    "baseDate" TEXT NOT NULL DEFAULT '2026-01-01',
+    "baseDate" VARCHAR(50) NOT NULL DEFAULT '2026-01-01',
     "baseOfferings" INTEGER NOT NULL DEFAULT 12800,
     "baseUsers" INTEGER NOT NULL DEFAULT 3200,
     "baseLingzhu" INTEGER NOT NULL DEFAULT 256000,
