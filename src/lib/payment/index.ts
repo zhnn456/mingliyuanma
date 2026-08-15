@@ -20,10 +20,16 @@ import {
   parseCallback as alipayParseCallback,
   type AlipayConfig,
 } from './alipay';
+import {
+  createOrder as zpayCreateOrder,
+  parseCallback as zpayParseCallback,
+  getZPayConfig,
+  type ZPayConfig,
+} from './zpay';
 
 // ============ 类型定义 ============
 
-export type PaymentMethod = 'wechat' | 'alipay' | 'paypal' | 'mock';
+export type PaymentMethod = 'wechat' | 'alipay' | 'paypal' | 'zpay' | 'mock';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'closed';
 
 export interface PaymentConfig {
@@ -44,6 +50,10 @@ export interface PaymentConfig {
   alipayGateway?: string;
   // PayPal（PayPal.me 收款链接，由客服手动核销）
   paypalMeUsername?: string;
+  // Z-Pay（易支付，无需备案，个人/个体工商户可用）
+  zpayPid?: string;
+  zpayKey?: string;
+  zpayApiUrl?: string;
   // 代理商配置（多租户）
   agentId?: string;
 }
@@ -144,6 +154,8 @@ export class PaymentService {
         return this.createAlipayOrder(params);
       case 'paypal':
         return this.createPaypalOrder(params);
+      case 'zpay':
+        return this.createZpayOrder(params);
       case 'mock':
         return this.createMockOrder(params);
       default:
@@ -161,6 +173,8 @@ export class PaymentService {
         return this.handleWechatCallback(rawBody, headers);
       case 'alipay':
         return this.handleAlipayCallback(rawBody, headers);
+      case 'zpay':
+        return this.handleZpayCallback(rawBody);
       case 'mock':
         return this.handleMockCallback(rawBody);
       default:
@@ -432,6 +446,65 @@ export class PaymentService {
     } as CreateOrderResult;
   }
 
+  // ============ Z-Pay（易支付） ============
+
+  private isZpayConfigured(): boolean {
+    return !!(this.config.zpayPid && this.config.zpayKey);
+  }
+
+  private getZpayConfig(): ZPayConfig {
+    return {
+      pid: this.config.zpayPid!,
+      key: this.config.zpayKey!,
+      apiUrl: this.config.zpayApiUrl || 'https://api.z-pay.cn/submit.php',
+      notifyUrl: `${process.env.NEXTAUTH_URL}/api/payment/zpay/notify`,
+      returnUrl: `${process.env.NEXTAUTH_URL}/pay/result`,
+    };
+  }
+
+  private async createZpayOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    if (!this.isZpayConfigured()) {
+      console.warn('[Z-Pay] 未配置，降级为 mock 模式');
+      return this.createMockOrder(params);
+    }
+
+    const config = this.getZpayConfig();
+    const result = zpayCreateOrder(config, {
+      orderNo: params.orderNo,
+      amount: params.amount,
+      title: params.title,
+      type: 'alipay',
+    });
+
+    return {
+      orderNo: params.orderNo,
+      paymentUrl: result.paymentUrl,
+      status: 'pending',
+    };
+  }
+
+  private async handleZpayCallback(rawBody: string): Promise<CallbackResult> {
+    if (!this.isZpayConfigured()) {
+      return this.handleMockCallback(rawBody);
+    }
+
+    // Z-Pay 回调是 GET 请求，参数在 URL query string 中
+    const params: Record<string, string> = {};
+    const searchParams = new URLSearchParams(rawBody);
+    searchParams.forEach((v, k) => { params[k] = v; });
+
+    const config = this.getZpayConfig();
+    const data = zpayParseCallback(params, config);
+
+    return {
+      success: true,
+      orderNo: data.orderNo,
+      transactionId: data.transactionId,
+      amount: data.amount,
+      method: 'zpay',
+    };
+  }
+
   // ============ Mock 支付（开发/测试用） ============
 
   private async createMockOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
@@ -482,6 +555,10 @@ export function getPaymentConfig(agentId?: string): PaymentConfig {
     alipayGateway: process.env.ALIPAY_GATEWAY || 'https://openapi.alipay.com/gateway.do',
     // PayPal（PayPal.me 用户名，用于跳转收款）
     paypalMeUsername: process.env.PAYPAL_ME_USERNAME,
+    // Z-Pay（易支付，无需备案）
+    zpayPid: process.env.ZPAY_PID,
+    zpayKey: process.env.ZPAY_KEY,
+    zpayApiUrl: process.env.ZPAY_API_URL || 'https://api.z-pay.cn/submit.php',
     agentId,
   };
 

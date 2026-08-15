@@ -1,61 +1,63 @@
+/**
+ * Z-Pay 异步回调接口
+ * 
+ * Z-Pay 支付成功后通过 GET 方式回调此接口
+ * 必须返回字符串 'success' 确认收款
+ * 重试策略：0/15/15/30/180/1800 秒
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute, batch } from '@/lib/d1';
-import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 import { auditLog } from '@/lib/audit';
 import { grantLingzhu, MEMBERSHIP_GIFT_LINGZHU } from '@/lib/rate-limit';
 import { PACKAGE_POINTS } from '@/lib/recharge-packages';
+import { getZPayConfig, parseCallback } from '@/lib/payment/zpay';
+import { MEMBERSHIP_PLANS } from '@/lib/payment';
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
+    // 解析回调参数
     const { searchParams } = new URL(req.url);
-    const method = searchParams.get('method');
+    const params: Record<string, string> = {};
+    searchParams.forEach((v, k) => { params[k] = v; });
 
-    // 拒绝 mock 方式，只接受真实支付回调
-    // 注：PayPal.me 暂不支持自动回调，由客服在后台手动核销
-    if (method !== 'wechat' && method !== 'alipay' && method !== 'zpay') {
-      return NextResponse.json({ code: 'FAIL', message: '无效的支付方式' }, { status: 400 });
-    }
+    console.log('[Z-Pay 回调] 收到回调:', JSON.stringify(params));
 
-    const rawBody = await req.text();
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-
-    const paymentService = createPaymentService();
-    const result = await paymentService.handleCallback(method as any, rawBody, headers);
+    // 验证签名并解析
+    const config = getZPayConfig();
+    const result = parseCallback(params, config);
 
     if (!result.success) {
-      return NextResponse.json({ code: 'FAIL', message: '支付验证失败' }, { status: 400 });
+      console.error('[Z-Pay 回调] 签名验证失败');
+      return new NextResponse('fail', { status: 400 });
     }
 
+    // 查找订单
     const order = await queryFirst(
       'SELECT * FROM "Order" WHERE orderNo = ?',
       result.orderNo
     ) as any;
 
     if (!order) {
-      console.error('回调订单不存在:', result.orderNo);
-      return NextResponse.json({ code: 'FAIL', message: '订单不存在' }, { status: 404 });
+      console.error('[Z-Pay 回调] 订单不存在:', result.orderNo);
+      return new NextResponse('fail', { status: 404 });
     }
 
-    // 金额校验（防篡改）
-    const paidAmount = result.amount;
-    if (isNaN(paidAmount) || Math.abs(order.amount - paidAmount) > 0.01) {
-      console.error('回调金额不匹配:', order.amount, paidAmount);
-      return NextResponse.json({ code: 'FAIL', message: '金额不匹配' }, { status: 400 });
+    // 金额校验
+    if (Math.abs(order.amount - result.amount) > 0.01) {
+      console.error('[Z-Pay 回调] 金额不匹配:', order.amount, result.amount);
+      return new NextResponse('fail', { status: 400 });
     }
 
-    // 原子性抢占：只有 pending 状态才能更新为 paid
-    // 防止并发回调导致重复处理（双倍充值）
+    // 原子性抢占：防止重复处理
     const claimResult = await execute(
       'UPDATE "Order" SET status = ?, transactionId = ?, paidAt = ?, updatedAt = ? WHERE id = ? AND status = ?',
       'paid', result.transactionId, new Date().toISOString(), new Date().toISOString(), order.id, 'pending'
     );
 
     if (claimResult.changes === 0) {
-      // 订单已被其他回调处理，幂等返回成功
-      return NextResponse.json({ code: 'SUCCESS', message: '成功' });
+      // 已处理，幂等返回成功
+      console.log('[Z-Pay 回调] 订单已处理，幂等返回');
+      return new NextResponse('success');
     }
 
     const now = new Date().toISOString();
@@ -64,10 +66,11 @@ export async function POST(req: NextRequest) {
     const batchStatements: Array<{ sql: string; params?: any[] }> = [
       {
         sql: 'INSERT INTO Payment (id, orderId, userId, method, amount, status, transactionId, paidAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        params: [`pay_${Date.now()}_${randSuffix}`, order.id, order.userId, result.method, order.amount, 'success', result.transactionId, now, now],
+        params: [`pay_${Date.now()}_${randSuffix}`, order.id, order.userId, 'zpay', order.amount, 'success', result.transactionId, now, now],
       },
     ];
 
+    // 根据订单类型处理业务逻辑
     if (order.type === 'membership') {
       const plan = MEMBERSHIP_PLANS.find((p) => p.level === order.targetId);
       const days = plan?.durationDays ?? 30;
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
       await auditLog({
         userId: order.userId,
         action: 'member_upgrade',
-        details: { level: order.targetId, orderNo: order.orderNo },
+        details: { level: order.targetId, orderNo: order.orderNo, method: 'zpay' },
         status: 'success',
       });
     } else if (order.type === 'offering') {
@@ -94,14 +97,12 @@ export async function POST(req: NextRequest) {
       await auditLog({
         userId: order.userId,
         action: 'offering_create',
-        details: { orderNo: order.orderNo, targetId: order.targetId },
+        details: { orderNo: order.orderNo, targetId: order.targetId, method: 'zpay' },
         status: 'success',
       });
     } else if (order.type === 'recharge') {
-      // 充值积分到账
       const points = PACKAGE_POINTS[order.targetId] || 0;
       if (points > 0) {
-        // MySQL 8.0 已弃用 VALUES(col)，改用显式参数
         batchStatements.push({
           sql: 'INSERT INTO UserPoints (userId, balance, updatedAt) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE balance = balance + ?, updatedAt = ?',
           params: [order.userId, points, now, points, now],
@@ -115,29 +116,29 @@ export async function POST(req: NextRequest) {
       await auditLog({
         userId: order.userId,
         action: 'recharge_success',
-        details: { orderNo: order.orderNo, points, amount: order.amount },
+        details: { orderNo: order.orderNo, points, amount: order.amount, method: 'zpay' },
         status: 'success',
       });
     }
 
     await batch(batchStatements);
 
-    // 分润处理 - 用户消费时自动分润给代理商
+    // 分润处理
     try {
       const { processCommission } = await import('@/lib/commission-engine');
       await processCommission(order.id, order.userId, order.amount);
     } catch (err) {
-      console.error('分润处理失败:', err);
+      console.error('[Z-Pay 回调] 分润处理失败:', err);
     }
 
-    // 会员开通赠送积分
+    // 会员赠送积分
     if (order.type === 'membership') {
       const giftAmount = MEMBERSHIP_GIFT_LINGZHU[order.targetId] || 0;
       if (giftAmount > 0) {
         try {
           await grantLingzhu(order.userId, giftAmount, `开通会员赠送${giftAmount}积分`);
         } catch (err) {
-          console.error('会员赠送积分失败:', err);
+          console.error('[Z-Pay 回调] 会员赠送积分失败:', err);
         }
       }
     }
@@ -145,20 +146,14 @@ export async function POST(req: NextRequest) {
     await auditLog({
       userId: order.userId,
       action: 'order_pay',
-      details: { orderNo: order.orderNo, amount: order.amount, method: result.method },
+      details: { orderNo: order.orderNo, amount: order.amount, method: 'zpay' },
       status: 'success',
     });
 
-    if (method === 'wechat') {
-      return NextResponse.json({ return_code: 'SUCCESS', return_msg: 'OK' });
-    }
-    // Z-Pay 要求返回字符串 'success' 确认收款
-    if (method === 'zpay') {
-      return new NextResponse('success', { status: 200, headers: { 'Content-Type': 'text/plain' } });
-    }
-    return NextResponse.json({ code: 'SUCCESS', message: '成功' });
+    console.log('[Z-Pay 回调] 处理成功:', result.orderNo);
+    return new NextResponse('success');
   } catch (error: any) {
-    console.error('支付回调处理失败:', error?.message);
-    return NextResponse.json({ code: 'FAIL', message: '处理失败' }, { status: 500 });
+    console.error('[Z-Pay 回调] 处理失败:', error?.message);
+    return new NextResponse('fail', { status: 500 });
   }
 }

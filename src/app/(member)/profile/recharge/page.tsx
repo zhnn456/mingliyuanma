@@ -59,7 +59,7 @@ export default function RechargePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'recharge',
-          method: 'wechat', // 默认预选微信，用户可在支付页改
+          method: 'zpay', // 默认使用 Z-Pay（无需备案）
           targetId: pkg.id,
         }),
       });
@@ -138,7 +138,7 @@ export default function RechargePage() {
           <div className="font-medium mb-1">💡 其他充值方式</div>
           <p className="text-xs text-amber-700">
             · 卡密兑换：前往 <Link href="/profile/redeem" className="underline font-medium">卡密兑换</Link> 页面输入卡密直接充值<br/>
-            · PayPal/支付宝：点击购买后可在支付页选择对应支付方式
+            · Z-Pay：点击购买后可在支付页选择支付宝付款（无需备案）
           </p>
         </div>
 

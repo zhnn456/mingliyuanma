@@ -27,6 +27,7 @@ interface MethodsConfig {
   wechat: boolean;
   alipay: boolean;
   paypal: boolean;
+  zpay: boolean;
   cardkey: boolean;
 }
 
@@ -41,6 +42,7 @@ const PAYMENT_METHODS = [
   { id: 'mock', name: '模拟支付（测试用）', icon: '🧪', desc: '开发测试用' },
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
+  { id: 'zpay', name: 'Z-Pay 支付宝', icon: '💎', desc: '通过 Z-Pay 使用支付宝付款（无需备案）' },
   { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
   { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 Xcbot2026 购买卡密后兑换' },
 ];
@@ -63,7 +65,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
   const [redirecting, setRedirecting] = useState(false);
-  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, cardkey: true });
+  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, zpay: false, cardkey: true });
 
   // 获取订单信息
   const fetchOrder = useCallback(async () => {
@@ -292,6 +294,59 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           window.location.href = pay.paymentUrl;
         } else {
           setError('未获取到支付宝支付链接');
+          setPaying(false);
+          setRedirecting(false);
+        }
+      } catch {
+        setError('网络错误，请重试');
+        setPaying(false);
+        setRedirecting(false);
+      }
+      return;
+    }
+
+    // Z-Pay 支付宝：创建订单后跳转到 Z-Pay 支付页
+    if (selectedMethod === 'zpay') {
+      setPaying(true);
+      setRedirecting(true);
+      try {
+        const body = buildCreateBody('zpay');
+        if (!body) {
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || '创建 Z-Pay 支付失败');
+          setPaying(false);
+          setRedirecting(false);
+          return;
+        }
+        if (data.order?.orderNo) {
+          setPollOrderNo(data.order.orderNo);
+          setOrder((prev) =>
+            prev
+              ? { ...prev, orderNo: data.order.orderNo, amount: data.order.amount ?? prev.amount, paymentMethod: 'zpay' }
+              : prev,
+          );
+        }
+        const pay = data.payment || {};
+        if (pay.paymentUrl) {
+          if (pay.paymentUrl.startsWith('/pay/')) {
+            setError('Z-Pay 未配置（请在 .env 中设置 ZPAY_PID 和 ZPAY_KEY），请联系管理员');
+            setPaying(false);
+            setRedirecting(false);
+            return;
+          }
+          window.location.href = pay.paymentUrl;
+        } else {
+          setError('未获取到 Z-Pay 支付链接');
           setPaying(false);
           setRedirecting(false);
         }
