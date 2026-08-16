@@ -234,7 +234,17 @@ export default function AdminLicensesPage() {
                   </td>
                   <td className="px-4 py-3">{lic.maxUsers}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {lic.features ? Object.keys(JSON.parse(lic.features || '{}')).join(', ') || '-' : '-'}
+                    {(() => {
+                      if (!lic.features) return '-';
+                      try {
+                        const parsed = JSON.parse(lic.features);
+                        if (Array.isArray(parsed)) return parsed.join(', ') || '-';
+                        if (parsed && typeof parsed === 'object') return Object.keys(parsed).join(', ') || '-';
+                        return '-';
+                      } catch {
+                        return '-';
+                      }
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded ${statusColor[lic.status] || ''}`}>

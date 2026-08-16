@@ -1,10 +1,10 @@
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
     sql += ` ORDER BY a.createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const agents = await queryAll(sql, ...params);
-    const totalRow = await queryFirst(countSql, ...(keyword ? [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`] : [])) as any;
+    const countParams: any[] = [];
+    if (keyword) { const kw = `%${keyword}%`; countParams.push(kw, kw, kw); }
+    const totalRow = await queryFirst(countSql, ...countParams) as any;
     const total = totalRow?.total || 0;
 
     const list = agents.map((a: any) => {
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { agentId, action, rejectReason } = await req.json();
@@ -157,7 +159,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);

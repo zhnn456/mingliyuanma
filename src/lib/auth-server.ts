@@ -71,10 +71,16 @@ function base64UrlDecode(b64url: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+function getTier(): number {
+  const centerApi = process.env.CENTER_API || '';
+  return centerApi ? 1 : 0;
+}
+
 /** 签名 Token */
 export async function signToken(payload: Record<string, any>): Promise<string> {
   const secret = await getSecretKey();
-  const data = { ...payload, iat: Date.now(), exp: Date.now() + TOKEN_TTL };
+  const tier = getTier();
+  const data = { ...payload, tier, iat: Date.now(), exp: Date.now() + TOKEN_TTL };
   const encodedPayload = base64UrlEncode(JSON.stringify(data));
 
   // 使用 Node.js crypto 模块计算 HMAC-SHA256 签名
@@ -152,12 +158,17 @@ export async function requireAuth(req: NextRequest) {
   return { allowed: !!session, session };
 }
 
-/** 要求管理员权限 */
+/** 要求管理员权限（demo 演示账号也可访问 GET 接口，写操作由 middleware 拦截） */
 export async function requireAdmin(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return { allowed: false, session: null };
-  if (session.role !== 'admin') return { allowed: false, session: null };
+  if (session.role !== 'admin' && session.role !== 'demo') return { allowed: false, session: null };
   return { allowed: true, session };
+}
+
+/** 判断当前会话是否为演示账号 */
+export function isDemoSession(session: any): boolean {
+  return !!session && session.role === 'demo';
 }
 
 /** 要求代理商权限（管理员也可访问） */
@@ -166,4 +177,12 @@ export async function requireAgent(req: NextRequest) {
   if (!session) return { allowed: false, session: null };
   if (session.role === 'agent' || session.role === 'admin') return { allowed: true, session };
   return { allowed: false, session: null };
+}
+
+export async function requirePrimaryAdmin(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) return { allowed: false, session: null };
+  if (session.role !== 'admin' && session.role !== 'demo') return { allowed: false, session: null };
+  if (process.env.CENTER_API && session.tier !== 0) return { allowed: false, session: null };
+  return { allowed: true, session };
 }
