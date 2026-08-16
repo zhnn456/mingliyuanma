@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
-export const metadata: Metadata = {
-  title: '版权声明 - 知微阁',
-  description: '知微阁版权声明，了解网站内容的知识产权归属和使用规定。',
-};
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+  title: '版权声明',
+  description: `${brandName}版权声明，了解网站内容的知识产权归属和使用规定。`,
+  };
+}
 
 export default function CopyrightPage() {
   return (

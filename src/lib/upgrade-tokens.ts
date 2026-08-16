@@ -14,9 +14,11 @@ interface DownloadTokenInfo {
 }
 
 const _downloadTokens = new Map<string, DownloadTokenInfo>();
+const MAX_TOKENS = 500;
 
 /** 生成下载 token */
 export function createDownloadToken(agentId: string, version: string, clientIP: string): string {
+  if (_downloadTokens.size >= MAX_TOKENS) cleanupExpiredTokens();
   const token = crypto.randomBytes(32).toString('hex');
   _downloadTokens.set(token, {
     agentId,

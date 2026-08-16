@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     );
 
     await execute(
-      `INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO SiteConfig ("key", value, category, updatedAt) VALUES (?, ?, ?, ?)`,
       `agent_customer:${userId}`, (agent as any).id, 'agent_customer', now
     );
 

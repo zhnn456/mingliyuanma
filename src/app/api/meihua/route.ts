@@ -3,6 +3,34 @@ import { execute } from '@/lib/d1';
 import { calculateByNumbers, calculateByTime, calculateByText, calculateByCoin, calculateByRandom, calculateByDate, calculateByReport, calculateByDirection, calculateByColor, calculateBySound, calculateByName } from '@/lib/algorithms/meihua';
 import { generateMeihuaDetailedAnalysis } from '@/lib/interpretation/meihua-detailed';
 import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
+import { getSession } from '@/lib/auth-server';
+
+/** 保存梅花排盘记录（chart / full 共用，登录用户落库） */
+async function saveMeihuaRecord(params: {
+  userId: string;
+  method: string;
+  body: any;
+  result: any;
+}) {
+  const recordId = `mhr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO MeihuaRecord (id, userId, method, input, upperGua, lowerGua, dongYao, benGua, huGua, bianGua, tiYong, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    recordId,
+    params.userId,
+    params.method || 'random',
+    JSON.stringify(params.body),
+    params.result.upperGua.name,
+    params.result.lowerGua.name,
+    params.result.dongYao,
+    params.result.benGua.name,
+    params.result.huGua.name,
+    params.result.bianGua.name,
+    JSON.stringify(params.result.tiYong),
+    now
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -96,8 +124,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '无效的起卦方式' }, { status: 400 });
     }
 
-    // === 如果只请求排盘数据，直接返回（不收费） ===
+    // === 如果只请求排盘数据，直接返回（不收费）；登录用户保存排盘记录 ===
     if (mode === 'chart') {
+      const session = await getSession(req);
+      if (session) {
+        try {
+          await saveMeihuaRecord({ userId: session.sub, method, body, result });
+        } catch (e) {
+          console.error('保存梅花排盘记录失败:', e);
+        }
+      }
       return NextResponse.json({
         result,
         mode: 'chart',
@@ -139,34 +175,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 如果用户已登录，保存记录
-    if (session) {
-      const recordId = `mhr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const now = new Date().toISOString();
-      await execute(
-        `INSERT INTO MeihuaRecord (id, userId, method, input, upperGua, lowerGua, dongYao, benGua, huGua, bianGua, tiYong, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        recordId,
-        session.sub,
-        method || 'random',
-        JSON.stringify(body),
-        result.upperGua.name,
-        result.lowerGua.name,
-        result.dongYao,
-        result.benGua.name,
-        result.huGua.name,
-        result.bianGua.name,
-        JSON.stringify(result.tiYong),
-        now
-      );
-    }
-
     // 生成深度解读
     const detailedAnalysis = generateMeihuaDetailedAnalysis(
       result,
       questionType || 'general',
       month || (new Date().getMonth() + 1)
     );
+
+    // 如果用户已登录，保存记录（含解读内容）
+    if (session) {
+      await saveMeihuaRecord({
+        userId: session.sub,
+        method,
+        body,
+        result,
+      });
+    }
 
     return NextResponse.json({
       result,

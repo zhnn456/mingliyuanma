@@ -465,14 +465,17 @@ export default function MembershipPage() {
           <div className="sticky top-24 space-y-6">
             <div className="card p-6 text-center bg-white/80 backdrop-blur-sm border border-parchment-200">
               <h3 className="text-sm font-bold text-gray-700 mb-4">扫码添加客服</h3>
-              <div className="w-40 h-40 mx-auto mb-4 rounded-xl overflow-hidden border-2 border-parchment-100">
+              <div
+                className="w-full max-w-[200px] mx-auto mb-4 rounded-xl overflow-hidden border-2 border-parchment-100 bg-white"
+                style={{ aspectRatio: '888 / 1131' }}
+              >
                 <img
                   src="/images/qr-customer-service.jpg"
                   alt="客服二维码"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
-              <p className="text-xs text-gray-500 mb-3">微信/支付宝正在配置中</p>
+              <p className="text-xs text-gray-500 mb-3">微信 / 支付宝均可扫码</p>
               <div className="divider-gold" />
               <p className="text-xs text-gray-600 mt-3 font-medium">充值 · 购买卡密 · 咨询</p>
               <p className="text-xs text-gray-400 mt-1">请扫码联系客服</p>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -73,6 +74,7 @@ export function generateStaticParams() {
 }
 
 /* ========== 元数据 ========== */
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const article = getArticleById(id);
@@ -80,6 +82,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const title = `${article.title} - 传统文化知识`;
   const description = article.summary || `${article.title}：${article.categoryName}入门到进阶的知识详解。`;
+  const brandName = await getBrandName();
 
   return {
     title,
@@ -87,11 +90,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     keywords: article.tags,
     alternates: { canonical: `${BASE_URL}/knowledge/${article.id}` },
     openGraph: {
-      title: `${article.title} - 知微阁`,
+      title: `${article.title} - ${brandName}`,
       description,
       type: 'article',
       locale: 'zh_CN',
-      siteName: '知微阁',
+      siteName: brandName,
       url: `${BASE_URL}/knowledge/${article.id}`,
       images: getArticleImage(article) ? [{ url: `${BASE_URL}${getArticleImage(article)}` }] : undefined,
     },
@@ -99,7 +102,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 /* ========== JSON-LD 结构化数据 ========== */
-function buildJsonLd(article: KnowledgeArticle, prev: KnowledgeArticle | null, next: KnowledgeArticle | null, related: KnowledgeArticle[]) {
+function buildJsonLd(article: KnowledgeArticle, prev: KnowledgeArticle | null, next: KnowledgeArticle | null, related: KnowledgeArticle[], brandName: string) {
   const url = `${BASE_URL}/knowledge/${article.id}`;
   const articleLd = {
     '@context': 'https://schema.org',
@@ -109,8 +112,8 @@ function buildJsonLd(article: KnowledgeArticle, prev: KnowledgeArticle | null, n
     articleSection: article.categoryName,
     keywords: article.tags.join(','),
     inLanguage: 'zh-CN',
-    author: { '@type': 'Organization', name: '知微阁', url: BASE_URL },
-    publisher: { '@type': 'Organization', name: '知微阁', url: BASE_URL },
+    author: { '@type': 'Organization', name: brandName, url: BASE_URL },
+    publisher: { '@type': 'Organization', name: brandName, url: BASE_URL },
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     datePublished: '2026-01-01',
     dateModified: '2026-08-12',
@@ -177,7 +180,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   const toc = extractTOC(article.content);
   const { prev, next } = getPrevNextArticle(id);
   const related = getRelatedArticles(id);
-  const jsonLd = buildJsonLd(article, prev, next, related);
+  const brandName = await getBrandName();
+  const jsonLd = buildJsonLd(article, prev, next, related, brandName);
   const image = getArticleImage(article);
 
   const relatedPool = related.length >= 2 ? related : getAllArticles().filter(a => a.id !== id && a.category === article.category).slice(0, 3);

@@ -21,6 +21,8 @@ const allMenuItems: MenuItem[] = [
   { href: '/agent/commissions', label: '分润明细', icon: '📈', mode: 'saas' },
   { href: '/agent/agent-settlements', label: '结算中心', icon: '🏦', mode: 'saas' },
   { href: '/agent/customers', label: '客户管理', icon: '👥', mode: 'both' },
+  { href: '/agent/sub-agents', label: '分站管理', icon: '🏢', mode: 'source' },
+  { href: '/agent/records', label: '排盘记录', icon: '📜', mode: 'both' },
   { href: '/agent/invite', label: '邀请管理', icon: '🔗', mode: 'saas' },
   { href: '/agent/billing', label: '套餐管理', icon: '📦', mode: 'saas' },
   { href: '/agent/domain', label: '域名设置', icon: '🌐', mode: 'saas' },
@@ -118,8 +120,14 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
 
   const currentMenu = menuItems.find(m => m.exact ? pathname === m.href : pathname.startsWith(m.href));
 
-  const levelLabel = agentLevel === 'source' ? '源码部署' : agentLevel === 'saas' ? 'SaaS代理' : '';
-  const levelColor = agentLevel === 'source' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+  // 源码部署代理商不开放主站 /agent（独立站点自带 admin 后台），显示引导页
+  if (agentLevel === 'source') {
+    return <SourceAgentNotice />;
+  }
+
+  // 源码部署代理商已在上方拦截返回，此处仅剩 SaaS 模式
+  const levelLabel = agentLevel === 'saas' ? 'SaaS代理' : '';
+  const levelColor = agentLevel === 'saas' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -173,6 +181,38 @@ export default function AgentLayoutClient({ children }: { children: React.ReactN
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+/** 源码部署代理商引导页：主站 /agent 不提供服务，引导去自己的站点后台 */
+function SourceAgentNotice() {
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    router.replace('/login');
+  };
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-sm border max-w-md w-full p-8 text-center">
+        <div className="w-14 h-14 mx-auto rounded-full bg-purple-100 flex items-center justify-center text-2xl mb-4">🏪</div>
+        <h1 className="text-lg font-bold text-gray-900 mb-2">您已独立部署站点</h1>
+        <p className="text-sm text-gray-500 leading-relaxed mb-6">
+          您的站点已独立部署，日常运营请直接登录
+          <br />
+          <span className="font-mono text-purple-700">您的域名/admin</span>
+          <br />
+          管理用户、订单与内容。主站代理商后台仅面向 SaaS 代理。
+        </p>
+        <button
+          onClick={handleLogout}
+          className="px-6 py-2.5 bg-purple-700 text-white rounded-lg text-sm font-medium hover:bg-purple-800 transition-colors"
+        >
+          退出登录
+        </button>
       </div>
     </div>
   );

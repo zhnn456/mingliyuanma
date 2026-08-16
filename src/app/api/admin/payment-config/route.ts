@@ -9,6 +9,7 @@ import {
   queryTrade as alipayQueryTrade,
   type AlipayConfig,
 } from '@/lib/payment/alipay';
+import { auditLog } from '@/lib/audit';
 
 // ==================== 常量 ====================
 
@@ -114,15 +115,33 @@ interface StoredConfig {
   alipayNotifyUrl?: string;
   alipayReturnUrl?: string;
   alipayGateway?: string;
+  // ZPay 易支付
+  zpayPid?: string;
+  zpayApiUrl?: string;
+  zpayNotifyUrl?: string;
+  zpayReturnUrl?: string;
+  // PayPal
+  paypalClientId?: string;
+  paypalMode?: string;
+  paypalNotifyUrl?: string;
+  // Stripe
+  stripePublishableKey?: string;
+  stripeWebhookSecret?: string;
+  stripeNotifyUrl?: string;
+  // 启用状态
+  enabledMethods?: string[];
   // 敏感字段（加密存储）
   wechatPrivateKeyEnc?: string;
   alipayPrivateKeyEnc?: string;
   alipayPublicKeyEnc?: string;
+  zpayKeyEnc?: string;
+  paypalClientSecretEnc?: string;
+  stripeSecretKeyEnc?: string;
 }
 
 async function loadStored(): Promise<{ data: StoredConfig | null; updatedAt: string }> {
   const row = await queryFirst(
-    'SELECT value, updatedAt FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value, updatedAt FROM SiteConfig WHERE category = ? AND "key" = ?',
     CONFIG_CATEGORY, CONFIG_KEY
   ) as any;
   if (!row?.value) return { data: null, updatedAt: '' };
@@ -136,10 +155,10 @@ async function loadStored(): Promise<{ data: StoredConfig | null; updatedAt: str
 async function saveStored(data: StoredConfig): Promise<void> {
   const now = new Date().toISOString();
   const value = JSON.stringify(data);
-  const existing = await queryFirst('SELECT id FROM SiteConfig WHERE key = ?', CONFIG_KEY) as any;
+  const existing = await queryFirst('SELECT id FROM SiteConfig WHERE "key" = ?', CONFIG_KEY) as any;
   if (existing) {
     await execute(
-      'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE key = ?',
+      'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
       value, CONFIG_CATEGORY, now, CONFIG_KEY
     );
   } else {
@@ -167,6 +186,20 @@ async function buildDecryptedConfig(stored: StoredConfig | null) {
     alipayGateway: stored.alipayGateway || '',
     alipayPrivateKey: stored.alipayPrivateKeyEnc ? await decryptSecret(stored.alipayPrivateKeyEnc) : '',
     alipayPublicKey: stored.alipayPublicKeyEnc ? await decryptSecret(stored.alipayPublicKeyEnc) : '',
+    zpayPid: stored.zpayPid || '',
+    zpayApiUrl: stored.zpayApiUrl || '',
+    zpayNotifyUrl: stored.zpayNotifyUrl || '',
+    zpayReturnUrl: stored.zpayReturnUrl || '',
+    zpayKey: stored.zpayKeyEnc ? await decryptSecret(stored.zpayKeyEnc) : '',
+    paypalClientId: stored.paypalClientId || '',
+    paypalMode: stored.paypalMode || 'sandbox',
+    paypalNotifyUrl: stored.paypalNotifyUrl || '',
+    paypalClientSecret: stored.paypalClientSecretEnc ? await decryptSecret(stored.paypalClientSecretEnc) : '',
+    stripePublishableKey: stored.stripePublishableKey || '',
+    stripeWebhookSecret: stored.stripeWebhookSecret || '',
+    stripeNotifyUrl: stored.stripeNotifyUrl || '',
+    stripeSecretKey: stored.stripeSecretKeyEnc ? await decryptSecret(stored.stripeSecretKeyEnc) : '',
+    enabledMethods: stored.enabledMethods || [],
   };
 }
 
@@ -232,6 +265,37 @@ async function testAlipay(stored: StoredConfig | null): Promise<{ ok: boolean; m
   }
 }
 
+/** 测试 ZPay 易支付连接 */
+async function testZpay(stored: StoredConfig | null): Promise<{ ok: boolean; message: string }> {
+  const cfg = await buildDecryptedConfig(stored);
+  if (!cfg || !cfg.zpayPid || !cfg.zpayKey || !cfg.zpayApiUrl) {
+    return { ok: false, message: 'ZPay 未完整配置（缺少商户ID / 商户密钥 / API地址）' };
+  }
+  try {
+    // ZPay 测试：用 API 查询订单接口
+    const params = new URLSearchParams({
+      act: 'order',
+      pid: cfg.zpayPid,
+      key: cfg.zpayKey,
+      out_trade_no: `TESTCONN${Date.now()}`,
+    });
+    const res = await fetch(`${cfg.zpayApiUrl}?${params}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    const text = await res.text();
+    if (text.includes('订单不存在') || text.includes('order not exist')) {
+      return { ok: true, message: '连接成功：认证通过（测试订单不存在属正常现象）' };
+    }
+    if (text.includes('签名') || text.includes('sign') || text.includes('密钥')) {
+      return { ok: false, message: `连接失败（签名错误）：${text.slice(0, 100)}` };
+    }
+    return { ok: true, message: `连接成功：返回 ${text.slice(0, 80)}` };
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    return { ok: false, message: `连接失败：${msg}` };
+  }
+}
+
 // ==================== API ====================
 
 export async function GET(req: NextRequest) {
@@ -254,6 +318,20 @@ export async function GET(req: NextRequest) {
       wechatPrivateKeyConfigured: !!(data?.wechatPrivateKeyEnc),
       alipayPrivateKeyConfigured: !!(data?.alipayPrivateKeyEnc),
       alipayPublicKeyConfigured: !!(data?.alipayPublicKeyEnc),
+      zpayPid: data?.zpayPid || '',
+      zpayApiUrl: data?.zpayApiUrl || '',
+      zpayNotifyUrl: data?.zpayNotifyUrl || '',
+      zpayReturnUrl: data?.zpayReturnUrl || '',
+      zpayKeyConfigured: !!(data?.zpayKeyEnc),
+      paypalClientId: data?.paypalClientId || '',
+      paypalMode: data?.paypalMode || 'sandbox',
+      paypalNotifyUrl: data?.paypalNotifyUrl || '',
+      paypalClientSecretConfigured: !!(data?.paypalClientSecretEnc),
+      stripePublishableKey: data?.stripePublishableKey || '',
+      stripeWebhookSecret: data?.stripeWebhookSecret || '',
+      stripeNotifyUrl: data?.stripeNotifyUrl || '',
+      stripeSecretKeyConfigured: !!(data?.stripeSecretKeyEnc),
+      enabledMethods: data?.enabledMethods || [],
       updatedAt,
     };
     return NextResponse.json({ config: result });
@@ -265,7 +343,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -279,6 +357,10 @@ export async function POST(req: NextRequest) {
       }
       if (body.target === 'alipay') {
         const r = await testAlipay(data);
+        return NextResponse.json(r);
+      }
+      if (body.target === 'zpay') {
+        const r = await testZpay(data);
         return NextResponse.json(r);
       }
       return NextResponse.json({ ok: false, message: '未知的测试目标' }, { status: 400 });
@@ -296,6 +378,21 @@ export async function POST(req: NextRequest) {
       alipayNotifyUrl: body.alipayNotifyUrl ?? existing?.alipayNotifyUrl ?? '',
       alipayReturnUrl: body.alipayReturnUrl ?? existing?.alipayReturnUrl ?? '',
       alipayGateway: body.alipayGateway ?? existing?.alipayGateway ?? 'https://openapi.alipay.com/gateway.do',
+      // ZPay
+      zpayPid: body.zpayPid ?? existing?.zpayPid ?? '',
+      zpayApiUrl: body.zpayApiUrl ?? existing?.zpayApiUrl ?? '',
+      zpayNotifyUrl: body.zpayNotifyUrl ?? existing?.zpayNotifyUrl ?? '',
+      zpayReturnUrl: body.zpayReturnUrl ?? existing?.zpayReturnUrl ?? '',
+      // PayPal
+      paypalClientId: body.paypalClientId ?? existing?.paypalClientId ?? '',
+      paypalMode: body.paypalMode ?? existing?.paypalMode ?? 'sandbox',
+      paypalNotifyUrl: body.paypalNotifyUrl ?? existing?.paypalNotifyUrl ?? '',
+      // Stripe
+      stripePublishableKey: body.stripePublishableKey ?? existing?.stripePublishableKey ?? '',
+      stripeWebhookSecret: body.stripeWebhookSecret ?? existing?.stripeWebhookSecret ?? '',
+      stripeNotifyUrl: body.stripeNotifyUrl ?? existing?.stripeNotifyUrl ?? '',
+      // 启用状态
+      enabledMethods: Array.isArray(body.enabledMethods) ? body.enabledMethods : (existing?.enabledMethods || []),
       // 敏感字段：仅在提交非空值时更新；否则保留原加密值
       wechatPrivateKeyEnc:
         typeof body.wechatPrivateKey === 'string' && body.wechatPrivateKey.trim()
@@ -309,9 +406,28 @@ export async function POST(req: NextRequest) {
         typeof body.alipayPublicKey === 'string' && body.alipayPublicKey.trim()
           ? await encryptSecret(body.alipayPublicKey)
           : existing?.alipayPublicKeyEnc || '',
+      zpayKeyEnc:
+        typeof body.zpayKey === 'string' && body.zpayKey.trim()
+          ? await encryptSecret(body.zpayKey)
+          : existing?.zpayKeyEnc || '',
+      paypalClientSecretEnc:
+        typeof body.paypalClientSecret === 'string' && body.paypalClientSecret.trim()
+          ? await encryptSecret(body.paypalClientSecret)
+          : existing?.paypalClientSecretEnc || '',
+      stripeSecretKeyEnc:
+        typeof body.stripeSecretKey === 'string' && body.stripeSecretKey.trim()
+          ? await encryptSecret(body.stripeSecretKey)
+          : existing?.stripeSecretKeyEnc || '',
     };
 
     await saveStored(stored);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_payment_config',
+      details: { methods: Object.keys(body).filter((k) => !k.startsWith('action')) },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

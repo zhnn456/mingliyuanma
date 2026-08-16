@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import ToolSeoContent from '@/components/seo/ToolSeoContent';
 
-export const metadata: Metadata = {
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
   title: '梅花易数在线起卦 - 免费占卜解卦',
   description: '梅花易数在线起卦，支持时间起卦与数字起卦，体用生克断吉凶，随心动念即刻占卜事物发展走向，传统占卜与现代便捷体验结合。',
   keywords: ['梅花易数', '在线起卦', '梅花易数起卦', '占卜', '解卦', '体用生克', '八卦', '邵雍'],
@@ -9,14 +13,15 @@ export const metadata: Metadata = {
     canonical: 'https://ming8.online/meihua',
   },
   openGraph: {
-    title: '梅花易数在线起卦 - 免费占卜解卦 - 知微阁',
+    title: '梅花易数在线起卦 - 免费占卜解卦',
     description: '梅花易数在线起卦，支持时间与数字起卦，体用生克断吉凶。',
     type: 'website',
     locale: 'zh_CN',
-    siteName: '知微阁',
+    siteName: brandName,
     url: 'https://ming8.online/meihua',
   },
-};
+  };
+}
 
 const INTRO = [
   '梅花易数由北宋理学家邵雍（邵康节）所创，以"万物皆数"为核心思想，任意数字、时间、物象皆可起卦，取象灵活、断事灵动，是传统占卜中最为便捷的方法之一。',

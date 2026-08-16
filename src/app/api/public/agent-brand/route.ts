@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { execute } from '@/lib/d1';
+import { queryAll } from '@/lib/d1';
 import { verifyAndParseToken } from '@/lib/auth-server';
 
 /**
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       let logo = '';
 
       try {
-        const configs = await execute(`SELECT key, value FROM SiteConfig WHERE key IN ('brandName', 'logo', 'tagline')`);
+        const configs = await queryAll(`SELECT "key", value FROM SiteConfig WHERE "key" IN ('brandName', 'logo', 'tagline')`) as any[];
         if (configs && configs.length > 0) {
           for (const c of configs) {
             if (c.key === 'brandName' && c.value) brandName = c.value;
@@ -41,10 +41,10 @@ export async function GET(req: Request) {
       if (payload && payload.role === 'agent') {
         const userId = payload.sub;
         if (userId) {
-          const agents = await execute(
+          const agents = await queryAll(
             `SELECT id, brandName, companyName, logo, isActive FROM Agent WHERE userId = ?`,
             userId
-          );
+          ) as any[];
           if (agents && agents.length > 0) {
             const a = agents[0];
             if (a.isActive) {

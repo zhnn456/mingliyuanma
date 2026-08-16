@@ -9,12 +9,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

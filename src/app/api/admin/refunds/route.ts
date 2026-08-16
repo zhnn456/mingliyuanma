@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { paymentId, refundAmount, remark } = await req.json();
@@ -70,6 +71,13 @@ export async function PUT(req: NextRequest) {
        WHERE id = ?`,
       now, finalAmount, remark || '', now, paymentId
     );
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_order',
+      details: { refundId: paymentId, status: 'refunded' },
+      status: 'success',
+    });
 
     const updated = await queryFirst('SELECT * FROM Payment WHERE id = ?', paymentId);
     return NextResponse.json({ refund: updated });

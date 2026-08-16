@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     }
     if (type) {
       sql += ' AND o.type = ?';
-      countSql += ' AND id IN (SELECT id FROM "Order" WHERE type = ?)';
+      countSql += ' AND orderId IN (SELECT id FROM "Order" WHERE type = ?)';
       params.push(type);
     }
 

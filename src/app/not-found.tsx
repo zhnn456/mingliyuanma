@@ -1,6 +1,8 @@
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 
-export default function NotFound() {
+export default async function NotFound() {
+  const brandName = await getBrandName();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center max-w-md px-4">
@@ -20,7 +22,7 @@ export default function NotFound() {
           </Link>
         </div>
         <div className="mt-12 text-sm text-gray-400">
-          知微阁 · 传承智慧 · 启迪人生
+          {brandName} · 传承智慧 · 启迪人生
         </div>
       </div>
     </div>

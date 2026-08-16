@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, getPendingUser } from '@/lib/auth-client';
+import DemoLock from '@/components/DemoLock';
 
 const APP_VERSION = 'v4.0.0';
 
@@ -98,9 +99,11 @@ const menuGroups: MenuGroup[] = [
     icon: 'agents',
     items: [
       { href: '/admin/agents', label: '代理商列表' },
+      { href: '/admin/agent-health', label: '独立站健康看板', isNew: true },
       { href: '/admin/agent-stats', label: '经营数据', isNew: true },
       { href: '/admin/agent-review', label: '资质审核', isNew: true },
       { href: '/admin/licenses', label: '授权码管理', isNew: true },
+      { href: '/admin/agreement-signs', label: '授权协议记录', isNew: true },
       { href: '/admin/commission-rules', label: '分润规则', isNew: true },
       { href: '/admin/commission-records', label: '分润记录', isNew: true },
       { href: '/admin/commissions', label: '分润管理', isNew: true },
@@ -123,6 +126,7 @@ const menuGroups: MenuGroup[] = [
     icon: 'support',
     items: [
       { href: '/admin/tickets', label: '工单管理', badge: '5' },
+      { href: '/admin/contact-messages', label: '联系消息', isNew: true },
       { href: '/admin/chat', label: '在线会话', isNew: true },
       { href: '/admin/kb', label: '知识库', isNew: true },
       { href: '/admin/quick-replies', label: '快捷回复', isNew: true },
@@ -156,6 +160,7 @@ const menuGroups: MenuGroup[] = [
       { href: '/admin/audit', label: '审计日志' },
       { href: '/admin/announcement', label: '公告管理', isNew: true },
       { href: '/admin/config', label: '系统设置' },
+      { href: '/admin/brand-settings', label: '品牌设置', isNew: true },
       { href: '/admin/payment-config', label: '支付配置', isNew: true },
       { href: '/admin/admins', label: '管理员权限', isNew: true },
       { href: '/admin/msg-templates', label: '消息模板', isNew: true },
@@ -177,9 +182,18 @@ const menuGroups: MenuGroup[] = [
 // Flatten for lookup
 const allItems = menuGroups.flatMap(g => g.items);
 
+// 独立站（源码部署）隐藏的中央总部功能：代理商/分润/结算/管理员/版本发布等
+const CENTRAL_ONLY_HREFS = new Set([
+  '/admin/agents', '/admin/agent-health', '/admin/agent-stats', '/admin/agent-review', '/admin/licenses',
+  '/admin/commission-rules', '/admin/commission-records', '/admin/commissions',
+  '/admin/finance-agents', '/admin/settlements', '/admin/withdrawals',
+  '/admin/admins', '/admin/versions', '/admin/update-logs',
+]);
+
 const roleLabels: Record<string, { label: string; className: string }> = {
   admin: { label: '超级管理员', className: 'bg-mingli-100 text-mingli-700 ring-1 ring-mingli-200' },
   editor: { label: '运营管理', className: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  demo: { label: '演示账号', className: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   user: { label: '用户', className: 'bg-gray-50 text-gray-700 ring-1 ring-gray-200' },
 };
 
@@ -189,6 +203,24 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAgentSite, setIsAgentSite] = useState(false);
+
+  // 独立部署站点（源码部署版）时隐藏中央总部功能菜单
+  useEffect(() => {
+    fetch('/api/license/status')
+      .then(res => res.ok ? res.json() : null)
+      .then(d => { if (d) setIsAgentSite(!!d.isAgentSite); })
+      .catch(() => {});
+  }, []);
+
+  // 独立站过滤后的菜单
+  const visibleGroups = useMemo(() => {
+    if (!isAgentSite) return menuGroups;
+    return menuGroups
+      .map(g => ({ ...g, items: g.items.filter(i => !CENTRAL_ONLY_HREFS.has(i.href)) }))
+      .filter(g => g.items.length > 0);
+  }, [isAgentSite]);
+  const visibleItems = visibleGroups.flatMap(g => g.items);
 
   useEffect(() => {
     // 只有在 loading 完成后才检查权限
@@ -197,8 +229,8 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       if (!effectiveUser) {
         // 用户未登录，跳转到登录页
         router.replace('/login');
-      } else if (effectiveUser.role !== 'admin') {
-        // 用户角色不是管理员，跳转到首页
+      } else if (effectiveUser.role !== 'admin' && effectiveUser.role !== 'demo') {
+        // 用户角色不是管理员或演示账号，跳转到首页
         router.replace('/');
       }
     }
@@ -214,9 +246,11 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   // 使用 pendingUser 作为 fallback 防止时序问题
   const effectiveUser = user || getPendingUser();
-  if (!effectiveUser || effectiveUser.role !== 'admin') {
+  if (!effectiveUser || (effectiveUser.role !== 'admin' && effectiveUser.role !== 'demo')) {
     return null;
   }
+
+  const isDemo = effectiveUser.role === 'demo';
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
@@ -224,8 +258,8 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
   };
 
   // Find current page info for breadcrumb
-  const currentItem = allItems.find(m => isActive(m.href, m.exact));
-  const currentGroup = menuGroups.find(g => g.items.some(i => i.href === currentItem?.href));
+  const currentItem = visibleItems.find(m => isActive(m.href, m.exact));
+  const currentGroup = visibleGroups.find(g => g.items.some(i => i.href === currentItem?.href));
   const currentPageTitle = currentItem?.label || '管理后台';
   const currentGroupName = currentGroup?.group || '';
 
@@ -233,12 +267,25 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
   const avatarText = (effectiveUser.name || effectiveUser.email || 'A').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900">
+    <div className={`min-h-screen bg-slate-50 flex text-slate-900 ${isDemo ? 'pt-[32px]' : ''}`}>
+      {isDemo && <DemoLock />}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-900/40 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* === 演示账号横幅 === */}
+      {isDemo && (
+        <div className="fixed top-0 inset-x-0 z-[60] bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center text-[12px] py-1.5 px-4 shadow-md flex items-center justify-center gap-3">
+          <span className="font-medium">
+            🔒 演示体验模式 · 仅可查看，写操作已锁定
+          </span>
+          <Link href="/contact" className="underline hover:no-underline whitespace-nowrap font-semibold">
+            购买源码部署 →
+          </Link>
+        </div>
       )}
 
       {/* === Sidebar === */}
@@ -262,7 +309,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {menuGroups.map((g) => (
+          {visibleGroups.map((g) => (
             <div key={g.group} className="border-b border-slate-50 last:border-b-0">
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-5 pt-3 pb-1.5">
                 {g.group}

@@ -16,9 +16,13 @@ export type AuditAction =
   | 'admin_card_key_generate' | 'admin_card_key_disable'
   | 'card_key_redeem'
   | 'agent_login' | 'agent_update_customer'
+  | 'agent_create_sub_agent' | 'agent_update_sub_agent' | 'agent_delete_sub_agent'
   | 'pdf_generate' | 'pdf_download'
   | 'offering_create'
-  | 'security_violation' | 'rate_limit_hit';
+  | 'security_violation' | 'rate_limit_hit'
+  | 'admin_create_admin' | 'admin_update_admin' | 'admin_delete_admin'
+  | 'admin_create_announcement' | 'admin_update_announcement' | 'admin_delete_announcement'
+  | 'admin_update_payment_config' | 'admin_update_brand_settings';
 
 export interface AuditLogData {
   userId?: string;
@@ -46,7 +50,8 @@ export async function auditLog(data: AuditLogData): Promise<void> {
     });
 
     await execute(
-      'INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)',
+      'INSERT INTO SiteConfig (id, "key", value, category, updatedAt) VALUES (?, ?, ?, ?, ?)',
+      `audit_${timestamp}_${Math.random().toString(36).slice(2, 8)}`,
       key, value, 'audit', now.toISOString()
     );
   } catch {

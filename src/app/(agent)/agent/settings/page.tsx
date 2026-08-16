@@ -16,6 +16,13 @@ interface AgentInfo {
   isActive: boolean;
   siteConfig: any;
   level?: string;
+  siteName?: string;
+  themeColor?: string;
+  customerServiceQR?: string;
+  contactEmail?: string;
+  contactWechat?: string;
+  footerText?: string;
+  announcement?: string;
 }
 
 export default function AgentSettingsPage() {
@@ -32,6 +39,13 @@ export default function AgentSettingsPage() {
     contactName: '',
     contactPhone: '',
     logo: '',
+    siteName: '',
+    themeColor: '#D4916A',
+    customerServiceQR: '',
+    contactEmail: '',
+    contactWechat: '',
+    footerText: '',
+    announcement: '',
   });
 
   // 授权密钥脱敏：显示前 12 位 + **** + 后 4 位
@@ -54,6 +68,13 @@ export default function AgentSettingsPage() {
             contactName: d.agent.contactName || '',
             contactPhone: d.agent.contactPhone || '',
             logo: d.agent.logo || '',
+            siteName: d.agent.siteName || '',
+            themeColor: d.agent.themeColor || '#D4916A',
+            customerServiceQR: d.agent.customerServiceQR || '',
+            contactEmail: d.agent.contactEmail || '',
+            contactWechat: d.agent.contactWechat || '',
+            footerText: d.agent.footerText || '',
+            announcement: d.agent.announcement || '',
           });
         }
       } catch {}
@@ -160,6 +181,135 @@ export default function AgentSettingsPage() {
               placeholder="https://..."
             />
           </div>
+          <div className="pt-2 flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? '保存中...' : '保存'}
+            </button>
+            {message && (
+              <span className={`text-sm ${message === '保存成功' ? 'text-green-600' : 'text-red-500'}`}>{message}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============ 品牌定制（可编辑） ============ */}
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <h3 className="font-bold text-gray-800 mb-4">品牌定制</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">站点名称</label>
+            <input
+              value={form.siteName}
+              onChange={(e) => setForm({ ...form, siteName: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              placeholder="如：玄机阁·专业命理平台"
+            />
+            <p className="text-xs text-gray-400 mt-1">显示在浏览器标题栏与站点头部</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">主题色</label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                type="color"
+                value={form.themeColor || '#D4916A'}
+                onChange={(e) => setForm({ ...form, themeColor: e.target.value })}
+                className="w-10 h-10 rounded-lg border cursor-pointer p-1 bg-white"
+              />
+              <input
+                value={form.themeColor}
+                onChange={(e) => setForm({ ...form, themeColor: e.target.value })}
+                className="w-32 px-3 py-2 border rounded-lg text-sm font-mono"
+                placeholder="#D4916A"
+              />
+              <div className="flex items-center gap-2">
+                {[
+                  { c: '#D4916A', n: '暖橙' },
+                  { c: '#1a3a2e', n: '墨绿' },
+                  { c: '#6366f1', n: '靛蓝' },
+                  { c: '#dc2626', n: '朱红' },
+                  { c: '#0ea5e9', n: '天蓝' },
+                ].map((p) => (
+                  <button
+                    key={p.c}
+                    type="button"
+                    onClick={() => setForm({ ...form, themeColor: p.c })}
+                    title={`${p.n} ${p.c}`}
+                    className={`w-7 h-7 rounded-full border-2 transition-colors ${form.themeColor === p.c ? 'border-gray-800' : 'border-gray-200 hover:border-gray-400'}`}
+                    style={{ backgroundColor: p.c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">默认 #D4916A（暖橙），影响站点主要按钮与强调色</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">客服二维码</label>
+            <div className="flex items-start gap-3">
+              <input
+                value={form.customerServiceQR}
+                onChange={(e) => setForm({ ...form, customerServiceQR: e.target.value })}
+                className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                placeholder="二维码图片URL，https://..."
+              />
+              {form.customerServiceQR && (
+                <img
+                  src={form.customerServiceQR}
+                  alt="客服二维码预览"
+                  className="w-16 h-16 rounded-lg border object-cover bg-gray-50"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">客服微信二维码图片地址，将在客服联系处展示</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">联系邮箱</label>
+              <input
+                value={form.contactEmail}
+                onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                placeholder="support@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">微信号</label>
+              <input
+                value={form.contactWechat}
+                onChange={(e) => setForm({ ...form, contactWechat: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                placeholder="微信号"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">页脚文字</label>
+            <input
+              value={form.footerText}
+              onChange={(e) => setForm({ ...form, footerText: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              placeholder="如：© 2026 玄机阁 版权所有"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">站点公告</label>
+            <textarea
+              value={form.announcement}
+              onChange={(e) => setForm({ ...form, announcement: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm min-h-[80px] resize-y"
+              placeholder="向用户展示的站点公告，如促销、维护通知等"
+            />
+          </div>
+
           <div className="pt-2 flex items-center gap-3">
             <button
               onClick={handleSave}

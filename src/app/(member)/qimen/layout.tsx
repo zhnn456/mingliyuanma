@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import ToolSeoContent from '@/components/seo/ToolSeoContent';
 
-export const metadata: Metadata = {
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
   title: '奇门遁甲在线排盘 - 时家奇门预测',
   description: '奇门遁甲在线排盘，时家奇门自动布局九宫、八门、九星、八神，用于择时趋吉避凶，为重要决策提供传统术数参考。',
   keywords: ['奇门遁甲', '奇门遁甲排盘', '时家奇门', '九宫八门', '择吉', '预测', '遁甲', '术数'],
@@ -9,14 +13,15 @@ export const metadata: Metadata = {
     canonical: 'https://ming8.online/qimen',
   },
   openGraph: {
-    title: '奇门遁甲在线排盘 - 时家奇门预测 - 知微阁',
+    title: '奇门遁甲在线排盘 - 时家奇门预测',
     description: '时家奇门自动布局九宫八门九星八神，择时趋吉避凶。',
     type: 'website',
     locale: 'zh_CN',
-    siteName: '知微阁',
+    siteName: brandName,
     url: 'https://ming8.online/qimen',
   },
-};
+  };
+}
 
 const INTRO = [
   '奇门遁甲被誉为"帝王之学"，与太乙神数、大六壬并称中国古代"三式"，是传统术数中格局最完备、信息量最大的预测体系之一。它以洛书九宫为框架，融合八门、九星、八神与天干布局，用于择时、趋吉避凶与重大决策参考。',

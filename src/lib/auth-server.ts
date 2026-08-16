@@ -183,6 +183,9 @@ export async function requirePrimaryAdmin(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return { allowed: false, session: null };
   if (session.role !== 'admin' && session.role !== 'demo') return { allowed: false, session: null };
+  // 源码部署站（有授权码）的本地管理员拥有完整权限
+  if (process.env.APP_LICENSE_KEY) return { allowed: true, session };
+  // 中央站检查 tier（防止分站管理员越权访问中央级 API）
   if (process.env.CENTER_API && session.tier !== 0) return { allowed: false, session: null };
   return { allowed: true, session };
 }

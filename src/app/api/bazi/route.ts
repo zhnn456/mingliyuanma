@@ -3,7 +3,39 @@ import { calculateBazi, analyzeXiYongShen } from '@/lib/algorithms/bazi';
 import { generateDetailedAnalysis } from '@/lib/interpretation/bazi-detailed';
 import { execute } from '@/lib/d1';
 import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
+import { getSession } from '@/lib/auth-server';
 import type { PaipanFormData } from '@/types';
+
+/** 保存八字排盘记录（chart / full 共用，登录用户落库） */
+async function saveBaziRecord(params: { userId: string; body: PaipanFormData; result: any; interpretation: any }) {
+  const { year, month, day, hour, gender, isLunar = false, name } = params.body;
+  const recordId = `bxr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO BaziRecord (id, userId, name, gender, birthDate, birthTime, isLunar, yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, hourGan, hourZhi, wuxing, dayun, liunian, interpretation, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    recordId,
+    params.userId,
+    name || null,
+    gender || 'male',
+    `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    hour !== null ? `${String(hour).padStart(2, '0')}:00` : '未知',
+    isLunar ? 1 : 0,
+    params.result.fourPillars.year.gan,
+    params.result.fourPillars.year.zhi,
+    params.result.fourPillars.month.gan,
+    params.result.fourPillars.month.zhi,
+    params.result.fourPillars.day.gan,
+    params.result.fourPillars.day.zhi,
+    params.result.fourPillars.hour.gan || '',
+    params.result.fourPillars.hour.zhi || '',
+    JSON.stringify(params.result.wuxing),
+    JSON.stringify(params.result.dayun),
+    JSON.stringify(params.result.liunian || []),
+    params.interpretation ? JSON.stringify(params.interpretation) : null,
+    now
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,9 +75,16 @@ export async function POST(req: NextRequest) {
       advancedOptions
     );
 
-    // 如果只请求排盘数据，直接返回（不收费）
+    // 如果只请求排盘数据，直接返回（不收费）；登录用户保存排盘记录
     if (mode === 'chart') {
-      // 如果用户已登录，保存记录
+      const session = await getSession(req);
+      if (session) {
+        try {
+          await saveBaziRecord({ userId: session.sub, body, result, interpretation: null });
+        } catch (e) {
+          console.error('保存八字排盘记录失败:', e);
+        }
+      }
       return NextResponse.json({
         result,
         mode: 'chart',
@@ -100,30 +139,7 @@ export async function POST(req: NextRequest) {
         result,
         xiYongShen,
       };
-      const recordId = `bxr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const now = new Date().toISOString();
-      await execute(
-        `INSERT INTO BaziRecord (id, userId, gender, birthDate, birthTime, isLunar, yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, hourGan, hourZhi, wuxing, dayun, interpretation, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        recordId,
-        session.sub,
-        gender || 'male',
-        `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-        hour !== null ? `${String(hour).padStart(2, '0')}:00` : '未知',
-        isLunar ? 1 : 0,
-        result.fourPillars.year.gan,
-        result.fourPillars.year.zhi,
-        result.fourPillars.month.gan,
-        result.fourPillars.month.zhi,
-        result.fourPillars.day.gan,
-        result.fourPillars.day.zhi,
-        result.fourPillars.hour.gan || '',
-        result.fourPillars.hour.zhi || '',
-        JSON.stringify(result.wuxing),
-        JSON.stringify(result.dayun),
-        JSON.stringify(fullResult),
-        now
-      );
+      await saveBaziRecord({ userId: session.sub, body, result, interpretation: fullResult });
     }
 
     return NextResponse.json({

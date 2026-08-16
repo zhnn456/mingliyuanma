@@ -74,6 +74,20 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+interface UpgradeInfo {
+  isCenter: boolean;
+  currentVersion: string;
+  hasUpdate?: boolean;
+  latestVersion?: string;
+  reason?: string;
+  changelog?: string;
+  downloadUrl?: string;
+  upgradePlan?: string;
+  upgradeExpiryAt?: string;
+  error?: string;
+  message?: string;
+}
+
 export default function AdminUpdatesPage() {
   const [versions, setVersions] = useState<UpdateVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +96,70 @@ export default function AdminUpdatesPage() {
   const [formData, setFormData] = useState<UpdateFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeInfo, setUpgradeInfo] = useState<UpgradeInfo | null>(null);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeStatus, setUpgradeStatus] = useState('');
+  const [upgradeResult, setUpgradeResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const applyUpgrade = async () => {
+    if (!confirm('确定要执行一键升级吗？升级过程中服务会短暂重启。')) return;
+
+    setUpgrading(true);
+    setUpgradeResult(null);
+    setUpgradeStatus('正在下载升级包...');
+
+    try {
+      const res = await fetch('/api/admin/apply-upgrade', { method: 'POST' });
+      const data = await res.json();
+
+      if (data.success) {
+        setUpgradeStatus('升级完成，正在重启...');
+        setUpgradeResult({
+          success: true,
+          message: `${data.oldVersion} → ${data.newVersion}，服务正在重启`,
+        });
+        // 10 秒后刷新页面检查新版本
+        setTimeout(() => {
+          setUpgradeStatus('');
+          setUpgrading(false);
+          fetchUpgradeInfo();
+        }, 10000);
+      } else {
+        setUpgradeResult({
+          success: false,
+          message: data.reason || data.error || '升级失败',
+        });
+        setUpgrading(false);
+        setUpgradeStatus('');
+      }
+    } catch (e) {
+      setUpgradeResult({
+        success: false,
+        message: e instanceof Error ? e.message : '网络错误',
+      });
+      setUpgrading(false);
+      setUpgradeStatus('');
+    }
+  };
+
+  const fetchUpgradeInfo = async () => {
+    setUpgradeLoading(true);
+    try {
+      const res = await fetch('/api/admin/upgrade-check');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setUpgradeInfo(data);
+    } catch (e) {
+      setUpgradeInfo({
+        isCenter: false,
+        currentVersion: 'v4.0.0',
+        error: e instanceof Error ? e.message : '检查失败',
+      });
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
 
   const fetchVersions = async () => {
     setLoading(true);
@@ -106,6 +184,7 @@ export default function AdminUpdatesPage() {
 
   useEffect(() => {
     fetchVersions();
+    fetchUpgradeInfo();
   }, []);
 
   const openCreateModal = () => {
@@ -301,6 +380,132 @@ export default function AdminUpdatesPage() {
 
   return (
     <div>
+      {/* 系统升级检查卡片 */}
+      <div className="mb-6 bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl">
+                🔄
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">系统升级</h3>
+                <p className="text-xs text-gray-500">检查并安装系统最新版本</p>
+              </div>
+            </div>
+            <button
+              onClick={fetchUpgradeInfo}
+              disabled={upgradeLoading}
+              className="px-4 py-2 text-sm border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50 flex items-center gap-2"
+            >
+              {upgradeLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+                  检查中...
+                </>
+              ) : (
+                <>🔄 重新检查</>
+              )}
+            </button>
+          </div>
+
+          {upgradeInfo && !upgradeInfo.isCenter && (
+            <div className="space-y-3">
+              {/* 版本信息 */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">当前版本:</span>
+                  <span className="px-2 py-0.5 bg-gray-900 text-white rounded text-xs font-mono font-semibold">
+                    {upgradeInfo.currentVersion}
+                  </span>
+                </div>
+                {upgradeInfo.latestVersion && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">最新版本:</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-mono font-semibold ${upgradeInfo.hasUpdate ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                      {upgradeInfo.latestVersion}
+                    </span>
+                  </div>
+                )}
+                {upgradeInfo.upgradePlan && upgradeInfo.upgradePlan !== 'none' && upgradeInfo.upgradeExpiryAt && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">升级服务:</span>
+                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">
+                      {upgradeInfo.upgradePlan} · 至 {new Date(upgradeInfo.upgradeExpiryAt).toLocaleDateString('zh-CN')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* 状态提示 */}
+              {upgradeInfo.hasUpdate ? (
+                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="text-orange-500 text-lg">⚠️</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-900">
+                        发现新版本 {upgradeInfo.latestVersion}
+                      </p>
+                      {upgradeInfo.changelog && (
+                        <div className="mt-2 text-xs text-orange-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                          {upgradeInfo.changelog}
+                        </div>
+                      )}
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          onClick={applyUpgrade}
+                          disabled={upgrading}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2"
+                        >
+                          {upgrading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                              {upgradeStatus}
+                            </>
+                          ) : (
+                            <>🚀 一键升级</>
+                          )}
+                        </button>
+                        {upgradeResult && (
+                          <span className={`text-xs ${upgradeResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                            {upgradeResult.success ? '✓ ' : '✗ '}{upgradeResult.message}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-400">
+                        点击"一键升级"将自动下载并安装更新，升级后服务会自动重启
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : upgradeInfo.error ? (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  ❌ {upgradeInfo.error}
+                </div>
+              ) : (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  ✅ {upgradeInfo.reason || '系统已是最新版本'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {upgradeInfo?.isCenter && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+              🏢 {upgradeInfo.message || '中央平台模式，版本管理请通过 Git 部署流程进行'}
+            </div>
+          )}
+
+          {!upgradeInfo && upgradeLoading && (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400" />
+              正在检查系统更新...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 更新公告管理 */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-bold text-gray-900">更新公告</h2>

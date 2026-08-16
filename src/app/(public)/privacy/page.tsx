@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
-export const metadata: Metadata = {
-  title: '隐私政策 - 知微阁',
-  description: '知微阁隐私政策，了解我们如何保护您的个人信息和隐私安全。',
-};
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+  title: '隐私政策',
+  description: `${brandName}隐私政策，了解我们如何保护您的个人信息和隐私安全。`,
+  };
+}
 
 export default function PrivacyPage() {
   return (

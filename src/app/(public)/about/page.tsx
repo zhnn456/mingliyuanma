@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
-export const metadata: Metadata = {
-  title: '关于我们 - 知微阁',
-  description: '知微阁致力于传承中华传统命理文化，融合现代科技，提供四柱八字、紫微斗数、奇门遁甲、梅花易数等命理排盘服务。',
-};
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+  title: '关于我们',
+  description: `${brandName}致力于传承中华传统命理文化，融合现代科技，提供四柱八字、紫微斗数、奇门遁甲、梅花易数等命理排盘服务。`,
+  };
+}
 
 export default function AboutPage() {
   return (

@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';
 
@@ -36,7 +36,7 @@ function getTimeRangeWhere(timeRange: string): { where: string; params: any[] } 
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);

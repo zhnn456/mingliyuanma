@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';
 
@@ -12,7 +12,7 @@ function generateId() {
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -78,7 +78,7 @@ const DEFAULT_RULES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -188,7 +188,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();

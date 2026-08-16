@@ -11,13 +11,13 @@ export async function POST(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    const signed = await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${today}`);
+    const signed = await queryFirst("SELECT 1 FROM SiteConfig WHERE `key` = ?", `signin:${userId}:${today}`);
     if (signed) return NextResponse.json({ error: '今日已签到' }, { status: 400 });
 
-    const lastSigned = await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${yesterday}`);
+    const lastSigned = await queryFirst("SELECT 1 FROM SiteConfig WHERE `key` = ?", `signin:${userId}:${yesterday}`);
     let streak = 1;
     if (lastSigned) {
-      const s = await queryFirst("SELECT value FROM SiteConfig WHERE key = ?", `signin_streak:${userId}`) as any;
+      const s = await queryFirst("SELECT value FROM SiteConfig WHERE `key` = ?", `signin_streak:${userId}`) as any;
       streak = (parseInt(s?.value || '0') || 0) + 1;
     }
 
@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
     const total = basePoints + bonusPoints;
     const now = new Date().toISOString();
 
-    await execute("INSERT INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, 'signin', ?)", `signin:${userId}:${today}`, '1', now);
-    await execute("UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE key = ?", String(streak), now, `signin_streak:${userId}`);
+    await execute("INSERT INTO SiteConfig (`key`, value, category, updatedAt) VALUES (?, ?, 'signin', ?)", `signin:${userId}:${today}`, '1', now);
+    await execute("UPDATE SiteConfig SET value = ?, updatedAt = ? WHERE `key` = ?", String(streak), now, `signin_streak:${userId}`);
 
     const row = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
     const current = row?.balance || 0;
@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
     const userId = session.sub;
 
     const today = new Date().toISOString().split('T')[0];
-    const signed = !!(await queryFirst("SELECT 1 FROM SiteConfig WHERE key = ?", `signin:${userId}:${today}`));
-    const streakRow = await queryFirst("SELECT value FROM SiteConfig WHERE key = ?", `signin_streak:${userId}`) as any;
+    const signed = !!(await queryFirst("SELECT 1 FROM SiteConfig WHERE `key` = ?", `signin:${userId}:${today}`));
+    const streakRow = await queryFirst("SELECT value FROM SiteConfig WHERE `key` = ?", `signin_streak:${userId}`) as any;
     const streak = parseInt(streakRow?.value || '0') || 0;
     const balanceRow = await queryFirst('SELECT balance FROM UserPoints WHERE userId = ?', userId) as any;
     const balance = balanceRow?.balance || 0;

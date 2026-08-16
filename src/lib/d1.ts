@@ -14,7 +14,7 @@ function getPool(): mysql.Pool {
     host: process.env.MYSQL_HOST || 'localhost',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
     user: process.env.MYSQL_USER || 'ming8',
-    password: process.env.MYSQL_PASSWORD || 'Ming8@2026!',
+    password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'ming8_db',
     waitForConnections: true,
     connectionLimit: 10,
@@ -266,8 +266,8 @@ export async function createUserTag(tag: { name: string; color?: string; descrip
   tags.push(newTag);
 
   await execute(
-    'INSERT OR REPLACE INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)',
-    TAGS_CONFIG_KEY, JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString()
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
   return newTag;
@@ -287,8 +287,8 @@ export async function updateUserTag(id: string, updates: { name?: string; color?
   tags[index] = { ...tags[index], ...updates };
 
   await execute(
-    'INSERT OR REPLACE INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)',
-    TAGS_CONFIG_KEY, JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString()
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
   return tags[index];
@@ -307,8 +307,8 @@ export async function deleteUserTag(id: string) {
   const filtered = tags.filter((t: any) => t.id !== id);
 
   await execute(
-    'INSERT OR REPLACE INTO SiteConfig (key, value, category, updatedAt) VALUES (?, ?, ?, ?)',
-    TAGS_CONFIG_KEY, JSON.stringify(filtered), TAGS_CONFIG_CATEGORY, new Date().toISOString()
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    JSON.stringify(filtered), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
   await execute('DELETE FROM "UserTagRelation" WHERE tagId = ?', id);

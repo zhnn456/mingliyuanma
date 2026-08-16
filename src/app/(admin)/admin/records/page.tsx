@@ -13,8 +13,12 @@ type RecordItem = {
   userName: string;
   userEmail: string;
   userPhone: string;
+  agentId: string | null;
+  agentName: string | null;
   type: string;
 };
+
+type AgentOption = { id: string; companyName: string; brandName: string; contactName: string };
 
 const TYPE_OPTIONS = [
   { value: '', label: '全部类型' },
@@ -43,8 +47,20 @@ export default function AdminRecordsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [agentFilter, setAgentFilter] = useState('');
+  const [agents, setAgents] = useState<AgentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const pageSize = 20;
+
+  // 加载代理商列表（用于筛选）
+  useEffect(() => {
+    fetch('/api/admin/agents?page=1&pageSize=100')
+      .then(res => res.ok ? res.json() : null)
+      .then(d => {
+        if (d) setAgents(d.agents || []);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -53,6 +69,7 @@ export default function AdminRecordsPage() {
       if (typeFilter) params.set('type', typeFilter);
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
+      if (agentFilter) params.set('agentId', agentFilter);
       const res = await fetch(`/api/admin/records?${params}`);
       if (res.ok) {
         const d = await res.json();
@@ -68,7 +85,7 @@ export default function AdminRecordsPage() {
 
   useEffect(() => {
     fetchRecords();
-  }, [page, typeFilter, startDate, endDate]);
+  }, [page, typeFilter, startDate, endDate, agentFilter]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
@@ -81,6 +98,7 @@ export default function AdminRecordsPage() {
     setTypeFilter('');
     setStartDate('');
     setEndDate('');
+    setAgentFilter('');
     setPage(1);
   };
 
@@ -99,6 +117,18 @@ export default function AdminRecordsPage() {
           >
             {TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <select
+            value={agentFilter}
+            onChange={(e) => { setAgentFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 border rounded-lg text-sm bg-white"
+          >
+            <option value="">全部代理商</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.companyName || a.brandName || a.contactName || a.id}
+              </option>
             ))}
           </select>
           <input
@@ -131,6 +161,7 @@ export default function AdminRecordsPage() {
             <tr className="bg-gray-50 border-b text-left">
               <th className="px-4 py-3 text-gray-500 font-medium">类型</th>
               <th className="px-4 py-3 text-gray-500 font-medium">用户</th>
+              <th className="px-4 py-3 text-gray-500 font-medium">所属代理商</th>
               <th className="px-4 py-3 text-gray-500 font-medium">性别</th>
               <th className="px-4 py-3 text-gray-500 font-medium">排盘信息</th>
               <th className="px-4 py-3 text-gray-500 font-medium">创建时间</th>
@@ -139,11 +170,11 @@ export default function AdminRecordsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-400">加载中...</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-400">加载中...</td>
               </tr>
             ) : records.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-400">暂无记录</td>
+                <td colSpan={6} className="px-4 py-10 text-center text-gray-400">暂无记录</td>
               </tr>
             ) : (
               records.map((r) => (
@@ -158,6 +189,9 @@ export default function AdminRecordsPage() {
                     <div className="text-xs text-gray-500">
                       {r.userEmail || r.userPhone || r.userId}
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {r.agentName || (r.agentId ? r.agentId : <span className="text-gray-300">—</span>)}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {GENDER_LABEL[r.gender] || '-'}

@@ -5,12 +5,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

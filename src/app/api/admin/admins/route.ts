@@ -1,7 +1,9 @@
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { hashPassword } from '@/lib/password';
+import { buildAdminIsolationClause } from '@/lib/test-isolation';
+import { auditLog } from '@/lib/audit';
 
 function generateId() {
   return `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -9,30 +11,44 @@ function generateId() {
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
-    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+    const { allowed, session } = await requirePrimaryAdmin(req);
+    if (!allowed || !session) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
+    // 数据隔离：非主管理员只看测试管理员，隐藏主管理员
+    const isolation = buildAdminIsolationClause(session);
+
     let sql = "SELECT id, email, phone, name, role, createdAt, updatedAt FROM User WHERE role IN ('admin', 'editor')";
     let countSql = "SELECT COUNT(*) as total FROM User WHERE role IN ('admin', 'editor')";
     const params: any[] = [];
+    const countParams: any[] = [];
+    const andParts: string[] = [];
+
+    if (isolation.where) {
+      andParts.push(isolation.where);
+      params.push(...isolation.params);
+      countParams.push(...isolation.params);
+    }
 
     if (keyword) {
-      sql += ' AND (email LIKE ? OR name LIKE ? OR phone LIKE ?)';
-      countSql += ' AND (email LIKE ? OR name LIKE ? OR phone LIKE ?)';
+      andParts.push('(email LIKE ? OR name LIKE ? OR phone LIKE ?)');
       params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+      countParams.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+    }
+
+    if (andParts.length > 0) {
+      const andClause = ' AND ' + andParts.join(' AND ');
+      sql += andClause;
+      countSql += andClause;
     }
 
     sql += ` ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 
     const data = await queryAll(sql, ...params);
-
-    const countParams: any[] = [];
-    if (keyword) countParams.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     const totalRow = await queryFirst(countSql, ...countParams) as any;
 
     return NextResponse.json({ data, total: totalRow?.total || 0, page, pageSize });
@@ -44,7 +60,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -71,6 +87,13 @@ export async function POST(req: NextRequest) {
       id, email, phone || null, name || null, passwordHash, role, now, now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_create_admin',
+      details: { email, role },
+      status: 'success',
+    });
+
     const row = await queryFirst('SELECT id, email, phone, name, role, createdAt FROM User WHERE id = ?', id);
     return NextResponse.json({ data: row });
   } catch (error) {
@@ -81,7 +104,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -119,6 +142,14 @@ export async function PUT(req: NextRequest) {
     params.push(id);
 
     await execute(`UPDATE User SET ${updates.join(', ')} WHERE id = ?`, ...params);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_admin',
+      details: { id, fields: Object.keys(body) },
+      status: 'success',
+    });
+
     const row = await queryFirst('SELECT id, email, phone, name, role, createdAt FROM User WHERE id = ?', id);
     return NextResponse.json({ data: row });
   } catch (error) {
@@ -129,7 +160,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -150,6 +181,13 @@ export async function DELETE(req: NextRequest) {
     // 不删除用户，仅将角色降级为普通用户
     const now = new Date().toISOString();
     await execute('UPDATE User SET role = ?, updatedAt = ? WHERE id = ?', 'user', now, id);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_delete_admin',
+      details: { id },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

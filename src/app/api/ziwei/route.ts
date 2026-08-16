@@ -15,7 +15,46 @@ import { astro } from 'iztro';
 import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
 import { generateZiweiDetailedAnalysis } from '@/lib/interpretation/ziwei-detailed';
 import { createZiweiEngine } from '@/lib/ziwei/engine';
+import { getSession } from '@/lib/auth-server';
 import type { SchoolId } from '@/lib/ziwei/interfaces/chart';
+
+/** 保存紫微排盘记录（chart / full 共用，登录用户落库） */
+async function saveZiweiRecord(params: {
+  userId: string;
+  gender: string;
+  dateStr: string;
+  hour: number;
+  isLunar: boolean;
+  result: any;
+  interpretation: any;
+}) {
+  const recordId = `zwr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO ZiweiRecord (id, userId, gender, birthDate, birthTime, isLunar, mingGong, palaceData, starData, sihuaData, interpretation, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    recordId,
+    params.userId,
+    params.gender,
+    params.dateStr,
+    `${String(params.hour).padStart(2, '0')}:00`,
+    params.isLunar ? 1 : 0,
+    params.result.basic.fiveElementsClass,
+    JSON.stringify(params.result.palaces),
+    JSON.stringify(params.result.palaces.flatMap((p: any) => p.majorStars)),
+    JSON.stringify(
+      params.result.palaces.flatMap((p: any) =>
+        p.majorStars.filter((s: any) => s.mutagen).map((s: any) => ({
+          palace: p.name,
+          star: s.name,
+          mutagen: s.mutagen,
+        }))
+      )
+    ),
+    params.interpretation ? JSON.stringify(params.interpretation) : null,
+    now
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,8 +126,24 @@ export async function POST(req: NextRequest) {
       earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
     };
 
-    // === 如果只请求排盘数据，直接返回（不收费） ===
+    // === 如果只请求排盘数据，直接返回（不收费）；登录用户保存排盘记录 ===
     if (mode === 'chart') {
+      const session = await getSession(req);
+      if (session) {
+        try {
+          await saveZiweiRecord({
+            userId: session.sub,
+            gender,
+            dateStr,
+            hour,
+            isLunar,
+            result: { basic, palaces },
+            interpretation: null,
+          });
+        } catch (e) {
+          console.error('保存紫微排盘记录失败:', e);
+        }
+      }
       return NextResponse.json({
         result: { basic, palaces },
         mode: 'chart',
@@ -231,32 +286,15 @@ export async function POST(req: NextRequest) {
 
     // 如果用户已登录，保存记录
     if (session) {
-      const recordId = `zwr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const now = new Date().toISOString();
-      await execute(
-        `INSERT INTO ZiweiRecord (id, userId, gender, birthDate, birthTime, isLunar, mingGong, palaceData, starData, sihuaData, interpretation, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        recordId,
-        session.sub,
+      await saveZiweiRecord({
+        userId: session.sub,
         gender,
         dateStr,
-        `${String(hour).padStart(2, '0')}:00`,
-        isLunar ? 1 : 0,
-        result.basic.fiveElementsClass,
-        JSON.stringify(result.palaces),
-        JSON.stringify(result.palaces.flatMap((p: any) => p.majorStars)),
-        JSON.stringify(
-          result.palaces.flatMap((p: any) =>
-            p.majorStars.filter((s: any) => s.mutagen).map((s: any) => ({
-              palace: p.name,
-              star: s.name,
-              mutagen: s.mutagen,
-            }))
-          )
-        ),
-        JSON.stringify({ detailedAnalysis, v2: result.v2 }),
-        now
-      );
+        hour,
+        isLunar,
+        result,
+        interpretation: { detailedAnalysis, v2: result.v2 },
+      });
     }
 
     return NextResponse.json({

@@ -38,6 +38,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '用户不存在或密码错误' }, { status: 401 });
     }
 
+    // 源码部署代理商不登录主站后台（独立站点自带 admin 后台，主站 /agent 仅面向 SaaS 代理）
+    if (user.role === 'agent') {
+      const agent = await queryFirst('SELECT level, siteConfig FROM Agent WHERE userId = ?', user.id) as any;
+      if (agent) {
+        let deployMode = '';
+        try {
+          const sc = typeof agent.siteConfig === 'string' ? JSON.parse(agent.siteConfig) : (agent.siteConfig || {});
+          deployMode = sc.deployMode || sc.level || '';
+        } catch { /* 忽略解析错误 */ }
+        const isSourceAgent = agent.level === 'source' || deployMode === 'source';
+        if (isSourceAgent) {
+          return NextResponse.json(
+            { error: '您已独立部署站点，请直接登录您的站点后台（域名/admin）管理，主站代理商后台仅面向 SaaS 代理' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // 自动升级旧格式密码哈希
     if (!user.passwordHash.startsWith('pbkdf2_')) {
       try {

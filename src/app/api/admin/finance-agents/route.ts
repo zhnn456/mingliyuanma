@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
@@ -6,7 +6,7 @@ const DEFAULT_RATE = 0.2;
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -139,7 +139,7 @@ async function getSummary(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();

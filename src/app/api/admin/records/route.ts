@@ -16,7 +16,7 @@ const typeMeta: Record<RecordType, { table: string; label: string; alias: string
     table: 'ZiweiRecord',
     label: '紫微',
     alias: 'zr',
-    nameCol: 'zr.name',
+    nameCol: "''",
     extraCols: 'zr.gender, zr.birthDate, zr.birthTime',
   },
   qimen: {
@@ -38,7 +38,8 @@ const typeMeta: Record<RecordType, { table: string; label: string; alias: string
 function buildUnionSql(
   tables: RecordType[],
   startDate: string,
-  endDate: string
+  endDate: string,
+  agentId?: string
 ): { sql: string; params: any[]; countParts: Array<{ sql: string; params: any[] }> } {
   const unionParts: string[] = [];
   const params: any[] = [];
@@ -50,13 +51,16 @@ function buildUnionSql(
 
     const selectSql =
       `SELECT ${meta.alias}.id, ${meta.alias}.userId, ${meta.nameCol} as name, ${meta.extraCols}, ${meta.alias}.createdAt, ` +
-      `u.name as userName, u.email as userEmail, u.phone as userPhone, '${meta.label}' as type ` +
-      `FROM ${escapedTable} ${meta.alias} LEFT JOIN User u ON ${meta.alias}.userId = u.id WHERE 1=1`;
+      `u.name as userName, u.email as userEmail, u.phone as userPhone, u.agentId as agentId, a.companyName as agentName, '${meta.label}' as type ` +
+      `FROM ${escapedTable} ${meta.alias} LEFT JOIN User u ON ${meta.alias}.userId = u.id ` +
+      `LEFT JOIN Agent a ON u.agentId = a.id WHERE 1=1`;
 
     const condSql = selectSql
+      + (agentId ? ` AND (u.agentId = ? OR u.id IN (SELECT REPLACE(sc.key, 'agent_customer:', '') FROM SiteConfig sc WHERE sc.category = 'agent_customer' AND sc.value = ?))` : '')
       + (startDate ? ` AND ${meta.alias}.createdAt >= ?` : '')
       + (endDate ? ` AND ${meta.alias}.createdAt <= ?` : '');
 
+    if (agentId) params.push(agentId, agentId);
     if (startDate) params.push(startDate);
     if (endDate) params.push(endDate);
 
@@ -64,9 +68,11 @@ function buildUnionSql(
 
     const countSql =
       `SELECT COUNT(*) as total FROM ${escapedTable} WHERE 1=1`
+      + (agentId ? ` AND (EXISTS (SELECT 1 FROM User uu WHERE uu.id = ${escapedTable}.userId AND uu.agentId = ?) OR userId IN (SELECT REPLACE(sc.key, 'agent_customer:', '') FROM SiteConfig sc WHERE sc.category = 'agent_customer' AND sc.value = ?))` : '')
       + (startDate ? ` AND createdAt >= ?` : '')
       + (endDate ? ` AND createdAt <= ?` : '');
     const countParams: any[] = [];
+    if (agentId) countParams.push(agentId, agentId);
     if (startDate) countParams.push(startDate);
     if (endDate) countParams.push(endDate);
     countParts.push({ sql: countSql, params: countParams });
@@ -87,6 +93,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type') || '';
     const startDate = searchParams.get('startDate') || '';
     const endDate = searchParams.get('endDate') || '';
+    const agentId = searchParams.get('agentId') || '';
 
     const validTypes: RecordType[] = ['bazi', 'ziwei', 'qimen', 'meihua'];
     const requestedTypes = (type && validTypes.includes(type as RecordType))
@@ -107,7 +114,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ records: [], total: 0, page, pageSize });
     }
 
-    const { sql, params, countParts } = buildUnionSql(tables, startDate, endDate);
+    const { sql, params, countParts } = buildUnionSql(tables, startDate, endDate, agentId || undefined);
 
     // 注意：mysql2 prepared statement 模式下 LIMIT ? OFFSET ? 会报 ER_WRONG_ARGUMENTS，
     // pageSize 和 offset 已 parseInt 为整数，直接拼接安全

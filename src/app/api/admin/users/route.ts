@@ -1,11 +1,13 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, getUserStats } from '@/lib/d1';
+import { buildUserIsolationClause } from '@/lib/test-isolation';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
-    if (!allowed) {
+    const { allowed, session } = await requireAdmin(req);
+    if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
@@ -14,15 +16,34 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
+    // 数据隔离：非主管理员只看测试用户
+    const isolation = buildUserIsolationClause(session);
+
     let sql = "SELECT id, email, name, phone, role, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate, createdAt FROM User";
     let countSql = "SELECT COUNT(*) as total FROM User";
     const params: any[] = [];
+    const countParams: any[] = [];
+    const whereParts: string[] = [];
 
+    // 隔离条件
+    if (isolation.where) {
+      whereParts.push(isolation.where);
+      params.push(...isolation.params);
+      countParams.push(...isolation.params);
+    }
+
+    // 关键词搜索
     if (keyword) {
       const like = `%${keyword}%`;
-      sql += ` WHERE email LIKE ? OR name LIKE ? OR phone LIKE ?`;
-      countSql += ` WHERE email LIKE ? OR name LIKE ? OR phone LIKE ?`;
+      whereParts.push('(email LIKE ? OR name LIKE ? OR phone LIKE ?)');
       params.push(like, like, like);
+      countParams.push(like, like, like);
+    }
+
+    if (whereParts.length > 0) {
+      const whereClause = ' WHERE ' + whereParts.join(' AND ');
+      sql += whereClause;
+      countSql += whereClause;
     }
 
     // mysql2 prepared statement 不支持 LIMIT ? OFFSET ?，用整数拼接（已 parseInt 安全）
@@ -30,7 +51,7 @@ export async function GET(req: NextRequest) {
     sql += ` ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
 
     const users = await queryAll(sql, ...params) as any[];
-    const totalRow = await queryFirst(countSql, ...(keyword ? [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`] : [])) as any;
+    const totalRow = await queryFirst(countSql, ...countParams) as any;
 
     // 批量查统计
     const usersWithStats = await Promise.all(users.map(async (u: any) => {
@@ -47,7 +68,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -87,6 +108,14 @@ export async function PUT(req: NextRequest) {
     if (!existing) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
 
     await execute(`UPDATE User SET ${updates.join(', ')} WHERE id = ?`, ...params);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_user',
+      details: { userId, fields: Object.keys(body) },
+      status: 'success',
+    });
+
     const user = await queryFirst('SELECT id, email, name, role, memberLevel, memberExpiryAt FROM User WHERE id = ?', userId);
 
     return NextResponse.json({ user });

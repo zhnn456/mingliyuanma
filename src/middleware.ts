@@ -134,8 +134,27 @@ export async function middleware(req: NextRequest) {
     }
     const token = match[1];
     const payload = await verifyAndParseToken(token);
-    if (!payload || payload.role !== 'admin') {
+    // 允许 admin 和 demo（演示账号）访问管理后台页面
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'demo')) {
       return NextResponse.redirect(new URL('/login', req.url));
+    }
+  }
+
+  // 演示账号写操作拦截（独立判断：API 路径 /api/admin/* 不以 /admin 开头，需单独匹配）
+  // demo 角色对 /api/admin/* 和 /api/upgrade/* 的 POST/PUT/DELETE 一律拒绝
+  if (pathname.startsWith('/api/admin/') || pathname.startsWith('/api/upgrade/')) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      const cookie = req.headers.get('cookie') || '';
+      const match = cookie.match(/(?:^|;\s*)token=([^;]+)/);
+      if (match) {
+        const payload = await verifyAndParseToken(match[1]);
+        if (payload?.role === 'demo') {
+          return NextResponse.json(
+            { error: '演示账号无操作权限，仅供查看体验。如需开通完整功能，请联系客服购买源码部署方案。', code: 'DEMO_READONLY' },
+            { status: 403 }
+          );
+        }
+      }
     }
   }
 

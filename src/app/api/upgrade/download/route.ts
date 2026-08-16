@@ -33,11 +33,11 @@ export async function GET(req: NextRequest) {
       return new NextResponse('下载令牌已过期，请重新检查更新', { status: 403 });
     }
 
-    // 3. 检查 IP 绑定
+    // 3. IP 检查已移除
+    // 原因：源码站后端调用 check API 生成 token（IP 是服务器 IP），
+    // 但下载可能是浏览器直接下载（IP 是用户 IP），两者不匹配导致 403。
+    // token 本身有 2 小时过期 + 一次性使用，足够安全。
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
-    if (tokenInfo.clientIP !== 'unknown' && clientIP !== 'unknown' && tokenInfo.clientIP !== clientIP) {
-      return new NextResponse('下载令牌与请求 IP 不匹配', { status: 403 });
-    }
 
     // 4. 查询版本包信息
     const pkg = await queryFirst('SELECT * FROM UpgradePackage WHERE version = ? AND status = ?', tokenInfo.version, 'published') as any;
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'application/zip',
+        'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Length': fileBuffer.length.toString(),
         'X-File-Size': (pkg.fileSize || fileBuffer.length).toString(),

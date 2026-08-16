@@ -1,36 +1,42 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import HomeCtaCarousel from './(public)/_components/HomeCtaCarousel';
+import { getBrandName } from '@/lib/brand';
 
-export const metadata: Metadata = {
-  title: '八字排盘·紫微斗数·奇门遁甲·梅花易数 - 在线传统文化智慧平台',
-  description: '知微阁提供免费八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦等在线工具，融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，并收录54篇传统文化知识文章。',
-  keywords: ['八字排盘', '紫微斗数', '奇门遁甲', '梅花易数', '在线排盘', '算命', '命理', '传统文化', '国学', '知微阁'],
-  alternates: {
-    canonical: 'https://ming8.online/',
-  },
-  openGraph: {
-    title: '知微阁 - 八字排盘·紫微斗数·奇门遁甲·梅花易数在线工具',
-    description: '免费八字排盘、紫微斗数、奇门遁甲、梅花易数在线工具与传统文化知识库。',
-    type: 'website',
-    locale: 'zh_CN',
-    siteName: '知微阁',
-    url: 'https://ming8.online/',
-  },
-};
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: `八字排盘·紫微斗数·奇门遁甲·梅花易数 - ${brandName}`,
+    description: `${brandName}提供免费八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦等在线工具，融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，并收录54篇传统文化知识文章。`,
+    keywords: ['八字排盘', '紫微斗数', '奇门遁甲', '梅花易数', '在线排盘', '算命', '命理', '传统文化', '国学', brandName],
+    alternates: {
+      canonical: 'https://ming8.online/',
+    },
+    openGraph: {
+      title: `${brandName} - 八字排盘·紫微斗数·奇门遁甲·梅花易数在线工具`,
+      description: '免费八字排盘、紫微斗数、奇门遁甲、梅花易数在线工具与传统文化知识库。',
+      type: 'website',
+      locale: 'zh_CN',
+      siteName: brandName,
+      url: 'https://ming8.online/',
+    },
+  };
+}
 
-const siteJsonLd = JSON.stringify({
+const siteJsonLd = (brandName: string) => JSON.stringify({
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'WebSite',
-      name: '知微阁',
+      name: brandName,
       url: 'https://ming8.online/',
       inLanguage: 'zh-CN',
       description: '提供八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦在线工具与传统文化知识库的智慧平台。',
     },
     {
       '@type': 'Organization',
-      name: '知微阁',
+      name: brandName,
       url: 'https://ming8.online/',
       description: '以传统文化视角，融合现代科技提供八字、紫微斗数、奇门遁甲、梅花易数排盘与解读服务。',
     },
@@ -89,13 +95,14 @@ const features = [
   { title: '多端适配', icon: 'M12 18h.01M8 21h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z', desc: '完美适配手机、平板、电脑，随时随地查看您的解读内容', color: 'text-teal-600', bg: 'bg-teal-50' },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const brandName = await getBrandName();
   return (
     <div>
       {/* 结构化数据：WebSite + Organization */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: siteJsonLd }}
+        dangerouslySetInnerHTML={{ __html: siteJsonLd(brandName) }}
       />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-red-950 via-red-900 to-red-950 text-white">
@@ -119,7 +126,7 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-6xl md:text-8xl font-bold mb-6 tracking-wide">
-              <span className="text-gradient-gold">知微阁</span>
+              <span className="text-gradient-gold">{brandName}</span>
             </h1>
             <p className="text-2xl md:text-3xl text-red-100 mb-6 font-kai tracking-widest">
               传承千年智慧 · 解读文化密码
@@ -256,57 +263,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Membership CTA */}
-      <section className="py-28 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-900 via-red-800 to-red-900" />
-        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10 text-white">
-          <span className="seal-tag-gold !text-gold !border-gold/40 mb-6 inline-flex">会员尊享</span>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-4">开通会员，解锁全部功能</h2>
-          <p className="text-red-200/80 mb-10 text-lg leading-relaxed">
-            无限次排盘 · 详细命理解读 · 大运流年分析 · 专属报告导出
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 mb-10">
-            {['无限排盘', '深度解读', 'PDF报告', '历史记录', '优先客服'].map((item) => (
-              <span key={item} className="px-5 py-2 bg-white/10 rounded-full text-sm border border-white/20 backdrop-blur-sm">
-                ✓ {item}
-              </span>
-            ))}
-          </div>
-          <Link href="/membership" className="btn-secondary text-lg px-12 py-4 inline-flex">
-            查看会员套餐
-          </Link>
-        </div>
-      </section>
-
-      {/* Partner CTA - 创业合作入口 */}
-      <section className="py-28 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-950 via-red-800 to-red-950" />
-        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10 text-white">
-          <span className="seal-tag-gold !text-gold !border-gold/40 mb-6 inline-flex">创业合作</span>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-4">低成本创业 · 快速部署 · 即时赚钱</h2>
-          <p className="text-red-200/80 mb-10 text-lg leading-relaxed">
-            源码部署独立运营，100% 收益归你 · 单独 SaaS 开户，0 元试用、99 元/月起，最高 60% 分润
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 mb-10">
-            {['源码买断 2,980 元', '无限 SaaS 开户', '客户充值即分润', '当天上线', '0 开户费'].map((item) => (
-              <span key={item} className="px-5 py-2 bg-white/10 rounded-full text-sm border border-white/20 backdrop-blur-sm">
-                ✓ {item}
-              </span>
-            ))}
-          </div>
-          <Link href="/partner" className="btn-secondary text-lg px-12 py-4 inline-flex">
-            了解创业合作计划
-          </Link>
-        </div>
-      </section>
+      {/* CTA 轮播：会员服务 / 创业合作 */}
+      <HomeCtaCarousel />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useBrand } from '@/lib/use-brand';
 import Link from 'next/link';
 
 // ============ 动画工具（与 /deploy 页一致） ============
@@ -312,6 +313,7 @@ function SectionHeader({ en, title, desc }: { en: string; title: string; desc?: 
 
 // ============ 主页面 ============
 export default function PartnerPage() {
+  const { brand } = useBrand();
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FDF8F0] via-white to-[#FDF8F0] text-gray-900 overflow-x-hidden" style={{ fontFamily: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" }}>
       {/* ======== HERO ======== */}
@@ -331,7 +333,7 @@ export default function PartnerPage() {
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#B45309]/30 bg-[#B45309]/5 mb-8 animate-[fadeInUp_0.6s_ease-out]">
             <span className="w-2 h-2 bg-[#B45309] rounded-full animate-pulse" />
-            <span className="text-sm text-[#B45309] font-medium">知微阁 · 创业合作计划</span>
+            <span className="text-sm text-[#B45309] font-medium">{brand.brandName} · 创业合作计划</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 animate-[fadeInUp_0.6s_ease-out_0.1s] opacity-0" style={{ animationFillMode: 'forwards', fontFamily: "'Noto Serif SC', 'SimSun', serif" }}>
@@ -394,7 +396,7 @@ export default function PartnerPage() {
           <Reveal>
             <SectionHeader
               en="Why Partner With Us"
-              title="六大理由，选择知微阁创业"
+              title={`六大理由，选择${brand.brandName}创业`}
               desc="从 0 元试用到源码买断，总有一种方式适合你的创业阶段"
             />
           </Reveal>
@@ -499,7 +501,7 @@ export default function PartnerPage() {
           <Reveal>
             <SectionHeader
               en="Platform Advantages"
-              title="为什么选知微阁"
+              title={`为什么选${brand.brandName}`}
               desc="不是一套空壳源码，而是经过完整商业验证、持续迭代的成熟平台"
             />
           </Reveal>
@@ -830,7 +832,7 @@ export default function PartnerPage() {
       {/* ======== 底部 ======== */}
       <footer className="py-12 px-4 border-t border-[#E8DCC8]">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <span>© 2026 知微阁 · 创业合作计划</span>
+          <span>© 2026 {brand.brandName} · 创业合作计划</span>
           <div className="flex gap-6 flex-wrap justify-center">
             <Link href="/deploy" className="hover:text-[#B45309] transition-colors">源码部署</Link>
             <Link href="/terms" className="hover:text-[#B45309] transition-colors">服务条款</Link>

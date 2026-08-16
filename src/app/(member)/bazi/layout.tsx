@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import ToolSeoContent from '@/components/seo/ToolSeoContent';
 
-export const metadata: Metadata = {
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
   title: '八字排盘在线 - 免费生辰八字四柱排盘',
   description: '免费八字排盘，输入出生信息即刻生成生辰八字四柱命盘，解析五行旺衰、喜用神与大运流年，命理入门必备工具。',
   keywords: ['八字排盘', '生辰八字', '四柱排盘', '免费八字排盘', '五行', '大运流年', '喜用神', '命理'],
@@ -9,14 +13,15 @@ export const metadata: Metadata = {
     canonical: 'https://ming8.online/bazi',
   },
   openGraph: {
-    title: '八字排盘在线 - 免费生辰八字四柱排盘 - 知微阁',
+    title: '八字排盘在线 - 免费生辰八字四柱排盘',
     description: '免费八字排盘，生成生辰八字四柱命盘，解析五行旺衰、喜用神与大运流年。',
     type: 'website',
     locale: 'zh_CN',
-    siteName: '知微阁',
+    siteName: brandName,
     url: 'https://ming8.online/bazi',
   },
-};
+  };
+}
 
 const INTRO = [
   '八字排盘（又称生辰八字、四柱排盘）是中国传统命理学中最核心的方法之一。它以出生年、月、日、时对应的天干地支，构成年柱、月柱、日柱、时柱共四柱八字，再通过五行生克、十神配置与大运流年，分析一个人的性格特质与运势走向。',

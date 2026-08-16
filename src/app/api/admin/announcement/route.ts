@@ -7,6 +7,7 @@ import {
   deleteAnnouncement,
   type Announcement,
 } from '@/lib/announcement';
+import { auditLog } from '@/lib/audit';
 
 /** 获取所有公告（含禁用） */
 export async function GET(req: NextRequest) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
 /** 新建公告 */
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -35,6 +36,12 @@ export async function POST(req: NextRequest) {
     if (!created) {
       return NextResponse.json({ error: '创建失败' }, { status: 500 });
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_create_announcement',
+      details: { title: created.title },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, announcement: created });
   } catch (error) {
     console.error('创建公告失败:', error);
@@ -45,7 +52,7 @@ export async function POST(req: NextRequest) {
 /** 更新公告（body 需含 id） */
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -57,6 +64,12 @@ export async function PUT(req: NextRequest) {
     if (!ok) {
       return NextResponse.json({ error: '更新失败' }, { status: 500 });
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_announcement',
+      details: { id: body.id, fields: Object.keys(body) },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('更新公告失败:', error);
@@ -67,7 +80,7 @@ export async function PUT(req: NextRequest) {
 /** 删除公告（body 需含 id） */
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -80,6 +93,12 @@ export async function DELETE(req: NextRequest) {
     if (!ok) {
       return NextResponse.json({ error: '删除失败' }, { status: 500 });
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_delete_announcement',
+      details: { id },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('删除公告失败:', error);

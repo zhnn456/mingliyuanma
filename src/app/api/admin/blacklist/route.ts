@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     if (userIdParam) {
       const row = await queryFirst(
-        'SELECT * FROM SiteConfig WHERE category = ? AND key = ?',
+        'SELECT * FROM SiteConfig WHERE category = ? AND "key" = ?',
         'blacklist', `bl_${userIdParam}`
       );
       if (!row) return NextResponse.json({ banned: false });
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     };
 
     const row = await queryFirst(
-      'SELECT id FROM SiteConfig WHERE category = ? AND key = ?',
+      'SELECT id FROM SiteConfig WHERE category = ? AND "key" = ?',
       'blacklist', `bl_${userId}`
     );
 
@@ -145,7 +145,7 @@ export async function DELETE(req: NextRequest) {
     if (id) {
       await execute('DELETE FROM SiteConfig WHERE id = ?', id);
     } else {
-      await execute('DELETE FROM SiteConfig WHERE category = ? AND key = ?', 'blacklist', `bl_${userId}`);
+      await execute('DELETE FROM SiteConfig WHERE category = ? AND "key" = ?', 'blacklist', `bl_${userId}`);
     }
 
     return NextResponse.json({ success: true });

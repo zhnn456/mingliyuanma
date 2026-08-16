@@ -3,6 +3,40 @@ import { execute } from '@/lib/d1';
 import { QimenChart } from '3meta';
 import { checkInterpretLimit, deductLingzhu, INTERPRET_COST_LINGZHU } from '@/lib/rate-limit';
 import { generateQimenDetailedAnalysis } from '@/lib/interpretation/qimen-detailed';
+import { getSession } from '@/lib/auth-server';
+
+/** 保存奇门排盘记录（chart / full 共用，登录用户落库） */
+async function saveQimenRecord(params: {
+  userId: string;
+  queryTime: string;
+  result: any;
+  interpretation: any;
+}) {
+  const recordId = `qmr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO QimenRecord (id, userId, queryTime, dunType, juNumber, tianPan, diPan, renPan, shenPan, interpretation, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    recordId,
+    params.userId,
+    params.queryTime,
+    params.result.ju?.type || '',
+    params.result.ju?.number || 0,
+    JSON.stringify(params.result.palaces.filter((p: any) => p.star)),
+    JSON.stringify(params.result.palaces.map((p: any) => ({
+      position: p.position, trigram: p.trigram,
+      heavenlyStem: p.heavenlyStem, earthlyStem: p.earthlyStem, earthBranch: p.earthBranch,
+    }))),
+    JSON.stringify(params.result.palaces.map((p: any) => ({
+      position: p.position, gate: p.gate,
+    }))),
+    JSON.stringify(params.result.palaces.map((p: any) => ({
+      position: p.position, deity: p.deity,
+    }))),
+    params.interpretation ? JSON.stringify(params.interpretation) : null,
+    now
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,8 +94,21 @@ export async function POST(req: NextRequest) {
       specialPatterns: chart.specialPatterns,
     };
 
-    // === 如果只请求排盘数据，直接返回（不收费） ===
+    // === 如果只请求排盘数据，直接返回（不收费）；登录用户保存排盘记录 ===
     if (mode === 'chart') {
+      const session = await getSession(req);
+      if (session) {
+        try {
+          await saveQimenRecord({
+            userId: session.sub,
+            queryTime: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+            result,
+            interpretation: null,
+          });
+        } catch (e) {
+          console.error('保存奇门排盘记录失败:', e);
+        }
+      }
       return NextResponse.json({
         result,
         mode: 'chart',
@@ -108,31 +155,12 @@ export async function POST(req: NextRequest) {
 
     // 如果用户已登录，保存记录
     if (session) {
-      const queryTime = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      const recordId = `qmr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const now = new Date().toISOString();
-      await execute(
-        `INSERT INTO QimenRecord (id, userId, queryTime, dunType, juNumber, tianPan, diPan, renPan, shenPan, interpretation, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        recordId,
-        session.sub,
-        queryTime,
-        result.ju?.type || '',
-        result.ju?.number || 0,
-        JSON.stringify(result.palaces.filter((p: any) => p.star)),
-        JSON.stringify(result.palaces.map((p: any) => ({
-          position: p.position, trigram: p.trigram,
-          heavenlyStem: p.heavenlyStem, earthlyStem: p.earthlyStem, earthBranch: p.earthBranch,
-        }))),
-        JSON.stringify(result.palaces.map((p: any) => ({
-          position: p.position, gate: p.gate,
-        }))),
-        JSON.stringify(result.palaces.map((p: any) => ({
-          position: p.position, deity: p.deity,
-        }))),
-        JSON.stringify({ result, detailedAnalysis }),
-        now
-      );
+      await saveQimenRecord({
+        userId: session.sub,
+        queryTime: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        result,
+        interpretation: { result, detailedAnalysis },
+      });
     }
 
     return NextResponse.json({

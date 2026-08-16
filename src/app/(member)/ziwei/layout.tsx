@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import ToolSeoContent from '@/components/seo/ToolSeoContent';
 
-export const metadata: Metadata = {
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
   title: '紫微斗数在线排盘 - 免费紫微命盘查询',
   description: '紫微斗数在线排盘，免费安布十二宫星曜命盘，解析命宫主星与四化格局，助你了解性格、事业、财运与婚姻运势。',
   keywords: ['紫微斗数', '紫微斗数排盘', '紫微命盘', '在线排盘', '十二宫', '星曜', '四化', '命理'],
@@ -9,14 +13,15 @@ export const metadata: Metadata = {
     canonical: 'https://ming8.online/ziwei',
   },
   openGraph: {
-    title: '紫微斗数在线排盘 - 免费紫微命盘查询 - 知微阁',
+    title: '紫微斗数在线排盘 - 免费紫微命盘查询',
     description: '免费紫微斗数排盘，安布十二宫星曜命盘，解析命宫主星与四化格局。',
     type: 'website',
     locale: 'zh_CN',
-    siteName: '知微阁',
+    siteName: brandName,
     url: 'https://ming8.online/ziwei',
   },
-};
+  };
+}
 
 const INTRO = [
   '紫微斗数位列中国"五大神数"之首，以出生年、月、日、时为依据，安布命宫、财帛宫、官禄宫、夫妻宫等十二宫位，并结合一百余颗星曜的分布与组合，勾勒一个人的性格底色与人生格局。',

@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
+import { getBrandName } from '@/lib/brand';
 import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
-export const metadata: Metadata = {
-  title: '服务条款 - 知微阁',
-  description: '知微阁服务条款，了解使用我们文化解读服务的相关规定和条件。',
-};
+export const revalidate = 60; // 品牌名等动态元数据定期重新生成（ISR）
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+  title: '服务条款',
+  description: `${brandName}服务条款，了解使用我们文化解读服务的相关规定和条件。`,
+  };
+}
 
 export default function TermsPage() {
   return (

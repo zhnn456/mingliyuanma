@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const agentId = agents[0].id;
     // 查 agent_customer 关联的客户（key格式: agent_customer:{userId}, value格式: {agentId}）
     const customerLinks = await queryAll(
-      "SELECT key FROM SiteConfig WHERE category = 'agent_customer' AND value = ?",
+      "SELECT `key` FROM SiteConfig WHERE category = 'agent_customer' AND value = ?",
       agentId
     ) as any[];
     // 从 key 中提取 userId

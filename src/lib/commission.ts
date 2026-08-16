@@ -37,6 +37,8 @@ export interface CommissionResult {
   newCustomerBonusAmount: number;
   totalCommission: number;
   isNewCustomer: boolean;
+  parentCommission?: number;
+  parentAgentId?: string;
 }
 
 /** 获取阶梯加成 */
@@ -102,12 +104,26 @@ export async function calculateCommission(params: {
     : 0;
   const totalCommission = Math.round((commissionAmount + newCustomerBonusAmount) * 100) / 100;
 
+  let parentCommission: number | undefined;
+  let parentAgentId: string | undefined;
+
+  if (agent.parentAgentId) {
+    const parent = await queryFirst('SELECT * FROM "Agent" WHERE id = ? AND isActive = 1', agent.parentAgentId) as any;
+    if (parent) {
+      parentAgentId = parent.id;
+      const parentRate = parent.subAgentCommissionRate ?? 0.4;
+      parentCommission = Math.round(totalCommission * parentRate * 100) / 100;
+    }
+  }
+
   return {
     agentId, orderId, userId, productType, productId,
     orderAmount, baseAmount,
     commissionRate, commissionAmount, tierBonusAmount,
     newCustomerBonusAmount, totalCommission,
     isNewCustomer,
+    parentCommission,
+    parentAgentId,
   };
 }
 
@@ -137,6 +153,24 @@ export async function saveCommissionRecord(result: CommissionResult) {
     'UPDATE "Agent" SET pendingCommission = COALESCE(pendingCommission, 0) + ?, totalCommission = COALESCE(totalCommission, 0) + ?, currentMonthGMV = COALESCE(currentMonthGMV, 0) + ? WHERE id = ?',
     result.totalCommission, result.totalCommission, result.baseAmount, result.agentId
   );
+
+  if (result.parentCommission && result.parentAgentId && result.parentCommission > 0) {
+    const parentId = `cr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_p`;
+    await execute(
+      `INSERT INTO "CommissionRecord" (id, agentId, orderId, userId, productType, productId, orderAmount, baseAmount, commissionRate, commissionAmount, tierBonusAmount, newCustomerBonusAmount, totalCommission, status, isNewCustomer, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, datetime('now'))`,
+      parentId, result.parentAgentId, result.orderId, result.userId,
+      result.productType, result.productId || null,
+      result.orderAmount, result.baseAmount,
+      0, 0, 0, 0,
+      result.parentCommission
+    );
+
+    await execute(
+      'UPDATE "Agent" SET pendingCommission = COALESCE(pendingCommission, 0) + ?, totalCommission = COALESCE(totalCommission, 0) + ? WHERE id = ?',
+      result.parentCommission, result.parentCommission, result.parentAgentId
+    );
+  }
 
   return id;
 }

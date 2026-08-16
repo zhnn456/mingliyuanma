@@ -199,6 +199,17 @@ export default function AdminAgentsPage() {
     else { const e = await res.json(); alert(e.error || '操作失败'); }
   };
 
+  const openAgreement = (a: Agent) => {
+    const params = new URLSearchParams({
+      no: `LIC-DEPLOY-${a.id}`,
+      name: a.companyName || a.brandName || '',
+      domain: a.domain || '',
+      contact: a.contactName || '',
+      email: a.user?.email || '',
+    });
+    window.open(`/source-deploy-agreement.html?${params.toString()}`, '_blank');
+  };
+
   const handleDelete = async (a: Agent) => {
     if (!confirm(`确定要删除代理商「${a.brandName}」？此操作不可恢复！`)) return;
     try {
@@ -404,6 +415,7 @@ export default function AdminAgentsPage() {
                         <button onClick={() => setDetailAgent(a)} className="text-slate-600 hover:text-slate-900">详情</button>
                         <button onClick={() => setRechargeAgent(a)} className="text-amber-600 hover:text-amber-800">充值</button>
                         <button onClick={() => openEdit(a)} className="text-blue-600 hover:text-blue-800">编辑</button>
+                        <button onClick={() => openAgreement(a)} className="text-purple-600 hover:text-purple-800">授权协议</button>
                         <button onClick={() => handleToggle(a)} className={a.isActive ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}>
                           {a.isActive ? '禁用' : '启用'}
                         </button>

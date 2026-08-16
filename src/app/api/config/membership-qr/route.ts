@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   try {
     const result: Record<string, string> = {};
     for (const [k, key] of Object.entries(QR_KEYS)) {
-      const row = (await queryFirst('SELECT value FROM SiteConfig WHERE key = ?', key)) as any;
+      const row = (await queryFirst('SELECT value FROM SiteConfig WHERE "key" = ?', key)) as any;
       result[k] = row?.value || '';
     }
     return NextResponse.json({

@@ -88,11 +88,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 6. 检查最低版本要求
-    if (latestPackage.minVersion && !isNewerVersion(currentVersion, latestPackage.minVersion.replace('v', ''))) {
+    // 6. 检查最低版本要求（当前版本必须 >= minVersion）
+    if (latestPackage.minVersion && isNewerVersion(latestPackage.minVersion, currentVersion)) {
       return NextResponse.json({
         hasUpdate: false,
-        reason: `当前版本 ${currentVersion} 过低，需先升级到 ${latestPackage.minVersion} 以上版本`,
+        reason: `当前版本 ${currentVersion} 过低，需先升级到 ${latestPackage.minVersion} 或以上版本`,
         currentVersion,
         latestVersion: latestPackage.version,
         upgradePlan,
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
       currentVersion,
       changelog: latestPackage.changelog || '',
       requiresMigration: latestPackage.requiresMigration === 1,
-      downloadUrl: `${process.env.NEXTAUTH_URL || 'https://ming8.online'}/api/upgrade/download?token=${downloadToken}`,
+      downloadUrl: `${process.env.NEXTAUTH_URL}/api/upgrade/download?token=${downloadToken}`,
       downloadToken,
       fileSize: latestPackage.fileSize || 0,
       checksum: latestPackage.checksum || '',

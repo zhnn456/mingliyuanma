@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute, ensureCommissionTables } from '@/lib/d1';
-import { requireAdmin } from '@/lib/auth-server';
+import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 
 // 管理员给代理商充值（正数充值，负数扣减）
 export async function POST(req: NextRequest) {
   try {
-    const { allowed, session } = await requireAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed || !session) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }

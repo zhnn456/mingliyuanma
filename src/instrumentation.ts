@@ -58,6 +58,55 @@ export async function register() {
   verifyLicenseOnStartup(licenseKey, centerApi, domain).catch((err) => {
     console.error('[License] 启动验证异常:', err?.message || err);
   });
+
+  // 启动心跳定时器（每5分钟向中央站报告状态）
+  startHeartbeat(licenseKey, agentId, centerApi, domain);
+}
+
+/**
+ * 心跳定时器
+ * 每5分钟向中央站发送心跳，更新 Agent 表的 lastSyncAt
+ * 这样中央站的健康看板就能显示源码站为"在线"
+ */
+function startHeartbeat(licenseKey: string, agentId: string, centerApi: string, domain: string) {
+  const HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5分钟
+
+  const sendHeartbeat = async () => {
+    try {
+      const res = await fetch(`${centerApi}/api/agent/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          license: licenseKey,
+          domain,
+          version: process.env.APP_VERSION || 'v4.0.0',
+          agentId,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) {
+          // 心跳成功，静默处理
+          return;
+        }
+      }
+      console.warn('[Heartbeat] 心跳上报失败:', res.status);
+    } catch (err: any) {
+      // 网络错误静默处理，不打扰日志
+      if (err?.name !== 'TimeoutError' && err?.name !== 'AbortError') {
+        console.warn('[Heartbeat] 异常:', err?.message || err);
+      }
+    }
+  };
+
+  // 启动后立即发送一次
+  setTimeout(sendHeartbeat, 30_000); // 30秒后首次发送
+
+  // 定时发送
+  setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+  console.log(`[Heartbeat] 心跳定时器已启动（每${HEARTBEAT_INTERVAL / 60000}分钟）`);
 }
 
 /**

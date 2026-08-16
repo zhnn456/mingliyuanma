@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { astro } from 'iztro';
+import { requireAdmin } from '@/lib/auth-server';
 import { getRuleStore } from '@/lib/ziwei/storage/rule-store';
 import { getZiweiEngine } from '@/lib/ziwei/engine';
 
@@ -18,6 +19,9 @@ import { getZiweiEngine } from '@/lib/ziwei/engine';
  */
 export async function GET(req: NextRequest) {
   try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action') || 'list';
     const category = searchParams.get('category');
@@ -95,6 +99,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const { allowed } = await requireAdmin(req);
+    if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
     const body = await req.json();
     const { action } = body;
     

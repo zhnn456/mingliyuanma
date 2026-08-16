@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, queryFirst, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureDescriptionColumn() {
   try {
-    const col = await queryFirst("PRAGMA table_info('SiteConfig')") as any[];
-    const hasDesc = col?.some((c: any) => c.name === 'description');
-    if (!hasDesc) {
+    // MySQL 语法：检查列是否存在
+    const cols = await queryAll("SHOW COLUMNS FROM SiteConfig LIKE 'description'") as any[];
+    if (!cols || cols.length === 0) {
       await execute('ALTER TABLE SiteConfig ADD COLUMN description TEXT');
     }
   } catch {}
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     const { allowed } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const configs = await queryAll('SELECT * FROM SiteConfig ORDER BY category, key');
+    const configs = await queryAll('SELECT * FROM SiteConfig ORDER BY category, `key`');
     return NextResponse.json({ configs });
   } catch (error) {
     console.error('获取配置失败:', error);
@@ -35,16 +36,16 @@ export async function PUT(req: NextRequest) {
 
     await ensureDescriptionColumn();
 
-    const existing = await queryFirst('SELECT id FROM SiteConfig WHERE key = ?', key) as any;
+    const existing = await queryFirst('SELECT id FROM SiteConfig WHERE "key" = ?', key) as any;
     if (existing) {
       await execute(
-        'UPDATE SiteConfig SET value = ?, category = ?, description = ?, updatedAt = ? WHERE key = ?',
+        'UPDATE SiteConfig SET value = ?, category = ?, description = ?, updatedAt = ? WHERE "key" = ?',
         value, category || 'general', description || '', new Date().toISOString(), key
       );
     } else {
       const id = `cfg_${Date.now()}`;
       await execute(
-        'INSERT INTO SiteConfig (id, key, value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO SiteConfig (id, "key", value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
         id, key, value, category || 'general', description || '', new Date().toISOString()
       );
     }
@@ -58,24 +59,32 @@ export async function PUT(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const { key, value, category, description } = await req.json();
+    const body = await req.json();
+    const { key, value, category, description } = body;
     if (!key || value === undefined) return NextResponse.json({ error: '参数不完整' }, { status: 400 });
 
     await ensureDescriptionColumn();
 
-    const existing = await queryFirst('SELECT id FROM SiteConfig WHERE key = ?', key) as any;
+    const existing = await queryFirst('SELECT id FROM SiteConfig WHERE "key" = ?', key) as any;
     if (existing) {
       return NextResponse.json({ error: '配置键已存在' }, { status: 409 });
     }
 
     const id = `cfg_${Date.now()}`;
     await execute(
-      'INSERT INTO SiteConfig (id, key, value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO SiteConfig (id, "key", value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
       id, key, value, category || 'general', description || '', new Date().toISOString()
     );
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { keys: Object.keys(body) },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true, id });
   } catch (error) {
@@ -92,7 +101,7 @@ export async function DELETE(req: NextRequest) {
     const { key } = await req.json();
     if (!key) return NextResponse.json({ error: '缺少key参数' }, { status: 400 });
 
-    await execute('DELETE FROM SiteConfig WHERE key = ?', key);
+    await execute('DELETE FROM SiteConfig WHERE "key" = ?', key);
 
     return NextResponse.json({ success: true });
   } catch (error) {

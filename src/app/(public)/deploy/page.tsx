@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useBrand } from '@/lib/use-brand';
 import Link from 'next/link';
 
 // ============ 动画工具 ============
@@ -173,6 +174,7 @@ function BaguaRing({ className = '' }: { className?: string }) {
 
 // ============ 主页面 ============
 export default function DeployPage() {
+  const { brand } = useBrand();
   return (
     <div className="min-h-screen bg-[#faf7f2] text-[#2d2d2d] overflow-x-hidden" style={{ fontFamily: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" }}>
       {/* ======== HERO ======== */}
@@ -517,7 +519,7 @@ export default function DeployPage() {
       {/* ======== 底部 ======== */}
       <footer className="py-12 px-4 border-t border-[#e5d5c0]">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#9a9a9a]">
-          <span>© 2026 知微阁 · 源码部署解决方案</span>
+          <span>© 2026 {brand.brandName} · 源码部署解决方案</span>
           <div className="flex gap-6">
             <Link href="/terms" className="hover:text-[#c2410c] transition-colors">服务条款</Link>
             <Link href="/privacy" className="hover:text-[#c2410c] transition-colors">隐私政策</Link>
