@@ -8,7 +8,7 @@ async function ensureTable() {
   await execute(
     `CREATE TABLE IF NOT EXISTS "FortuneTeller" (
       "id" VARCHAR(255) NOT NULL PRIMARY KEY,
-      "userId" VARCHAR(255) NOT NULL UNIQUE,
+      "userId" VARCHAR(255),
       "name" VARCHAR(255),
       "avatar" VARCHAR(500),
       "bio" TEXT,
@@ -19,8 +19,20 @@ async function ensureTable() {
       "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
   );
-  await execute('CREATE INDEX IF NOT EXISTS "FortuneTeller_userId_idx" ON "FortuneTeller"("userId")');
-  await execute('CREATE INDEX IF NOT EXISTS "FortuneTeller_isActive_idx" ON "FortuneTeller"("isActive")');
+  // 生产环境的 FortuneTeller 表可能由旧版迁移创建，缺少 userId 列，需要补齐
+  try {
+    await execute(`ALTER TABLE "FortuneTeller" ADD COLUMN "userId" VARCHAR(255)`);
+  } catch (e: any) {
+    // 列已存在则忽略（MySQL 报 error 1060 Duplicate column name）
+    if (!/1060|Duplicate column/i.test(e?.message || '')) {
+      // 其他错误也忽略（如索引已存在），不阻塞主流程
+    }
+  }
+  try {
+    await execute(`ALTER TABLE "FortuneTeller" ADD UNIQUE INDEX "FortuneTeller_userId_key" ("userId")`);
+  } catch (e: any) {
+    // 索引已存在则忽略
+  }
 }
 
 function generateId() {
