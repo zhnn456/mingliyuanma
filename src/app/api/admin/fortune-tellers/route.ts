@@ -7,10 +7,10 @@ import { auditLog } from '@/lib/audit';
 async function ensureTable() {
   await execute(
     `CREATE TABLE IF NOT EXISTS "FortuneTeller" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "userId" TEXT NOT NULL UNIQUE,
-      "name" TEXT,
-      "avatar" TEXT,
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "userId" VARCHAR(255) NOT NULL UNIQUE,
+      "name" VARCHAR(255),
+      "avatar" VARCHAR(500),
       "bio" TEXT,
       "specialties" TEXT,
       "rating" REAL NOT NULL DEFAULT 5,

@@ -22,10 +22,17 @@ export async function GET(req: NextRequest) {
     const totalRevenue = sum(paidOrders, 'amount');
     const refundTotal = sum(refundOrders, 'amount');
 
+    // 将 Date 对象或字符串统一转为 'YYYY-MM-DD' 前缀，便于按日过滤
+    const toDayPrefix = (v: any): string => {
+      if (!v) return '';
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).slice(0, 10);
+    };
+
     const dailyRevenue: { date: string; amount: number; count: number }[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-      const dayOrders = paidOrders.filter((o: any) => (o.createdAt || '').startsWith(d));
+      const dayOrders = paidOrders.filter((o: any) => toDayPrefix(o.createdAt).startsWith(d));
       dailyRevenue.push({ date: d, amount: sum(dayOrders, 'amount'), count: dayOrders.length });
     }
 

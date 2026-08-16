@@ -8,7 +8,7 @@ import { queryFirst } from './d1';
  */
 export const getBrandName = cache(async (): Promise<string> => {
   try {
-    const row = await queryFirst(`SELECT value FROM SiteConfig WHERE "key" = 'brandName'`) as any;
+    const row = await queryFirst(`SELECT value FROM SiteConfig WHERE \`key\` = 'brandName'`) as any;
     if (row?.value) return String(row.value);
   } catch {
     // 表不存在或查询失败时使用默认值

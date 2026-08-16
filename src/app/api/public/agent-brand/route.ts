@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       let logo = '';
 
       try {
-        const configs = await queryAll(`SELECT "key", value FROM SiteConfig WHERE "key" IN ('brandName', 'logo', 'tagline')`) as any[];
+        const configs = await queryAll(`SELECT \`key\`, value FROM SiteConfig WHERE \`key\` IN ('brandName', 'logo', 'tagline')`) as any[];
         if (configs && configs.length > 0) {
           for (const c of configs) {
             if (c.key === 'brandName' && c.value) brandName = c.value;

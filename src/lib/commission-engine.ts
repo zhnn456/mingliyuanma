@@ -60,8 +60,8 @@ export async function getAgentCommissionStats(agentId: string) {
 export async function listCommissionRecords(agentId: string, page = 1, pageSize = 20) {
   const offset = (page - 1) * pageSize;
   const records = await queryFirst(
-    'SELECT * FROM CommissionRecord WHERE agentId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
-    agentId, pageSize, offset
+    `SELECT * FROM CommissionRecord WHERE agentId = ? ORDER BY createdAt DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`,
+    agentId
   ) as any;
   return records || [];
 }

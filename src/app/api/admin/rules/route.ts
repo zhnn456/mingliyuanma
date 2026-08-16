@@ -6,7 +6,7 @@ import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { searchRules, upsertRule, getRuleStats, getRuleTypes, type RuleCategory } from '@/lib/rules/engine';
+import { searchRules, upsertRule, getRuleStats, getRuleTypes, ensureDivinationRuleTable, type RuleCategory } from '@/lib/rules/engine';
 import { auditLog } from '@/lib/audit';
 
 /** 安全解析 JSON，失败返回 null */
@@ -25,43 +25,50 @@ async function checkAdmin(req: NextRequest) {
 
 /** 查询规则列表 */
 export async function GET(request: NextRequest) {
-  const session = await checkAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 });
+  try {
+    const session = await checkAdmin(request);
+    if (!session) {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+
+    await ensureDivinationRuleTable();
+
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category') as RuleCategory | null;
+    const ruleType = searchParams.get('ruleType') || undefined;
+    const keyword = searchParams.get('keyword') || undefined;
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+
+    // 如果请求统计信息
+    if (searchParams.get('stats') === 'true') {
+      const stats = await getRuleStats();
+      const types = await getRuleTypes(category || undefined);
+      return NextResponse.json({ stats, ruleTypes: types });
+    }
+
+    const { rules, total } = await searchRules({
+      category: category || undefined,
+      ruleType,
+      keyword,
+      page,
+      pageSize,
+    });
+
+    return NextResponse.json({
+      rules: rules.map((r: any) => ({
+        ...r,
+        content: safeParseJSON(r.content),
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
+  } catch (error) {
+    console.error('获取规则列表失败:', error);
+    return NextResponse.json({ error: '获取失败' }, { status: 500 });
   }
-
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category') as RuleCategory | null;
-  const ruleType = searchParams.get('ruleType') || undefined;
-  const keyword = searchParams.get('keyword') || undefined;
-  const page = parseInt(searchParams.get('page') || '1');
-  const pageSize = parseInt(searchParams.get('pageSize') || '20');
-
-  // 如果请求统计信息
-  if (searchParams.get('stats') === 'true') {
-    const stats = await getRuleStats();
-    const types = await getRuleTypes(category || undefined);
-    return NextResponse.json({ stats, ruleTypes: types });
-  }
-
-  const { rules, total } = await searchRules({
-    category: category || undefined,
-    ruleType,
-    keyword,
-    page,
-    pageSize,
-  });
-
-  return NextResponse.json({
-    rules: rules.map((r: any) => ({
-      ...r,
-      content: safeParseJSON(r.content),
-    })),
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
-  });
 }
 
 /** 创建新规则 */
@@ -82,6 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await ensureDivinationRuleTable();
     const rule = await upsertRule({
       category,
       ruleType,

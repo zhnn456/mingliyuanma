@@ -5,7 +5,7 @@ import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS Notification (
-    id TEXT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     title TEXT NOT NULL,
     content TEXT,
     type TEXT NOT NULL,

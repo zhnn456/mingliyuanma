@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     // 记录验证日志
     try {
       await queryFirst(
-        'SELECT id FROM SiteConfig WHERE "key" = ?',
+        'SELECT id FROM SiteConfig WHERE `key` = ?',
         `license_log:${payload.agentId}:${Date.now()}`
       );
     } catch {}

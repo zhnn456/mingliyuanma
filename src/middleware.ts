@@ -335,17 +335,20 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const forwarded = req.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-  cleanupRateLimit();
-  const key = `ip:${ip}`;
-  const entry = rateLimitMap.get(key);
-  if (!entry || Date.now() > entry.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: Date.now() + RATE_LIMIT_WINDOW });
-  } else {
-    entry.count++;
-    if (entry.count > RATE_LIMIT_MAX) {
-      return NextResponse.json({ error: '请求过于频繁' }, { status: 429 });
+  // 管理后台 API 不限流（管理员操作需要频繁调用多个 API）
+  if (!pathname.startsWith('/api/admin/') && !pathname.startsWith('/admin')) {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    cleanupRateLimit();
+    const key = `ip:${ip}`;
+    const entry = rateLimitMap.get(key);
+    if (!entry || Date.now() > entry.resetTime) {
+      rateLimitMap.set(key, { count: 1, resetTime: Date.now() + RATE_LIMIT_WINDOW });
+    } else {
+      entry.count++;
+      if (entry.count > RATE_LIMIT_MAX) {
+        return NextResponse.json({ error: '请求过于频繁' }, { status: 429 });
+      }
     }
   }
 

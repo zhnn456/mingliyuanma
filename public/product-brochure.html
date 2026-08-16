@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知微阁 · 产品推介文档</title>
+<style>
+/* ===== 飞书文档风格 Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: #f5f6f7;
+  color: #1f2329;
+  font-size: 15px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== 布局 ===== */
+.doc-layout { display: flex; min-height: 100vh; }
+
+/* 左侧目录 */
+.doc-toc {
+  width: 260px;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  background: #fff;
+  border-right: 1px solid #e5e6eb;
+  padding: 24px 0;
+  overflow-y: auto;
+  z-index: 100;
+}
+.toc-brand {
+  padding: 0 24px 20px;
+  border-bottom: 1px solid #f0f2f5;
+  margin-bottom: 12px;
+}
+.toc-brand .logo { font-size: 20px; font-weight: 700; color: #1f2329; }
+.toc-brand .sub { font-size: 12px; color: #8f959e; margin-top: 2px; }
+.toc-list { list-style: none; }
+.toc-list li { margin: 0; }
+.toc-list a {
+  display: block;
+  padding: 8px 24px;
+  font-size: 13px;
+  color: #4e5969;
+  text-decoration: none;
+  transition: all .15s;
+  border-left: 3px solid transparent;
+}
+.toc-list a:hover { background: #f7f8fa; color: #1f2329; }
+.toc-list a.active {
+  background: #e8f3ff;
+  color: #3370ff;
+  border-left-color: #3370ff;
+  font-weight: 600;
+}
+.toc-list .sub-item a { padding-left: 40px; font-size: 12px; }
+
+/* 右侧内容区 */
+.doc-content {
+  flex: 1;
+  margin-left: 260px;
+  padding: 0 0 80px;
+}
+
+/* 文档封面 */
+.doc-cover {
+  background: linear-gradient(135deg, #3370ff 0%, #5b8def 50%, #7c3aed 100%);
+  padding: 80px 60px 60px;
+  color: #fff;
+}
+.doc-cover .doc-title { font-size: 36px; font-weight: 800; letter-spacing: 1px; }
+.doc-cover .doc-subtitle { font-size: 16px; opacity: .9; margin-top: 12px; }
+.doc-cover .doc-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 32px;
+  font-size: 13px;
+  opacity: .85;
+}
+.doc-cover .doc-meta span { display: flex; align-items: center; gap: 6px; }
+
+/* 文档主体 */
+.doc-body {
+  max-width: 860px;
+  margin: 40px auto;
+  padding: 0 40px;
+}
+
+/* 块级元素 */
+.block { margin-bottom: 16px; }
+
+/* 标题 */
+h1, h2, h3, h4 { font-weight: 700; color: #1f2329; line-height: 1.4; }
+h2 {
+  font-size: 22px;
+  margin: 48px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e6eb;
+  position: relative;
+}
+h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px; height: 22px;
+  background: #3370ff;
+  border-radius: 2px;
+  margin-right: 10px;
+  vertical-align: -3px;
+}
+h2 .anchor {
+  font-size: 14px;
+  color: #3370ff;
+  margin-left: 8px;
+  opacity: 0;
+  text-decoration: none;
+  transition: opacity .15s;
+}
+h2:hover .anchor { opacity: 1; }
+h3 { font-size: 17px; margin: 28px 0 12px; color: #2b2f36; }
+h4 { font-size: 15px; margin: 20px 0 8px; color: #4e5969; }
+
+p { margin-bottom: 12px; color: #3c414b; }
+strong { color: #1f2329; font-weight: 600; }
+em { color: #3370ff; font-style: normal; background: #e8f3ff; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+a { color: #3370ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul, ol { margin: 8px 0 16px 20px; }
+li { margin-bottom: 6px; color: #3c414b; }
+
+/* 引用块 */
+.callout {
+  background: #e8f3ff;
+  border-left: 3px solid #3370ff;
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  color: #2b5bb0;
+}
+.callout strong { color: #1d4ed8; }
+.callout.warn {
+  background: #fff7e6;
+  border-left-color: #f5a623;
+  color: #8a5a00;
+}
+.callout.warn strong { color: #b45309; }
+.callout.success {
+  background: #e6f7ed;
+  border-left-color: #00b96b;
+  color: #1a6e3d;
+}
+.callout.success strong { color: #006d36; }
+
+/* 表格 */
+.table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 6px; border: 1px solid #e5e6eb; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+  background: #f7f8fa;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #1f2329;
+  border-bottom: 1px solid #e5e6eb;
+  white-space: nowrap;
+}
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #4e5969;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafbfc; }
+
+/* 代码块 */
+.code-block {
+  background: #1f2329;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.code-block code {
+  color: #e5e6eb;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+}
+.code-block .comment { color: #8f959e; }
+.code-block .keyword { color: #7c8cff; }
+.code-block .string { color: #5cd9a8; }
+
+/* 行内代码 */
+code.inline {
+  background: #f2f3f5;
+  color: #d63384;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 4px;
+}
+.tag-blue { background: #e8f3ff; color: #3370ff; }
+.tag-green { background: #e6f7ed; color: #00b96b; }
+.tag-orange { background: #fff7e6; color: #f5a623; }
+.tag-purple { background: #f0e8ff; color: #7c3aed; }
+.tag-red { background: #ffece8; color: #f53f3f; }
+.tag-gray { background: #f2f3f5; color: #86909c; }
+
+/* 分割线 */
+hr { border: none; border-top: 1px solid #e5e6eb; margin: 32px 0; }
+
+/* 功能卡片网格 */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+.feature-card {
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  transition: box-shadow .2s;
+}
+.feature-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.feature-card .icon { font-size: 22px; margin-bottom: 8px; }
+.feature-card .title { font-size: 15px; font-weight: 600; color: #1f2329; margin-bottom: 4px; }
+.feature-card .desc { font-size: 13px; color: #86909c; line-height: 1.6; }
+
+/* 方案对比卡片 */
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 20px 0;
+}
+.plan-card {
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 10px;
+  padding: 24px;
+  position: relative;
+}
+.plan-card.recommended {
+  border-color: #3370ff;
+  border-width: 2px;
+}
+.plan-card .badge {
+  position: absolute;
+  top: -10px; right: 16px;
+  background: #3370ff;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+.plan-card .plan-name { font-size: 16px; font-weight: 700; color: #1f2329; }
+.plan-card .plan-price { font-size: 28px; font-weight: 800; color: #3370ff; margin: 8px 0 4px; }
+.plan-card .plan-price .unit { font-size: 13px; color: #86909c; font-weight: 400; }
+.plan-card .plan-desc { font-size: 13px; color: #86909c; margin-bottom: 12px; }
+.plan-card ul { list-style: none; margin: 0; padding: 0; }
+.plan-card li {
+  font-size: 13px;
+  padding: 4px 0;
+  color: #4e5969;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.plan-card li::before {
+  content: '✓';
+  color: #00b96b;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.plan-card li.disabled { color: #c9cdd4; }
+.plan-card li.disabled::before { content: '✗'; color: #c9cdd4; }
+
+/* 统计数字 */
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin: 20px 0;
+}
+.stat-item {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid #e5e6eb;
+}
+.stat-item .num { font-size: 30px; font-weight: 800; color: #3370ff; }
+.stat-item .label { font-size: 12px; color: #86909c; margin-top: 4px; }
+
+/* 流程步骤 */
+.steps { margin: 16px 0; }
+.step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+.step-num {
+  width: 28px; height: 28px;
+  background: #3370ff;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-content { flex: 1; }
+.step-content .step-title { font-size: 15px; font-weight: 600; color: #1f2329; margin-bottom: 2px; }
+.step-content .step-desc { font-size: 13px; color: #86909c; }
+
+/* 文档底部署名 */
+.doc-footer {
+  text-align: center;
+  padding: 40px;
+  color: #86909c;
+  font-size: 13px;
+  border-top: 1px solid #e5e6eb;
+  margin-top: 60px;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .doc-toc { display: none; }
+  .doc-content { margin-left: 0; }
+  .doc-body { padding: 0 20px; }
+  .feature-grid, .plan-grid { grid-template-columns: 1fr; }
+  .stats-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="doc-layout">
+
+  <!-- ===== 左侧目录 ===== -->
+  <nav class="doc-toc" id="toc">
+    <div class="toc-brand">
+      <div class="logo">☯ 知微阁</div>
+      <div class="sub">命理平台 · 产品推介文档</div>
+    </div>
+    <ul class="toc-list">
+      <li><a href="#section-1" class="toc-link">1. 产品概览</a></li>
+      <li><a href="#section-2" class="toc-link">2. 核心功能矩阵</a></li>
+      <li class="sub-item"><a href="#section-2-1" class="toc-link">2.1 命理排盘工具</a></li>
+      <li class="sub-item"><a href="#section-2-2" class="toc-link">2.2 平台运营功能</a></li>
+      <li><a href="#section-3" class="toc-link">3. 技术架构</a></li>
+      <li><a href="#section-4" class="toc-link">4. 部署方案对比</a></li>
+      <li><a href="#section-5" class="toc-link">5. 源码部署方案</a></li>
+      <li class="sub-item"><a href="#section-5-1" class="toc-link">5.1 交付内容</a></li>
+      <li class="sub-item"><a href="#section-5-2" class="toc-link">5.2 升级服务</a></li>
+      <li><a href="#section-6" class="toc-link">6. SaaS 分站方案</a></li>
+      <li><a href="#section-7" class="toc-link">7. 定价方案</a></li>
+      <li><a href="#section-8" class="toc-link">8. 客户价值与 ROI</a></li>
+      <li><a href="#section-9" class="toc-link">9. 上线流程</a></li>
+      <li><a href="#section-10" class="toc-link">10. 安全与合规</a></li>
+      <li><a href="#section-11" class="toc-link">11. 联系我们</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== 右侧内容 ===== -->
+  <div class="doc-content">
+
+    <!-- 封面 -->
+    <div class="doc-cover">
+      <div class="doc-title">知微阁 · 命理平台产品推介</div>
+      <div class="doc-subtitle">一站式命理工具平台 · 源码部署 / SaaS 分站 · 当天部署即时变现</div>
+      <div class="doc-meta">
+        <span>📄 版本 v4.1.0</span>
+        <span>📅 2026-08-16</span>
+        <a href="https://ming8.online" target="_blank" style="color:#fff;text-decoration:none;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(255,255,255,.4);">🌐 ming8.online</a>
+      </div>
+    </div>
+
+    <div class="doc-body">
+
+      <!-- ===== 1. 产品概览 ===== -->
+      <h2 id="section-1">1. 产品概览</h2>
+
+      <div class="callout">
+        <strong>知微阁</strong> 是一套完整的命理工具平台，涵盖八字、紫微斗数、奇门遁甲、梅花易数四大命理体系，配合祈福广场、会员系统、多支付渠道，形成完整的<em>命理服务商业化闭环</em>。支持<strong>源码部署</strong>（一次买断独立运营）和<strong>SaaS 分站</strong>（零成本快速启动）两种模式。
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="num">4+</div>
+          <div class="label">命理排盘工具</div>
+        </div>
+        <div class="stat-item">
+          <div class="num">50+</div>
+          <div class="label">功能模块</div>
+        </div>
+        <div class="stat-item">
+          <div class="num">300+</div>
+          <div class="label">页面路由</div>
+        </div>
+        <div class="stat-item">
+          <div class="num">1天</div>
+          <div class="label">部署上线周期</div>
+        </div>
+      </div>
+
+      <h3>产品定位</h3>
+      <p>面向命理文化创业者、内容创作者、副业从业者，提供<strong>开箱即用的命理服务变现平台</strong>。无需技术背景，购买源码即可独立部署运营，或以极低成本开通 SaaS 分站快速启动。</p>
+
+      <h3>核心优势</h3>
+      <ul>
+        <li><strong>功能完整</strong>：四大命理排盘 + 祈福广场 + 会员体系 + 支付系统 + 管理后台，全栈一体化</li>
+        <li><strong>商业闭环</strong>：用户注册 → 排盘体验 → 付费解锁 → 会员充值 → 供奉祈福，完整变现链路</li>
+        <li><strong>双模式部署</strong>：源码买断独立运营（100% 收益归己）或 SaaS 分站（0 元起步、分润模式）</li>
+        <li><strong>持续升级</strong>：源码客户享 1 年免费升级，后续按年付费升级，持续获取新功能</li>
+        <li><strong>技术领先</strong>：Next.js 14 全栈架构、MySQL 数据库、PM2 进程管理、Nginx 反向代理</li>
+      </ul>
+
+      <!-- ===== 2. 核心功能矩阵 ===== -->
+      <h2 id="section-2">2. 核心功能矩阵</h2>
+
+      <h3 id="section-2-1">2.1 命理排盘工具</h3>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">☯</div>
+          <div class="title">八字排盘</div>
+          <div class="desc">四柱八字精准排盘，十神分析、大运流年、用神喜忌，完整命理体系，支持打印报告</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">⭐</div>
+          <div class="title">紫微斗数</div>
+          <div class="desc">十二宫位完整排盘，三方四正、飞星四化、大限流年，三视图切换（飞星/三合/四化）</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔮</div>
+          <div class="title">奇门遁甲</div>
+          <div class="desc">九宫八卦盘面，八门九星八神，格局分析、用神定位，高清 SVG 展示，780px 大尺寸</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🌸</div>
+          <div class="title">梅花易数</div>
+          <div class="desc">多种起卦方式，本卦互卦变卦，体用生克，精准问题解读，测什么事分类引导</div>
+        </div>
+      </div>
+
+      <h3 id="section-2-2">2.2 平台运营功能</h3>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">🙏</div>
+          <div class="title">祈福广场</div>
+          <div class="desc">虚拟供奉广场，佛像神像供奉，灵珠积分体系，日活留存利器</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">💳</div>
+          <div class="title">多支付系统</div>
+          <div class="desc">Stripe 国际支付、Z-Pay 支付宝/微信、卡密兑换三种渠道，覆盖国内外用户</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">👥</div>
+          <div class="title">会员体系</div>
+          <div class="desc">多级会员（免费/月度/年度/终身），积分充值，每日免费额度，付费解锁高级功能</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📊</div>
+          <div class="title">管理后台</div>
+          <div class="desc">60+ 管理页面，用户/订单/财务/内容/代理商/授权码全维度管理</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🏪</div>
+          <div class="title">SaaS 分站</div>
+          <div class="desc">代理商系统，子域名/独立域名，佣金分润，授权码管理，分站品牌定制</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📰</div>
+          <div class="title">AI 工具周刊</div>
+          <div class="desc">编辑周刊杂志风格，AI 工具推荐内容，持续引流获客，增强用户粘性</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔒</div>
+          <div class="title">代码保护</div>
+          <div class="desc">生产环境代码混淆保护，字符串数组化、变量名替换，防止逆向</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📈</div>
+          <div class="title">升级体系</div>
+          <div class="desc">源码客户升级权益管控，一键在线升级脚本，增量包下载，版本管理</div>
+        </div>
+      </div>
+
+      <!-- ===== 3. 技术架构 ===== -->
+      <h2 id="section-3">3. 技术架构</h2>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>层级</th><th>技术选型</th><th>说明</th></tr>
+          <tr><td>前端框架</td><td>Next.js 14 (App Router)</td><td>React 18 服务端渲染，302 个页面路由</td></tr>
+          <tr><td>运行时</td><td>Node.js 20.x</td><td>standalone 独立部署模式</td></tr>
+          <tr><td>数据库</td><td>MySQL 8.0 (utf8mb4)</td><td>支持中文全文搜索，事务安全</td></tr>
+          <tr><td>进程管理</td><td>PM2</td><td>ecosystem.config.js 集群模式，自动重启</td></tr>
+          <tr><td>Web 服务器</td><td>Nginx</td><td>反向代理 + 静态资源 + SSL</td></tr>
+          <tr><td>支付渠道</td><td>Stripe + Z-Pay + 卡密</td><td>覆盖国际卡、支付宝/微信、卡密兑换</td></tr>
+          <tr><td>认证体系</td><td>HMAC-SHA256 Token</td><td>PBKDF2 密码哈希（10万次迭代）</td></tr>
+          <tr><td>授权码系统</td><td>HMAC 签名 + 域名绑定</td><td>防篡改、防跨域使用</td></tr>
+          <tr><td>代码保护</td><td>专业混淆技术</td><td>生产环境代码混淆，防止逆向</td></tr>
+        </table>
+      </div>
+
+      <div class="callout success">
+        <strong>架构优势：</strong>Next.js 全栈一体化，前后端同仓库，部署简单（一个 standalone 包即可运行）。无需额外的前端服务器或 API 网关，降低运维成本。
+      </div>
+
+      <!-- ===== 4. 部署方案对比 ===== -->
+      <h2 id="section-4">4. 部署方案对比</h2>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>对比项</th><th>源码部署</th><th>SaaS 分站</th></tr>
+          <tr><td>部署方式</td><td>独立服务器，完整源码</td><td>主站子域名/独立域名</td></tr>
+          <tr><td>初始成本</td><td>一次买断（见定价）</td><td>0 元试用，99 元/月起</td></tr>
+          <tr><td>收益归属</td><td><strong>100% 归己</strong></td><td>按比例分润（最高 60%）</td></tr>
+          <tr><td>数据归属</td><td><strong>完全自有</strong></td><td>主站托管</td></tr>
+          <tr><td>品牌定制</td><td>完全自定义</td><td>有限定制</td></tr>
+          <tr><td>服务器要求</td><td>2核4G+ 海外服务器</td><td>无需自备</td></tr>
+          <tr><td>技术门槛</td><td>低（一键部署脚本）</td><td>零</td></tr>
+          <tr><td>升级服务</td><td>1 年免费 + 按年付费</td><td>免费自动升级</td></tr>
+          <tr><td>适合人群</td><td>长期运营者、有客户基础</td><td>试水创业者、内容创作者</td></tr>
+        </table>
+      </div>
+
+      <!-- ===== 5. 源码部署方案 ===== -->
+      <h2 id="section-5">5. 源码部署方案</h2>
+
+      <p>源码部署是<strong>一次买断、永久使用、独立运营</strong>的方案。购买后获得完整源代码和部署脚本，在自己的服务器上独立运行，100% 收益归己，数据完全自有。</p>
+
+      <h3 id="section-5-1">5.1 交付内容</h3>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>交付项</th><th>内容</th><th>说明</th></tr>
+          <tr><td>源码包</td><td>构建后的 standalone 产物</td><td>含 .next 构建产物 + public 静态资源 + server.js</td></tr>
+          <tr><td>部署脚本</td><td>deploy/deploy-v8.py</td><td>一键上传部署，增量更新</td></tr>
+          <tr><td>升级脚本</td><td>deploy/update.sh</td><td>客户侧一键在线升级（检查→下载→备份→解压→迁移→构建→重启）</td></tr>
+          <tr><td>数据库迁移</td><td>mysql-migrate-v4.1.0.sql</td><td>表结构初始化 + 字段升级</td></tr>
+          <tr><td>配置文件</td><td>.env 模板 + ecosystem.config.js</td><td>环境变量 + PM2 进程配置</td></tr>
+          <tr><td>授权码</td><td>HMAC 签名的 LIC 授权码</td><td>绑定客户域名，含升级权益信息</td></tr>
+          <tr><td>运营手册</td><td>代理商运营手册 + 源码部署管理员手册</td><td>完整操作指南</td></tr>
+          <tr><td>源码部署管理员手册</td><td>源码部署管理员手册</td><td>授权码、升级权益、演示账号管理指南</td></tr>
+        </table>
+      </div>
+
+      <div class="callout">
+        <strong>代码保护：</strong>交付的源码包经过专业混淆处理（字符串数组化、变量名替换、代码压缩），在不影响运行的前提下保护核心逻辑。客户获得的是<strong>可运行的生产包</strong>，而非未混淆的源代码。
+      </div>
+
+      <h3 id="section-5-2">5.2 升级服务</h3>
+
+      <div class="callout success">
+        <strong>承诺：</strong>购买源码部署的客户，<strong>1 年内免费升级</strong>所有新功能和修复。1 年后可选择按年续费升级服务（1000 元/年），不续费则继续使用当前版本，不影响运行。
+      </div>
+
+      <h4>升级权益管控机制</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>方案</th><th>费用</th><th>有效期</th><th>说明</th></tr>
+          <tr><td><span class="tag tag-green">free</span> 免费</td><td>0 元（含在购买价中）</td><td>购买后 1 年</td><td>免费获取所有更新</td></tr>
+          <tr><td><span class="tag tag-blue">annual</span> 年度</td><td>1000 元/年</td><td>续费后 1 年</td><td>到期后续费获取持续升级</td></tr>
+          <tr><td><span class="tag tag-gray">none</span> 无</td><td>—</td><td>—</td><td>不续费，继续使用当前版本</td></tr>
+        </table>
+      </div>
+
+      <h4>升级流程（客户侧一键操作）</h4>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">检查更新</div>
+            <div class="step-desc">客户在服务器执行 <code class="inline">bash deploy/update.sh</code>，脚本自动向中央服务器检查新版本</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">授权验证</div>
+            <div class="step-desc">中央服务器验证授权码签名 → 验证升级权益（是否在有效期内）→ 验证域名绑定 → 生成下载 Token</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">下载升级包</div>
+            <div class="step-desc">使用 Token 下载增量升级包（2 小时有效，绑定 IP，一次性使用）</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">自动部署</div>
+            <div class="step-desc">备份当前版本 → 解压升级包 → 执行数据库迁移 → 重启 PM2 服务 → 验证启动成功</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <strong>安全设计：</strong>升级 Token 绑定客户服务器 IP，2 小时后自动过期，一次性使用。即使 Token 泄露，也无法在其他服务器上使用。授权码使用 HMAC-SHA256 签名，无法伪造或篡改升级权益。
+      </div>
+
+      <!-- ===== 6. SaaS 分站方案 ===== -->
+      <h2 id="section-6">6. SaaS 分站方案</h2>
+
+      <p>无需购买源码，以极低成本开通独立分站，主站提供技术托管和运维，代理商按比例分润。</p>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>方案</th><th>费用</th><th>分润比例</th><th>适合人群</th></tr>
+          <tr><td>试用版</td><td>0 元</td><td>40%</td><td>试水创业者</td></tr>
+          <tr><td>标准版</td><td>99 元/月</td><td>50%</td><td>副业从业者</td></tr>
+          <tr><td>专业版</td><td>299 元/月</td><td>60%</td><td>全职运营者</td></tr>
+          <tr><td>无限版</td><td>999 元/月</td><td>70%</td><td>团队/工作室</td></tr>
+        </table>
+      </div>
+
+      <h4>SaaS 分站特点</h4>
+      <ul>
+        <li><strong>零技术门槛</strong>：无需服务器，开通即用</li>
+        <li><strong>子域名/独立域名</strong>：可使用主站子域名，或绑定自己的域名</li>
+        <li><strong>品牌定制</strong>：自定义站名、Logo、配色、联系方式</li>
+        <li><strong>独立管理后台</strong>：代理商专属后台，管理自己的客户和订单</li>
+        <li><strong>自动结算</strong>：佣金按月自动结算，提现便捷</li>
+      </ul>
+
+      <!-- ===== 7. 定价方案 ===== -->
+      <h2 id="section-7">7. 定价方案</h2>
+
+      <div class="plan-grid">
+        <div class="plan-card">
+          <div class="plan-name">SaaS 分站</div>
+          <div class="plan-price">¥0<span class="unit">起 / 月</span></div>
+          <div class="plan-desc">零成本启动，按月付费</div>
+          <ul>
+            <li>子域名/独立域名</li>
+            <li>40%-70% 分润</li>
+            <li>免费自动升级</li>
+            <li>主站技术托管</li>
+            <li class="disabled">独立服务器</li>
+            <li class="disabled">100% 收益归己</li>
+            <li class="disabled">源码交付</li>
+          </ul>
+        </div>
+        <div class="plan-card recommended">
+          <span class="badge">推荐</span>
+          <div class="plan-name">源码部署</div>
+          <div class="plan-price">面议<span class="unit">一次买断</span></div>
+          <div class="plan-desc">独立运营，永久使用</div>
+          <ul>
+            <li>完整源码交付</li>
+            <li>100% 收益归己</li>
+            <li>数据完全自有</li>
+            <li>1 年免费升级</li>
+            <li>独立服务器部署</li>
+            <li>品牌完全自定义</li>
+            <li>后续 1000 元/年升级</li>
+          </ul>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">定制开发</div>
+          <div class="plan-price">面议<span class="unit">按需报价</span></div>
+          <div class="plan-desc">个性化功能定制</div>
+          <ul>
+            <li>源码部署全部内容</li>
+            <li>专属功能定制</li>
+            <li>UI 个性化设计</li>
+            <li>第三方系统对接</li>
+            <li>技术培训支持</li>
+            <li>优先级开发排期</li>
+            <li>专属技术顾问</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>升级服务说明：</strong>源码部署客户首年免费升级，到期后可选择续费升级服务（<strong>1000 元/年</strong>）。不续费可继续使用当前版本，不影响已有功能运行。续费后立即恢复升级权益。
+      </div>
+
+      <!-- ===== 8. 客户价值与 ROI ===== -->
+      <h2 id="section-8">8. 客户价值与 ROI</h2>
+
+      <h3>收入模型</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>收入来源</th><th>定价参考</th><th>说明</th></tr>
+          <tr><td>会员充值</td><td>¥10-¥299/单</td><td>月度/年度/终身会员，核心收入来源</td></tr>
+          <tr><td>单次排盘</td><td>¥5-¥19/次</td><td>非会员单次付费解锁高级解读</td></tr>
+          <tr><td>祈福供奉</td><td>¥1-¥99/次</td><td>虚拟供奉，灵珠积分，高复购率</td></tr>
+          <tr><td>卡密销售</td><td>¥10-¥99/张</td><td>线下/社群销售卡密兑换码</td></tr>
+          <tr><td>SaaS 代理</td><td>¥99-¥999/月</td><td>发展下级代理商，收取分站月费</td></tr>
+        </table>
+      </div>
+
+      <h3>ROI 测算（源码部署）</h3>
+      <div class="callout success">
+        <p>按月均 <strong>100 个付费用户</strong>，客单价 <strong>¥50</strong> 测算：</p>
+        <p>月收入 = 100 × ¥50 = <strong>¥5,000</strong></p>
+        <p>年收入 = ¥5,000 × 12 = <strong>¥60,000</strong></p>
+        <p>服务器成本 ≈ ¥200/月 × 12 = <strong>¥2,400/年</strong></p>
+        <p><strong>年净收益 ≈ ¥57,600</strong></p>
+        <p>按现有月均 100 付费客户的转化水平，源码部署费用 <strong>2-3 周即可回本</strong>。</p>
+      </div>
+
+      <h3>流量获取优势</h3>
+      <ul>
+        <li><strong>SEO 友好</strong>：Next.js SSR 服务端渲染，搜索引擎收录友好</li>
+        <li><strong>内容矩阵</strong>：命理百科 60+ 知识页面，自然搜索流量入口</li>
+        <li><strong>工具引流</strong>：免费排盘体验吸引用户，付费解锁深度解读</li>
+        <li><strong>社交裂变</strong>：排盘结果可分享，祈福广场可展示，社交传播获客</li>
+      </ul>
+
+      <!-- ===== 9. 上线流程 ===== -->
+      <h2 id="section-9">9. 上线流程</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">需求沟通</div>
+            <div class="step-desc">确认部署方案（源码/SaaS）、域名、品牌信息</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">环境准备</div>
+            <div class="step-desc">客户准备海外服务器（2核4G+），我们提供域名解析指导</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">一键部署</div>
+            <div class="step-desc">执行部署脚本，自动上传代码、初始化数据库、配置 Nginx、启动 PM2</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">配置支付</div>
+            <div class="step-desc">配置 Stripe / Z-Pay 支付参数，对接支付宝/微信收款</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">品牌定制</div>
+            <div class="step-desc">设置站名、Logo、客服二维码、联系方式</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">交付运营</div>
+            <div class="step-desc">交付运营手册、管理后台账号、升级脚本，正式上线运营</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 10. 安全与合规 ===== -->
+      <h2 id="section-10">10. 安全与合规</h2>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">🔐</div>
+          <div class="title">密码安全</div>
+          <div class="desc">PBKDF2-SHA256 哈希，10 万次迭代，防彩虹表攻击</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🛡️</div>
+          <div class="title">授权码保护</div>
+          <div class="desc">HMAC-SHA256 签名 + 域名绑定，防伪造防跨域</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🕵️</div>
+          <div class="title">代码保护</div>
+          <div class="desc">生产环境代码混淆，保护核心逻辑</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">⚡</div>
+          <div class="title">速率限制</div>
+          <div class="desc">API 速率限制 + 会员等级配额，防恶意刷接口</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📝</div>
+          <div class="title">审计日志</div>
+          <div class="desc">管理员操作全审计，可追溯所有敏感操作</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔄</div>
+          <div class="title">数据隔离</div>
+          <div class="desc">测试账号数据隔离，演示账号只读锁定</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <strong>合规说明：</strong>本平台为命理文化工具，非封建迷信宣传。建议运营者遵守当地法律法规，明确标注"仅供娱乐参考"免责声明。海外服务器部署可避免 ICP 备案要求。
+      </div>
+
+      <!-- ===== 11. 联系我们 ===== -->
+      <h2 id="section-11">11. 联系我们</h2>
+
+      <div class="callout">
+        <strong>网站：</strong> <a href="https://ming8.online" target="_blank">https://ming8.online</a><br>
+        <strong>合作页面：</strong> <a href="https://ming8.online/partner" target="_blank">https://ming8.online/partner</a><br>
+        <strong>源码部署：</strong> <a href="https://ming8.online/deploy" target="_blank">https://ming8.online/deploy</a><br>
+        <strong>联系我们：</strong> <a href="https://ming8.online/contact" target="_blank">https://ming8.online/contact</a><br>
+        <strong>演示体验：</strong> demo@ming8.online / demo123456（只读模式）
+      </div>
+
+      <h3>体验后台</h3>
+      <p>我们提供<strong>演示账号</strong>供潜在客户体验完整后台功能：</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>登录地址</th><th>账号</th><th>密码</th><th>权限</th></tr>
+          <tr><td>ming8.online/login</td><td>demo@ming8.online</td><td>demo123456</td><td>只读浏览（写操作锁定）</td></tr>
+        </table>
+      </div>
+
+      <div class="callout success">
+        <strong>为什么选择知微阁？</strong> 我们不仅交付一套代码，更交付一个<strong>完整的商业变现体系</strong>。从命理工具到支付系统，从会员体系到 SaaS 分站，从部署脚本到运营手册，一站式解决命理文化创业的全部技术需求。
+      </div>
+
+      <hr>
+
+      <div class="doc-footer">
+        <p>知微阁 · 命理平台 · 产品推介文档</p>
+        <p>版本 v4.1.0 · 更新于 2026-08-16 · ming8.online</p>
+        <p style="margin-top:8px;">本文档持续更新，如需最新版本请联系我们获取</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 左侧目录高亮 + 滚动定位 =====
+  const links = document.querySelectorAll('.toc-link');
+  const sections = [];
+
+  links.forEach(link => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ id, el, link });
+  });
+
+  function updateActive() {
+    const scrollY = window.scrollY + 100;
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.el.offsetTop <= scrollY) current = s;
+    }
+    links.forEach(l => l.classList.remove('active'));
+    if (current) current.link.classList.add('active');
+  }
+
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+})();
+</script>
+
+</body>
+</html>

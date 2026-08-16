@@ -118,12 +118,16 @@ async function main() {
     );
     console.log('    OK\n');
 
-    // 6. 模拟 check 接口调用
+    // 6. 模拟 check 接口调用（模拟客户服务器固定公网 IP）
+    const SIMULATED_CLIENT_IP = '203.0.113.100';
     console.log('【6】模拟升级检查请求...');
     const checkUrl = `http://localhost:3001/api/upgrade/check?license=${encodeURIComponent(license)}&domain=${encodeURIComponent(TEST_DOMAIN)}&currentVersion=v4.0.0`;
     console.log(`    URL: ${checkUrl}`);
-    
-    const response = await fetch(checkUrl);
+    console.log(`    模拟客户IP: ${SIMULATED_CLIENT_IP}`);
+
+    const response = await fetch(checkUrl, {
+      headers: { 'x-forwarded-for': SIMULATED_CLIENT_IP },
+    });
     const result = await response.json();
     console.log(`    HTTP状态: ${response.status}`);
     console.log(`    响应: ${JSON.stringify(result, null, 2)}\n`);
@@ -131,10 +135,13 @@ async function main() {
     if (result.hasUpdate) {
       console.log('【7】✅ 升级检查通过！发现新版本:', result.latestVersion);
       console.log('    下载链接:', result.downloadUrl?.substring(0, 100) + '...');
-      
-      // 7. 模拟下载
+
+      // 7. 模拟下载（同一客户 IP，直接走 localhost 绕过 Nginx 以保留 IP 头）
       console.log('\n【8】模拟下载更新包...');
-      const dlResponse = await fetch(result.downloadUrl);
+      const dlUrl = `http://localhost:3001/api/upgrade/download?token=${result.downloadToken}`;
+      const dlResponse = await fetch(dlUrl, {
+        headers: { 'x-forwarded-for': SIMULATED_CLIENT_IP },
+      });
       const dlStatus = dlResponse.status;
       const dlContent = await dlResponse.text();
       console.log(`    HTTP状态: ${dlStatus}`);

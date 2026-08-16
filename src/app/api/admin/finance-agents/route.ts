@@ -5,10 +5,34 @@ import { auditLog } from '@/lib/audit';
 
 const DEFAULT_RATE = 0.2;
 
+/** 确保 AgentShare 表存在 */
+async function ensureTable() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS "AgentShare" (
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "agentId" VARCHAR(255) NOT NULL,
+      "orderId" VARCHAR(255) NOT NULL,
+      "amount" DOUBLE NOT NULL DEFAULT 0,
+      "rate" DOUBLE NOT NULL DEFAULT 0,
+      "shareAmount" DOUBLE NOT NULL DEFAULT 0,
+      "status" VARCHAR(50) NOT NULL DEFAULT 'pending',
+      "period" VARCHAR(50),
+      "settledAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+  );
+  await execute('CREATE INDEX IF NOT EXISTS "AgentShare_agentId_idx" ON "AgentShare"("agentId")');
+  await execute('CREATE INDEX IF NOT EXISTS "AgentShare_orderId_idx" ON "AgentShare"("orderId")');
+  await execute('CREATE INDEX IF NOT EXISTS "AgentShare_status_idx" ON "AgentShare"("status")');
+  await execute('CREATE INDEX IF NOT EXISTS "AgentShare_createdAt_idx" ON "AgentShare"("createdAt")');
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await ensureTable();
 
     const { searchParams } = new URL(req.url);
     const summary = searchParams.get('summary');
@@ -142,6 +166,8 @@ export async function POST(req: NextRequest) {
   try {
     const { allowed } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
+
+    await ensureTable();
 
     const body = await req.json();
     const { agentId, orderId, rate, period } = body;

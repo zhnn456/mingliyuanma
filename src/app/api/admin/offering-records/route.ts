@@ -38,10 +38,10 @@ export async function GET(req: NextRequest) {
 
     const rows = await queryAll(
       `SELECT r.*, u.email as userEmail, u.name as userName, u.phone as userPhone,
-              oi.name as itemName, oi.categoryId as categoryId
+              oi.name as itemName, oi.category as categoryId
        FROM OfferingRecord r
        LEFT JOIN User u ON r.userId = u.id
-       LEFT JOIN OfferingItem oi ON r.itemId = oi.id
+       LEFT JOIN OfferingSupply oi ON r.itemId = oi.id
        ${whereSql}
        ORDER BY r.createdAt DESC
        LIMIT ${pageSize} OFFSET ${offset}`,
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       `SELECT COUNT(*) as total
        FROM OfferingRecord r
        LEFT JOIN User u ON r.userId = u.id
-       LEFT JOIN OfferingItem oi ON r.itemId = oi.id
+       LEFT JOIN OfferingSupply oi ON r.itemId = oi.id
        ${whereSql}`,
       ...params
     ) as any;

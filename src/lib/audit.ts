@@ -71,7 +71,7 @@ export async function queryAuditLogs(options: {
 
   const targetDate = date || new Date().toISOString().split('T')[0];
   const rows = await queryAll(
-    "SELECT * FROM SiteConfig WHERE category = 'audit' AND key LIKE ? ORDER BY key DESC",
+    "SELECT * FROM SiteConfig WHERE category = 'audit' AND `key` LIKE ? ORDER BY `key` DESC",
     `audit:${targetDate}:%`
   ) as any[];
 
@@ -94,7 +94,7 @@ export async function cleanOldAuditLogs(): Promise<number> {
   const cutoffStr = cutoff.toISOString().split('T')[0];
 
   const result = await execute(
-    "DELETE FROM SiteConfig WHERE category = 'audit' AND key < ?",
+    "DELETE FROM SiteConfig WHERE category = 'audit' AND `key` < ?",
     `audit:${cutoffStr}:`
   );
   return result.changes || 0;

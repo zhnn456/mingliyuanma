@@ -116,8 +116,8 @@ export async function getUserPoints(userId: string) {
 export async function listPointsLedger(userId: string, page: number = 1, pageSize: number = 20) {
   const offset = (page - 1) * pageSize;
   const rows = await queryAll(
-    'SELECT * FROM PointsLedger WHERE userId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
-    userId, pageSize, offset
+    `SELECT * FROM PointsLedger WHERE userId = ? ORDER BY createdAt DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`,
+    userId
   );
   const countRow = await queryFirst('SELECT COUNT(*) as total FROM PointsLedger WHERE userId = ?', userId) as any;
   return { rows, total: countRow?.total || 0, page, pageSize };
@@ -127,8 +127,7 @@ export async function listPointsLedger(userId: string, page: number = 1, pageSiz
 export async function listAllPointsLedger(page: number = 1, pageSize: number = 20) {
   const offset = (page - 1) * pageSize;
   const rows = await queryAll(
-    'SELECT l.*, u.name as userName, u.email as userEmail FROM PointsLedger l LEFT JOIN User u ON l.userId = u.id ORDER BY l.createdAt DESC LIMIT ? OFFSET ?',
-    pageSize, offset
+    `SELECT l.*, u.name as userName, u.email as userEmail FROM PointsLedger l LEFT JOIN User u ON l.userId = u.id ORDER BY l.createdAt DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`
   );
   const countRow = await queryFirst('SELECT COUNT(*) as total FROM PointsLedger') as any;
   return { rows, total: countRow?.total || 0, page, pageSize };
@@ -173,8 +172,7 @@ export async function getUserStats(userId: string) {
 export async function listCoupons(page: number = 1, pageSize: number = 20) {
   const offset = (page - 1) * pageSize;
   const rows = await queryAll(
-    'SELECT * FROM Coupon ORDER BY createdAt DESC LIMIT ? OFFSET ?',
-    pageSize, offset
+    `SELECT * FROM Coupon ORDER BY createdAt DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`
   );
   const countRow = await queryFirst('SELECT COUNT(*) as total FROM Coupon') as any;
   return { rows, total: countRow?.total || 0, page, pageSize };
@@ -231,7 +229,7 @@ export async function ensureTagRelationTable() {
 export async function getUserTags() {
   await ensureTagRelationTable();
   const row = await queryFirst(
-    'SELECT value FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value FROM SiteConfig WHERE category = ? AND `key` = ?',
     TAGS_CONFIG_CATEGORY, TAGS_CONFIG_KEY
   ) as any;
   const tags: any[] = row?.value ? JSON.parse(row.value) : [];
@@ -250,7 +248,7 @@ export async function getUserTags() {
 /** 创建用户标签 */
 export async function createUserTag(tag: { name: string; color?: string; description?: string }) {
   const row = await queryFirst(
-    'SELECT value FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value FROM SiteConfig WHERE category = ? AND `key` = ?',
     TAGS_CONFIG_CATEGORY, TAGS_CONFIG_KEY
   ) as any;
   const tags: any[] = row?.value ? JSON.parse(row.value) : [];
@@ -266,7 +264,7 @@ export async function createUserTag(tag: { name: string; color?: string; descrip
   tags.push(newTag);
 
   await execute(
-    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE `key` = ?',
     JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
@@ -276,7 +274,7 @@ export async function createUserTag(tag: { name: string; color?: string; descrip
 /** 更新用户标签 */
 export async function updateUserTag(id: string, updates: { name?: string; color?: string; description?: string }) {
   const row = await queryFirst(
-    'SELECT value FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value FROM SiteConfig WHERE category = ? AND `key` = ?',
     TAGS_CONFIG_CATEGORY, TAGS_CONFIG_KEY
   ) as any;
   const tags: any[] = row?.value ? JSON.parse(row.value) : [];
@@ -287,7 +285,7 @@ export async function updateUserTag(id: string, updates: { name?: string; color?
   tags[index] = { ...tags[index], ...updates };
 
   await execute(
-    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE `key` = ?',
     JSON.stringify(tags), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
@@ -299,7 +297,7 @@ export async function deleteUserTag(id: string) {
   await ensureTagRelationTable();
 
   const row = await queryFirst(
-    'SELECT value FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value FROM SiteConfig WHERE category = ? AND `key` = ?',
     TAGS_CONFIG_CATEGORY, TAGS_CONFIG_KEY
   ) as any;
   const tags: any[] = row?.value ? JSON.parse(row.value) : [];
@@ -307,7 +305,7 @@ export async function deleteUserTag(id: string) {
   const filtered = tags.filter((t: any) => t.id !== id);
 
   await execute(
-    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+    'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE `key` = ?',
     JSON.stringify(filtered), TAGS_CONFIG_CATEGORY, new Date().toISOString(), TAGS_CONFIG_KEY
   );
 
@@ -321,8 +319,8 @@ export async function getUsersByTagId(tagId: string, page: number = 1, pageSize:
   const rows = await queryAll(
     `SELECT r.*, u.name as userName, u.email as userEmail, u.phone as userPhone
      FROM "UserTagRelation" r LEFT JOIN User u ON r.userId = u.id
-     WHERE r.tagId = ? ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`,
-    tagId, pageSize, offset
+     WHERE r.tagId = ? ORDER BY r.createdAt DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`,
+    tagId
   );
   const countRow = await queryFirst(
     'SELECT COUNT(*) as total FROM "UserTagRelation" WHERE tagId = ?',
@@ -335,7 +333,7 @@ export async function getUsersByTagId(tagId: string, page: number = 1, pageSize:
 export async function getUserTagsByUserId(userId: string) {
   await ensureTagRelationTable();
   const row = await queryFirst(
-    'SELECT value FROM SiteConfig WHERE category = ? AND key = ?',
+    'SELECT value FROM SiteConfig WHERE category = ? AND `key` = ?',
     TAGS_CONFIG_CATEGORY, TAGS_CONFIG_KEY
   ) as any;
   const allTags: any[] = row?.value ? JSON.parse(row.value) : [];

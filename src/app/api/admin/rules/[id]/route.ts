@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';
-import { clearRuleCache } from '@/lib/rules/engine';
+import { clearRuleCache, ensureDivinationRuleTable } from '@/lib/rules/engine';
 import { auditLog } from '@/lib/audit';
 
 async function checkAdmin(req: NextRequest) {
@@ -21,6 +21,8 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: '无权限' }, { status: 403 });
   }
+
+  await ensureDivinationRuleTable();
 
   const rule = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
 

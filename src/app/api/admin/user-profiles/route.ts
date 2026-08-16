@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     if (id) {
       const user = await queryFirst(
-        `SELECT id, email, name, phone, avatar, role, memberLevel, memberExpiry, tags, remark, createdAt
+        `SELECT id, email, name, phone, avatar, role, memberLevel, memberExpiryAt, createdAt
          FROM "User" WHERE id = ?`,
         id
       ) as any;
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
              SELECT createdAt FROM MeihuaRecord WHERE userId = ?
              UNION ALL
              SELECT createdAt FROM Ticket WHERE userId = ?
-           )`,
+           ) AS sub`,
           id, id, id, id, id, id
         ),
       ]);
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
-    let sql = `SELECT u.id, u.email, u.name, u.phone, u.avatar, u.role, u.memberLevel, u.memberExpiry, u.tags, u.createdAt,
+    let sql = `SELECT u.id, u.email, u.name, u.phone, u.avatar, u.role, u.memberLevel, u.memberExpiryAt, u.createdAt,
                (SELECT COUNT(*) FROM "Order" o WHERE o.userId = u.id) as orderCount,
                (SELECT COALESCE(SUM(amount), 0) FROM "Order" o WHERE o.userId = u.id) as totalAmount,
                (SELECT COUNT(*) FROM BaziRecord b WHERE b.userId = u.id) +
@@ -114,7 +114,7 @@ export async function PUT(req: NextRequest) {
     const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const { userId, memberLevel, memberExpiry, tags, remark, balanceAction } = await req.json();
+    const { userId, memberLevel, memberExpiryAt, balanceAction } = await req.json();
     if (!userId) return NextResponse.json({ error: '参数不足：userId 必需' }, { status: 400 });
 
     const updates: string[] = [];
@@ -122,9 +122,7 @@ export async function PUT(req: NextRequest) {
     const now = new Date().toISOString();
 
     if (memberLevel !== undefined) { updates.push('memberLevel = ?'); params.push(memberLevel); }
-    if (memberExpiry !== undefined) { updates.push('memberExpiry = ?'); params.push(memberExpiry); }
-    if (tags !== undefined) { updates.push('tags = ?'); params.push(tags); }
-    if (remark !== undefined) { updates.push('remark = ?'); params.push(remark); }
+    if (memberExpiryAt !== undefined) { updates.push('memberExpiryAt = ?'); params.push(memberExpiryAt ? new Date(memberExpiryAt).toISOString().slice(0, 19).replace('T', ' ') : null); }
 
     if (updates.length > 0) {
       updates.push('updatedAt = ?');
@@ -147,7 +145,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const user = await queryFirst(`SELECT id, email, name, memberLevel, memberExpiry, tags, remark FROM "User" WHERE id = ?`, userId);
+    const user = await queryFirst(`SELECT id, email, name, memberLevel, memberExpiryAt FROM "User" WHERE id = ?`, userId);
     await auditLog({
       userId: session?.sub,
       action: 'admin_update_user',

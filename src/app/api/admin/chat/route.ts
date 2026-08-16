@@ -5,7 +5,7 @@ import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS ChatSession (
-    id TEXT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     userId TEXT,
     subject TEXT,
     status VARCHAR(50) DEFAULT 'open',
@@ -15,7 +15,7 @@ async function ensureTable() {
     updatedAt TEXT
   )`);
   await execute(`CREATE TABLE IF NOT EXISTS ChatMessage (
-    id TEXT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     sessionId TEXT,
     sender TEXT,
     content TEXT,

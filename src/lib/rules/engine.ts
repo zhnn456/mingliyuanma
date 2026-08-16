@@ -11,6 +11,30 @@
 
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
+// ========== 表初始化 ==========
+
+/** 确保 DivinationRule 表存在 */
+export async function ensureDivinationRuleTable() {
+  await execute(
+    `CREATE TABLE IF NOT EXISTS "DivinationRule" (
+      "id" VARCHAR(255) NOT NULL PRIMARY KEY,
+      "category" VARCHAR(50) NOT NULL,
+      "ruleType" VARCHAR(100) NOT NULL,
+      "ruleKey" VARCHAR(255) NOT NULL,
+      "subKey" VARCHAR(255) NOT NULL DEFAULT '',
+      "content" TEXT NOT NULL,
+      "classicSource" TEXT,
+      "classicQuote" TEXT,
+      "priority" INT NOT NULL DEFAULT 0,
+      "agentId" VARCHAR(255) NOT NULL DEFAULT '',
+      "isActive" TINYINT(1) NOT NULL DEFAULT 1,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY "DivinationRule_cat_type_key_sub_agent" ("category", "ruleType", "ruleKey"(150), "subKey"(100), "agentId"(100))
+    )`
+  );
+}
+
 // ========== 类型定义 ==========
 
 export type RuleCategory = 'bazi' | 'ziwei' | 'qimen' | 'meihua';
@@ -254,8 +278,8 @@ export async function searchRules(params: {
 
   const offset = (page - 1) * pageSize;
   const rules = await queryAll(
-    `SELECT * FROM DivinationRule ${where} ORDER BY category, ruleType, ruleKey LIMIT ? OFFSET ?`,
-    ...conditions, pageSize, offset,
+    `SELECT * FROM DivinationRule ${where} ORDER BY category, ruleType, ruleKey LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`,
+    ...conditions,
   ) as any[];
 
   const countRow = await queryFirst(
