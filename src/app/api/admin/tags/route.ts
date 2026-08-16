@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getUserTags,
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -45,6 +46,13 @@ export async function POST(req: NextRequest) {
       description: body.description,
     });
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'user_tag', name: body.name },
+      status: 'success',
+    });
+
     return NextResponse.json({ tag });
   } catch (error: any) {
     console.error('创建标签失败:', error);
@@ -54,7 +62,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -66,6 +74,13 @@ export async function PUT(req: NextRequest) {
       description: body.description,
     });
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'user_tag', id: body.id },
+      status: 'success',
+    });
+
     return NextResponse.json({ tag });
   } catch (error: any) {
     console.error('更新标签失败:', error);
@@ -75,7 +90,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -83,6 +98,14 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: '标签ID必填' }, { status: 400 });
 
     await deleteUserTag(id);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'user_tag', id },
+      status: 'success',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('删除标签失败:', error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS ContactMessage (
@@ -84,6 +85,12 @@ export async function PATCH(req: NextRequest) {
         `UPDATE ContactMessage SET reply = ?, status = 'replied', repliedBy = ?, repliedAt = NOW(), updatedAt = NOW() WHERE id = ?`,
         reply.trim(), session.userId || session.sub, id
       );
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'contact_message', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
@@ -92,12 +99,24 @@ export async function PATCH(req: NextRequest) {
       const valid = ['pending', 'replied', 'closed'];
       if (!valid.includes(status)) return NextResponse.json({ error: '状态无效' }, { status: 400 });
       await execute('UPDATE ContactMessage SET status = ?, updatedAt = NOW() WHERE id = ?', status, id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'contact_message', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
     // 标记已读（pending → read，但保持简洁用 replied 之外的状态）
     if (action === 'read') {
       await execute("UPDATE ContactMessage SET status = IF(status='pending','read',status), updatedAt = NOW() WHERE id = ?", id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'contact_message', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 

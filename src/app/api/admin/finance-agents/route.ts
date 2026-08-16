@@ -1,6 +1,7 @@
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 const DEFAULT_RATE = 0.2;
 
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -219,6 +220,12 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: '无效的操作类型' }, { status: 400 });
     }
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_agent',
+      details: { ids, action },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, updatedCount: ids.length });
   } catch (error) {
     console.error('批量结算失败:', error);

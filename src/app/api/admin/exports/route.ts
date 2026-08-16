@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS ExportTask (
@@ -102,6 +103,12 @@ export async function POST(req: NextRequest) {
     );
 
     const row = await queryFirst('SELECT * FROM ExportTask WHERE id = ?', id);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'export', type },
+      status: 'success',
+    });
     return NextResponse.json({ data: row });
   } catch (error) {
     console.error('创建导出任务失败:', error);

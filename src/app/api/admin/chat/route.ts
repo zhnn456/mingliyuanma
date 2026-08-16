@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS ChatSession (
@@ -108,7 +109,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -131,6 +132,12 @@ export async function POST(req: NextRequest) {
           mid, id, 'staff', content, now
         );
       }
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'chat_message' },
+        status: 'success',
+      });
       return NextResponse.json({ id });
     }
 
@@ -148,6 +155,12 @@ export async function POST(req: NextRequest) {
           params: [content, now, now, sessionId],
         },
       ]);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'chat_message' },
+        status: 'success',
+      });
       return NextResponse.json({ id: mid });
     }
 

@@ -199,9 +199,18 @@ export default function AdminAgentsPage() {
     else { const e = await res.json(); alert(e.error || '操作失败'); }
   };
 
-  const openAgreement = (a: Agent) => {
+  const openAgreement = async (a: Agent) => {
+    // 先向后端取带序号的协议号（撤销后重新生成会得到新序号）
+    let no = `LIC-DEPLOY-${a.id}`;
+    try {
+      const res = await fetch(`/api/agreement/next-no?agentId=${encodeURIComponent(a.id)}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.no) no = d.no;
+      }
+    } catch {}
     const params = new URLSearchParams({
-      no: `LIC-DEPLOY-${a.id}`,
+      no,
       name: a.companyName || a.brandName || '',
       domain: a.domain || '',
       contact: a.contactName || '',

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -129,6 +130,13 @@ export async function POST(req: NextRequest) {
       id, version, title, content, type, isMajor ? 1 : 0, changesJson, session?.id || null, operatorName, tag || null
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'update_log', version },
+      status: 'success',
+    });
+
     const log = await queryFirst('SELECT * FROM UpdateLog WHERE id = ?', id);
 
     return NextResponse.json({ log });
@@ -140,7 +148,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -156,6 +164,13 @@ export async function DELETE(req: NextRequest) {
     const placeholders = ids.map(() => '?').join(',');
 
     await execute(`DELETE FROM UpdateLog WHERE id IN (${placeholders})`, ...ids);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'update_log', ids, count: ids.length },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true, deletedCount: ids.length });
   } catch (error: any) {

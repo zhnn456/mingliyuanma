@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 /** 确保命理师表存在 */
 async function ensureTable() {
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -130,6 +131,13 @@ export async function POST(req: NextRequest) {
     // 将用户角色提升为 fortune_teller
     await execute('UPDATE User SET role = ?, updatedAt = ? WHERE id = ?', 'fortune_teller', now, userId);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'fortune_teller', name: name || user.name },
+      status: 'success',
+    });
+
     return NextResponse.json({
       id, userId, name: name || user.name, avatar, bio,
       specialties: Array.isArray(specialties) ? specialties : [],
@@ -143,7 +151,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -175,6 +183,13 @@ export async function PUT(req: NextRequest) {
 
     await execute(`UPDATE FortuneTeller SET ${updates.join(', ')} WHERE id = ?`, ...params);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'fortune_teller', id },
+      status: 'success',
+    });
+
     const row = await queryFirst(
       `SELECT ft.*, u.email as userEmail, u.phone as userPhone, u.name as userUserName
        FROM FortuneTeller ft LEFT JOIN User u ON ft.userId = u.id WHERE ft.id = ?`,
@@ -196,7 +211,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -209,6 +224,12 @@ export async function DELETE(req: NextRequest) {
       if (row?.userId) {
         await execute('UPDATE User SET role = ?, updatedAt = ? WHERE id = ?', 'user', new Date().toISOString(), row.userId);
       }
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'fortune_teller', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
@@ -223,6 +244,12 @@ export async function DELETE(req: NextRequest) {
         await execute('UPDATE User SET role = ?, updatedAt = ? WHERE id = ?', 'user', new Date().toISOString(), row.userId);
       }
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'fortune_teller', count: ids.length, ids },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, count: ids.length });
   } catch (error) {
     console.error('删除命理师失败:', error);

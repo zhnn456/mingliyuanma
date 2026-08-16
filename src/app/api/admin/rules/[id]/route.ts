@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';
 import { clearRuleCache } from '@/lib/rules/engine';
+import { auditLog } from '@/lib/audit';
 
 async function checkAdmin(req: NextRequest) {
   const { allowed, session } = await requireAdmin(req);
@@ -73,6 +74,13 @@ export async function PUT(
     await execute(`UPDATE DivinationRule SET ${sets.join(', ')} WHERE id = ?`, ...params);
     clearRuleCache();
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'rule', id },
+      status: 'success',
+    });
+
     const rule = await queryFirst('SELECT * FROM DivinationRule WHERE id = ?', id);
     return NextResponse.json({ success: true, rule });
   } catch {
@@ -97,6 +105,12 @@ export async function DELETE(
     }
     await execute('DELETE FROM DivinationRule WHERE id = ?', id);
     clearRuleCache();
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'rule', id },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: '删除失败' }, { status: 500 });

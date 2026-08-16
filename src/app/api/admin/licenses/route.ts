@@ -2,6 +2,7 @@ import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
 import { generateAgentLicenseAsync } from '@/lib/license-generator';
+import { auditLog } from '@/lib/audit';
 
 function generateSimpleKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -102,6 +103,12 @@ export async function POST(req: NextRequest) {
     );
 
     const license = await queryFirst('SELECT * FROM "AgentLicense" WHERE licenseKey = ?', licenseKey);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_create_agent',
+      details: { target: 'license', licenseKey },
+      status: 'success',
+    });
     return NextResponse.json({ license, signedLicense });
   } catch (error) {
     console.error('创建授权码失败:', error);
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { id, expiryAt, maxUsers, features } = await req.json();
@@ -132,6 +139,12 @@ export async function PUT(req: NextRequest) {
 
     await execute(`UPDATE "AgentLicense" SET ${updates.join(', ')} WHERE id = ?`, ...params);
     const license = await queryFirst('SELECT * FROM "AgentLicense" WHERE id = ?', id);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_agent',
+      details: { target: 'license', id },
+      status: 'success',
+    });
     return NextResponse.json({ license });
   } catch (error) {
     console.error('更新授权码失败:', error);
@@ -141,7 +154,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { id } = await req.json();
@@ -150,6 +163,12 @@ export async function DELETE(req: NextRequest) {
     const now = new Date().toISOString();
     await execute('UPDATE "AgentLicense" SET status = ?, updatedAt = ? WHERE id = ?', 'revoked', now, id);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_delete_agent',
+      details: { target: 'license', id },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('撤销授权码失败:', error);

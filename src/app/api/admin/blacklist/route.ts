@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
@@ -124,6 +125,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'blacklist', email: userEmail || userId },
+      status: 'success',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('添加黑名单失败:', error);
@@ -133,7 +141,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -147,6 +155,13 @@ export async function DELETE(req: NextRequest) {
     } else {
       await execute('DELETE FROM SiteConfig WHERE category = ? AND "key" = ?', 'blacklist', `bl_${userId}`);
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'blacklist', id: id || userId },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

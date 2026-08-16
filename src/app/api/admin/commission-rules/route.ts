@@ -1,6 +1,7 @@
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await ensureCommissionTables();
@@ -100,6 +101,12 @@ export async function POST(req: NextRequest) {
         inserted.push({ id, ...rule });
       }
 
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'commission_rule' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, inserted, count: inserted.length });
     }
 
@@ -133,6 +140,12 @@ export async function POST(req: NextRequest) {
       `SELECT r.*, a.brandName as agentBrand, a.companyName FROM "CommissionRule" r LEFT JOIN "Agent" a ON r.agentId = a.id WHERE r.id = ?`,
       id
     );
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'commission_rule' },
+      status: 'success',
+    });
     return NextResponse.json({ rule });
   } catch (error) {
     console.error('创建分润规则失败:', error);
@@ -142,7 +155,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -179,6 +192,12 @@ export async function PUT(req: NextRequest) {
       `SELECT r.*, a.brandName as agentBrand, a.companyName FROM "CommissionRule" r LEFT JOIN "Agent" a ON r.agentId = a.id WHERE r.id = ?`,
       id
     );
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'commission_rule', id },
+      status: 'success',
+    });
     return NextResponse.json({ rule });
   } catch (error) {
     console.error('更新分润规则失败:', error);
@@ -188,7 +207,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -199,6 +218,12 @@ export async function DELETE(req: NextRequest) {
 
     await execute('DELETE FROM "CommissionRule" WHERE id = ?', id);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'commission_rule', id },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('删除分润规则失败:', error);

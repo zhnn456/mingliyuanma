@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 const CATEGORIES = [
   '八字命理',
@@ -109,7 +110,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -133,6 +134,13 @@ export async function POST(req: NextRequest) {
       id, title, category || '其他', content || '', tagsStr, sortVal, activeVal, now, now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'encyclopedia', title },
+      status: 'success',
+    });
+
     return NextResponse.json({
       data: {
         id, title, category: category || '其他', content: content || '',
@@ -148,7 +156,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -183,6 +191,13 @@ export async function PUT(req: NextRequest) {
 
     await execute(`UPDATE Encyclopedia SET ${updates.join(', ')} WHERE id = ?`, ...params);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'encyclopedia', id },
+      status: 'success',
+    });
+
     const row = await queryFirst('SELECT * FROM Encyclopedia WHERE id = ?', id) as any;
     return NextResponse.json({ data: { ...row, tags: parseTags(row?.tags) } });
   } catch (error) {
@@ -193,7 +208,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -202,6 +217,12 @@ export async function DELETE(req: NextRequest) {
 
     if (id) {
       await execute('DELETE FROM Encyclopedia WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'encyclopedia', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
@@ -212,6 +233,12 @@ export async function DELETE(req: NextRequest) {
     for (const rid of ids) {
       await execute('DELETE FROM Encyclopedia WHERE id = ?', rid);
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'encyclopedia', id: ids.join(',') },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, count: ids.length });
   } catch (error) {
     console.error('删除百科失败:', error);

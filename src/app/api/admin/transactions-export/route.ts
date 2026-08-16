@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,6 +84,12 @@ export async function POST(req: NextRequest) {
       id, type, format || 'csv', params ? JSON.stringify(params) : null, session?.id || null, now, now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'transactions_export' },
+      status: 'success',
+    });
     return NextResponse.json({ id, status: 'pending' });
   } catch (error) {
     console.error('创建导出任务失败:', error);

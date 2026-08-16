@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 function generateId() {
   return `sup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -208,7 +209,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -243,6 +244,13 @@ export async function POST(req: NextRequest) {
       Number(stock) || 0
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'supply', name },
+      status: 'success',
+    });
+
     return NextResponse.json({
       supply: {
         id, name, icon, image,
@@ -263,7 +271,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureOfferingSupplyTable();
@@ -305,6 +313,13 @@ export async function PUT(req: NextRequest) {
     params.push(id);
     await execute(`UPDATE OfferingSupply SET ${fields.join(', ')} WHERE id = ?`, ...params);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'supply', id },
+      status: 'success',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('更新供品失败:', error);
@@ -314,7 +329,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -340,6 +355,13 @@ export async function DELETE(req: NextRequest) {
       }));
       await batch(statements);
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'supply', id: ids.join(',') },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true, count: ids.length });
   } catch (error) {

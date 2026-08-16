@@ -12,6 +12,7 @@ import { astro } from 'iztro';
 import { requireAdmin } from '@/lib/auth-server';
 import { getRuleStore } from '@/lib/ziwei/storage/rule-store';
 import { getZiweiEngine } from '@/lib/ziwei/engine';
+import { auditLog } from '@/lib/audit';
 
 /**
  * GET /api/admin/ziwei/rules
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -128,25 +129,44 @@ export async function POST(req: NextRequest) {
         getRelatedRuleIds: () => [],
         getClassicalReferences: () => [],
       });
-      
+
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'ziwei_rule', name: rule.name },
+        status: 'success',
+      });
+
       return NextResponse.json({ success: true, id: rule.id });
     }
-    
+
     if (action === 'update') {
       // 更新规则
       const { id, updates } = body;
       if (!id) return NextResponse.json({ error: '缺少规则ID' }, { status: 400 });
-      
+
       await store.updateRule(id, updates);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'ziwei_rule', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, id });
     }
-    
+
     if (action === 'delete') {
       // 删除规则
       const { id } = body;
       if (!id) return NextResponse.json({ error: '缺少规则ID' }, { status: 400 });
-      
+
       await store.deleteRule(id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'ziwei_rule', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, id });
     }
     

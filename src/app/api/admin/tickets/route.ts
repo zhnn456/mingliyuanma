@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS TicketMessage (
@@ -96,6 +97,12 @@ export async function POST(req: NextRequest) {
       msgId, ticketId, session.sub, content, now
     );
     await execute('UPDATE Ticket SET updatedAt = ? WHERE id = ?', now, ticketId);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'ticket', title: ticketId },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, id: msgId });
   }
 
@@ -103,6 +110,12 @@ export async function POST(req: NextRequest) {
     const { ticketId } = body;
     if (!ticketId) return NextResponse.json({ error: '参数不足' }, { status: 400 });
     await execute('UPDATE Ticket SET status = ?, updatedAt = ? WHERE id = ?', 'closed', new Date().toISOString(), ticketId);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'ticket', title: ticketId },
+      status: 'success',
+    });
     return NextResponse.json({ success: true });
   }
 
@@ -110,11 +123,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { allowed } = await requireAdmin(req);
+  const { allowed, session } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
   const { ticketId, status } = await req.json();
   if (!ticketId || !status) return NextResponse.json({ error: '参数不足' }, { status: 400 });
   await execute('UPDATE Ticket SET status = ?, updatedAt = ? WHERE id = ?', status, new Date().toISOString(), ticketId);
+  await auditLog({
+    userId: session?.sub,
+    action: 'admin_update_config',
+    details: { target: 'ticket', id: ticketId },
+    status: 'success',
+  });
   return NextResponse.json({ success: true });
 }

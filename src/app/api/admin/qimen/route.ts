@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 function startOfTodayISO() {
   const now = new Date();
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -86,6 +87,12 @@ export async function DELETE(req: NextRequest) {
 
     if (id) {
       await execute('DELETE FROM QimenRecord WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'qimen_rule', id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
@@ -96,6 +103,12 @@ export async function DELETE(req: NextRequest) {
     for (const rid of ids) {
       await execute('DELETE FROM QimenRecord WHERE id = ?', rid);
     }
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'qimen_rule', count: ids.length, ids },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, count: ids.length });
   } catch (error) {
     console.error('删除奇门遁甲记录失败:', error);

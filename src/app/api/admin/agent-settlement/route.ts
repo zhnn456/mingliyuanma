@@ -1,4 +1,5 @@
 import { requirePrimaryAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -208,6 +209,12 @@ export async function PUT(req: NextRequest) {
       `SELECT s.*, a.companyName, a.contactName FROM AgentSettlement s LEFT JOIN Agent a ON s.agentId = a.id WHERE s.id = ?`,
       id
     );
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_settlement_review',
+      details: { settlementId: id, status },
+      status: 'success',
+    });
     return NextResponse.json({ data: row });
   } catch (error) {
     console.error('更新结算记录失败:', error);

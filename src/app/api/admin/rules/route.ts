@@ -7,6 +7,7 @@ import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { searchRules, upsertRule, getRuleStats, getRuleTypes, type RuleCategory } from '@/lib/rules/engine';
+import { auditLog } from '@/lib/audit';
 
 /** 安全解析 JSON，失败返回 null */
 function safeParseJSON(str: string | null | undefined): any {
@@ -91,6 +92,13 @@ export async function POST(request: NextRequest) {
       classicQuote,
       priority: priority || 0,
       isActive: isActive ?? true,
+    });
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'rule', name: ruleKey },
+      status: 'success',
     });
 
     return NextResponse.json({ success: true, rule });

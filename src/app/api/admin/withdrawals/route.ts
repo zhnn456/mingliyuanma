@@ -1,6 +1,7 @@
 import { requireAdmin, requireAuth } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureWithdrawalTable, getWithdrawalStats } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -111,6 +112,12 @@ export async function PUT(req: NextRequest) {
     );
 
     const updated = await queryFirst('SELECT * FROM "Withdrawal" WHERE id = ?', id);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_order',
+      details: { withdrawalId: id, status },
+      status: 'success',
+    });
     return NextResponse.json({ withdrawal: updated });
   } catch (error) {
     console.error('审核提现失败:', error);

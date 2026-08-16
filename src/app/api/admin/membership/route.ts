@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -121,6 +122,12 @@ export async function PUT(req: NextRequest) {
     );
 
     const plan = await queryFirst('SELECT * FROM MembershipPlan WHERE id = ?', id);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_user',
+      details: { userId: id, plan: id },
+      status: 'success',
+    });
     return NextResponse.json({ plan });
   } catch (error) {
     console.error('更新会员套餐失败:', error);

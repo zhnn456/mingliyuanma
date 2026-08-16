@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 function generateId() {
   return `banner_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -70,6 +71,13 @@ export async function POST(req: NextRequest) {
       id, `banner_${id}`, JSON.stringify(bannerData), now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'banner', title },
+      status: 'success',
+    });
+
     return NextResponse.json({ banner: bannerData });
   } catch (error) {
     console.error('创建Banner失败:', error);
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -107,6 +115,13 @@ export async function PUT(req: NextRequest) {
       JSON.stringify(bannerData), now, id
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'banner', id },
+      status: 'success',
+    });
+
     return NextResponse.json({ banner: bannerData });
   } catch (error) {
     console.error('更新Banner失败:', error);
@@ -116,7 +131,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -128,6 +143,13 @@ export async function DELETE(req: NextRequest) {
       "DELETE FROM SiteConfig WHERE id = ? AND category = 'banner'",
       id
     );
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'banner', id },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

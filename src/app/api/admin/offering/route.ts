@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, execute, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 // 与前台 /api/offerings 保持一致的分类元数据
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
@@ -72,12 +73,24 @@ export async function POST(req: NextRequest) {
         description || null, category,
         Number(sortOrder) || 0, new Date().toISOString(), Number(stock) || 0
       );
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'offering', name },
+        status: 'success',
+      });
       return NextResponse.json({ item: { id, category, name, description, price, priceMonth, priceYear, image, sortOrder: sortOrder || 0, isActive: 1 } });
     }
 
     if (action === 'toggleItem') {
       const { itemId, isActive } = body;
       await execute('UPDATE OfferingSupply SET isActive = ? WHERE id = ?', isActive ? 1 : 0, itemId);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_config',
+        details: { target: 'offering', id: itemId, isActive },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 

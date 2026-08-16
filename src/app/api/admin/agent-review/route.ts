@@ -1,4 +1,5 @@
 import { requirePrimaryAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
 
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { agentId, action, rejectReason } = await req.json();
@@ -149,6 +150,12 @@ export async function PATCH(req: NextRequest) {
       }
 
       await batch(statements);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_agent',
+        details: { agentId, status: 'rejected' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, status: 'rejected', rejectReason: reason });
     }
   } catch (error) {

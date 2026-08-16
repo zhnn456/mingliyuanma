@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 async function ensureTable() {
   await execute(`CREATE TABLE IF NOT EXISTS Channel (
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -99,6 +100,13 @@ export async function POST(req: NextRequest) {
       commission || null, isActive !== undefined ? (isActive ? 1 : 0) : 1, now, now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'channel', name },
+      status: 'success',
+    });
+
     const row = await queryFirst('SELECT * FROM Channel WHERE id = ?', id);
     return NextResponse.json({ data: row });
   } catch (error) {
@@ -109,7 +117,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -142,6 +150,14 @@ export async function PUT(req: NextRequest) {
 
     await execute(`UPDATE Channel SET ${fields.join(', ')} WHERE id = ?`, ...params);
     const row = await queryFirst('SELECT * FROM Channel WHERE id = ?', id);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'channel', id },
+      status: 'success',
+    });
+
     return NextResponse.json({ data: row });
   } catch (error) {
     console.error('更新渠道失败:', error);
@@ -151,7 +167,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     await ensureTable();
@@ -165,6 +181,13 @@ export async function DELETE(req: NextRequest) {
     for (const id of idList) {
       await execute('DELETE FROM Channel WHERE id = ?', id);
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'channel', id: ids },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true, count: idList.length });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, queryFirst, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   const { allowed } = await requireAdmin(req);
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { allowed } = await requireAdmin(req);
+  const { allowed, session } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
   const body = await req.json();
@@ -42,6 +43,12 @@ export async function POST(req: NextRequest) {
       features ?? null, sortOrder ?? 0, isActive !== undefined ? (isActive ? 1 : 0) : 1,
       id
     );
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'plan', name },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, id });
   } else {
     const existing = await queryFirst('SELECT id FROM MembershipPlan WHERE level = ?', level);
@@ -56,12 +63,18 @@ export async function POST(req: NextRequest) {
       newId, name, level, price ?? 0, duration ?? null, description ?? null,
       features ?? null, isActive !== undefined ? (isActive ? 1 : 0) : 1, sortOrder ?? 0, now
     );
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_config',
+      details: { target: 'plan', name },
+      status: 'success',
+    });
     return NextResponse.json({ success: true, id: newId });
   }
 }
 
 export async function PUT(req: NextRequest) {
-  const { allowed } = await requireAdmin(req);
+  const { allowed, session } = await requireAdmin(req);
   if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
   const { id, isActive } = await req.json();
@@ -72,5 +85,11 @@ export async function PUT(req: NextRequest) {
     isActive ? 1 : 0, id
   );
 
+  await auditLog({
+    userId: session?.sub,
+    action: 'admin_update_config',
+    details: { target: 'plan', id },
+    status: 'success',
+  });
   return NextResponse.json({ success: true });
 }

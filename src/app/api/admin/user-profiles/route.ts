@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
 
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { userId, memberLevel, memberExpiry, tags, remark, balanceAction } = await req.json();
@@ -147,6 +148,12 @@ export async function PUT(req: NextRequest) {
     }
 
     const user = await queryFirst(`SELECT id, email, name, memberLevel, memberExpiry, tags, remark FROM "User" WHERE id = ?`, userId);
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_user',
+      details: { userId },
+      status: 'success',
+    });
     return NextResponse.json({ user });
   } catch (error) {
     console.error('更新用户画像失败:', error);
