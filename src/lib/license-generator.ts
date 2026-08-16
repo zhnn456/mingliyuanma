@@ -18,6 +18,8 @@ export interface LicensePayload {
   domain?: string;
   level?: 'basic' | 'standard' | 'premium' | 'saas' | 'source';
   monthlyFee?: number;
+  upgradeExpiryAt?: number | null;
+  upgradePlan?: 'free' | 'annual' | 'none';
 }
 
 export interface SignedLicense {
@@ -105,6 +107,8 @@ export async function generateAgentLicense(payload: Omit<LicensePayload, 'versio
     domain: payload.domain,
     level: payload.level,
     monthlyFee: payload.monthlyFee,
+    upgradeExpiryAt: payload.upgradeExpiryAt,
+    upgradePlan: payload.upgradePlan,
   };
 
   const payloadStr = JSON.stringify(fullPayload);
@@ -141,6 +145,8 @@ export async function generateAgentLicenseAsync(
     domain: payload.domain,
     level: payload.level,
     monthlyFee: payload.monthlyFee,
+    upgradeExpiryAt: payload.upgradeExpiryAt,
+    upgradePlan: payload.upgradePlan,
   };
 
   const payloadStr = JSON.stringify(fullPayload);

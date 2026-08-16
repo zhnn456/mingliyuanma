@@ -281,6 +281,32 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Partner CTA - 创业合作入口 */}
+      <section className="py-28 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-red-950 via-red-800 to-red-950" />
+        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
+
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10 text-white">
+          <span className="seal-tag-gold !text-gold !border-gold/40 mb-6 inline-flex">创业合作</span>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-4">低成本创业 · 快速部署 · 即时赚钱</h2>
+          <p className="text-red-200/80 mb-10 text-lg leading-relaxed">
+            源码部署独立运营，100% 收益归你 · 单独 SaaS 开户，0 元试用、99 元/月起，最高 60% 分润
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 mb-10">
+            {['源码买断 2,980 元', '无限 SaaS 开户', '客户充值即分润', '当天上线', '0 开户费'].map((item) => (
+              <span key={item} className="px-5 py-2 bg-white/10 rounded-full text-sm border border-white/20 backdrop-blur-sm">
+                ✓ {item}
+              </span>
+            ))}
+          </div>
+          <Link href="/partner" className="btn-secondary text-lg px-12 py-4 inline-flex">
+            了解创业合作计划
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
