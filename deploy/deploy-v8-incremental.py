@@ -67,13 +67,21 @@ def pack_incremental() -> tuple:
     current_hashes = {}
     changed_files = []
 
-    # 收集需要检查的目录
+    # 收集需要检查的目录（注意：根级 manifest 必须包含，漏传会导致新路由 404）
     dirs_to_check = [
         LOCAL_STANDALONE / '.next' / 'static',
         LOCAL_STANDALONE / '.next' / 'server',
         LOCAL_STANDALONE / '.next' / 'required-server-files.json',
         LOCAL_STANDALONE / '.next' / 'prerender-manifest.json',
         LOCAL_STANDALONE / '.next' / 'routes-manifest.json',
+        LOCAL_STANDALONE / '.next' / 'app-path-routes-manifest.json',
+        LOCAL_STANDALONE / '.next' / 'app-build-manifest.json',
+        LOCAL_STANDALONE / '.next' / 'build-manifest.json',
+        LOCAL_STANDALONE / '.next' / 'react-loadable-manifest.json',
+        LOCAL_STANDALONE / '.next' / 'BUILD_ID',
+        LOCAL_STANDALONE / '.next' / 'package.json',
+        LOCAL_STANDALONE / 'server.js',
+        LOCAL_STANDALONE / 'server.js.nft.json',
         LOCAL_STANDALONE / 'public',
     ]
 
