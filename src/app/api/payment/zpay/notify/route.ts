@@ -10,8 +10,7 @@ import { queryFirst, execute, batch } from '@/lib/d1';
 import { auditLog } from '@/lib/audit';
 import { grantLingzhu, MEMBERSHIP_GIFT_LINGZHU } from '@/lib/rate-limit';
 import { PACKAGE_POINTS } from '@/lib/recharge-packages';
-import { getZPayConfig, parseCallback } from '@/lib/payment/zpay';
-import { MEMBERSHIP_PLANS } from '@/lib/payment';
+import { createPaymentService, MEMBERSHIP_PLANS } from '@/lib/payment';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,9 +21,11 @@ export async function GET(req: NextRequest) {
 
     console.log('[Z-Pay 回调] 收到回调:', JSON.stringify(params));
 
-    // 验证签名并解析
-    const config = getZPayConfig();
-    const result = parseCallback(params, config);
+    // 验证签名并解析（统一走 createPaymentService，读取后台 DB 配置）
+    // Z-Pay 回调是 GET，把 query string 作为 rawBody 传给 handleCallback
+    const rawBody = searchParams.toString();
+    const paymentService = await createPaymentService();
+    const result = await paymentService.handleCallback('zpay', rawBody, {});
 
     if (!result.success) {
       console.error('[Z-Pay 回调] 签名验证失败');

@@ -29,7 +29,7 @@ import {
 
 // ============ 类型定义 ============
 
-export type PaymentMethod = 'wechat' | 'alipay' | 'paypal' | 'zpay' | 'mock';
+export type PaymentMethod = 'wechat' | 'alipay' | 'paypal' | 'zpay' | 'personalqr' | 'mock';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'closed';
 
 export interface PaymentConfig {
@@ -54,6 +54,9 @@ export interface PaymentConfig {
   zpayPid?: string;
   zpayKey?: string;
   zpayApiUrl?: string;
+  // 个人收款码（微信/支付宝个人收款码，用户扫码付款后联系客服核销）
+  personalQrUrl?: string;
+  personalQrType?: 'wechat' | 'alipay' | 'unionpay';
   // 代理商配置（多租户）
   agentId?: string;
 }
@@ -78,6 +81,13 @@ export interface CreateOrderResult {
   prepayId?: string;
   jsapiParams?: Record<string, string>;
   status: PaymentStatus;
+  // 个人收款码方案：返回收款码图片 URL，前端展示二维码（不跳转）
+  paymentQrUrl?: string;
+  paymentQrType?: 'wechat' | 'alipay' | 'unionpay';
+  // PayPal 汇率信息
+  amount?: number;
+  usdAmount?: number;
+  exchangeRate?: number;
 }
 
 export interface CallbackResult {
@@ -156,6 +166,8 @@ export class PaymentService {
         return this.createPaypalOrder(params);
       case 'zpay':
         return this.createZpayOrder(params);
+      case 'personalqr':
+        return this.createPersonalQrOrder(params);
       case 'mock':
         return this.createMockOrder(params);
       default:
@@ -191,7 +203,16 @@ export class PaymentService {
         return this.queryWechatOrder(orderNo);
       case 'alipay':
         return this.queryAlipayOrder(orderNo);
+      // 以下支付方式无主动查询接口（无自动回调，由客服在后台核销）
+      case 'paypal':
+      case 'personalqr':
+        return 'pending';
+      case 'zpay':
+        // Z-Pay 异步回调，查询走本地订单状态（无主动查询接口）
+        return 'pending';
       case 'mock':
+        return 'pending';
+      default:
         return 'pending';
     }
   }
@@ -217,6 +238,17 @@ export class PaymentService {
         }
         case 'mock':
           return { success: true, refundId: `mock_rf_${Date.now()}` };
+        // 无外部支付接口的支付方式：个人收款码、PayPal.me 由客服人工线下退款
+        case 'personalqr':
+        case 'paypal':
+          console.warn(`[${method}] 不支持线上退款，需客服人工处理（线下原路退回）`);
+          return { success: false, refundId: `manual_${refundNo}` };
+        case 'zpay':
+          // Z-Pay 退款需调用易支付退款接口，当前未实现，提示人工处理
+          console.warn('[zpay] 退款接口未实现，需客服人工处理');
+          return { success: false, refundId: `manual_${refundNo}` };
+        default:
+          return { success: false };
       }
     } catch (e) {
       console.error(`[支付] 退款失败 (${method}):`, e);
@@ -458,7 +490,7 @@ export class PaymentService {
       key: this.config.zpayKey!,
       apiUrl: this.config.zpayApiUrl || 'https://api.z-pay.cn/submit.php',
       notifyUrl: `${process.env.NEXTAUTH_URL}/api/payment/zpay/notify`,
-      returnUrl: `${process.env.NEXTAUTH_URL}/pay/result`,
+      returnUrl: `${process.env.NEXTAUTH_URL}/payment/result`,
     };
   }
 
@@ -481,6 +513,41 @@ export class PaymentService {
       paymentUrl: result.paymentUrl,
       status: 'pending',
     };
+  }
+
+  // ============ 个人收款码（微信/支付宝个人收款码） ============
+
+  /**
+   * 创建个人收款码订单
+   *
+   * 工作流程：
+   * 1. 后端创建 pending 订单（不调用任何外部支付接口）
+   * 2. 前端展示后台配置的个人收款码图片（微信/支付宝）
+   * 3. 用户扫码付款后，联系客服核销订单（无自动回调）
+   *
+   * 适用场景：个人站、早期小单量、无公司资质、零费率
+   */
+  private async createPersonalQrOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    if (!this.isPersonalQrConfigured()) {
+      console.warn('[个人收款码] 未配置 personalQrUrl，降级为 mock 模式');
+      return this.createMockOrder(params);
+    }
+
+    // 不跳转外部页面，前端通过 paymentQrUrl 展示收款码
+    return {
+      orderNo: params.orderNo,
+      // paymentUrl 留空表示不跳转，前端应读取 paymentQrUrl 展示二维码
+      paymentUrl: '',
+      status: 'pending',
+      // 附加信息供前端展示
+      amount: params.amount,
+      paymentQrUrl: this.config.personalQrUrl,
+      paymentQrType: this.config.personalQrType || 'wechat',
+    } as CreateOrderResult;
+  }
+
+  private isPersonalQrConfigured(): boolean {
+    return !!this.config.personalQrUrl;
   }
 
   private async handleZpayCallback(rawBody: string): Promise<CallbackResult> {
@@ -596,6 +663,9 @@ export async function createPaymentService(agentId?: string): Promise<PaymentSer
     zpayPid: dbConfig.zpayPid,
     zpayKey: dbConfig.zpayKey,
     zpayApiUrl: dbConfig.zpayApiUrl,
+    // 个人收款码（DB 优先，fallback env）
+    personalQrUrl: dbConfig.personalQrUrl || process.env.PERSONAL_QR_URL,
+    personalQrType: dbConfig.personalQrType || (process.env.PERSONAL_QR_TYPE as any) || 'wechat',
     agentId,
   };
   return new PaymentService(config);

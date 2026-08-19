@@ -133,6 +133,9 @@ interface StoredConfig {
   stripePublishableKey?: string;
   stripeWebhookSecret?: string;
   stripeNotifyUrl?: string;
+  // 个人收款码（微信/支付宝个人收款码图片URL）
+  personalQrUrl?: string;
+  personalQrType?: 'wechat' | 'alipay' | 'unionpay';
   // 启用状态
   enabledMethods?: string[];
   // 敏感字段（加密存储）
@@ -204,6 +207,9 @@ async function buildDecryptedConfig(stored: StoredConfig | null) {
     stripeWebhookSecret: stored.stripeWebhookSecret || '',
     stripeNotifyUrl: stored.stripeNotifyUrl || '',
     stripeSecretKey: stored.stripeSecretKeyEnc ? await decryptSecret(stored.stripeSecretKeyEnc) : '',
+    // 个人收款码
+    personalQrUrl: stored.personalQrUrl || '',
+    personalQrType: stored.personalQrType || 'wechat',
     enabledMethods: stored.enabledMethods || [],
   };
 }
@@ -336,6 +342,9 @@ export async function GET(req: NextRequest) {
       stripeWebhookSecret: data?.stripeWebhookSecret || '',
       stripeNotifyUrl: data?.stripeNotifyUrl || '',
       stripeSecretKeyConfigured: !!(data?.stripeSecretKeyEnc),
+      // 个人收款码
+      personalQrUrl: data?.personalQrUrl || '',
+      personalQrType: data?.personalQrType || 'wechat',
       enabledMethods: data?.enabledMethods || [],
       updatedAt,
     };
@@ -396,6 +405,9 @@ export async function POST(req: NextRequest) {
       stripePublishableKey: body.stripePublishableKey ?? existing?.stripePublishableKey ?? '',
       stripeWebhookSecret: body.stripeWebhookSecret ?? existing?.stripeWebhookSecret ?? '',
       stripeNotifyUrl: body.stripeNotifyUrl ?? existing?.stripeNotifyUrl ?? '',
+      // 个人收款码（明文存储，仅图片URL，无敏感信息）
+      personalQrUrl: body.personalQrUrl ?? existing?.personalQrUrl ?? '',
+      personalQrType: body.personalQrType ?? existing?.personalQrType ?? 'wechat',
       // 启用状态
       enabledMethods: Array.isArray(body.enabledMethods) ? body.enabledMethods : (existing?.enabledMethods || []),
       // 敏感字段：仅在提交非空值时更新；否则保留原加密值

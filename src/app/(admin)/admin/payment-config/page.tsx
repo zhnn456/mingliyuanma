@@ -29,6 +29,9 @@ interface PaymentConfigForm {
   stripePublishableKey: string;
   stripeWebhookSecret: string;
   stripeNotifyUrl: string;
+  // 个人收款码
+  personalQrUrl: string;
+  personalQrType: 'wechat' | 'alipay' | 'unionpay';
 }
 
 interface SensitiveInputs {
@@ -60,6 +63,7 @@ const DEFAULT_FORM: PaymentConfigForm = {
   zpayPid: '', zpayApiUrl: '', zpayNotifyUrl: '', zpayReturnUrl: '',
   paypalClientId: '', paypalMode: 'sandbox', paypalNotifyUrl: '',
   stripePublishableKey: '', stripeWebhookSecret: '', stripeNotifyUrl: '',
+  personalQrUrl: '', personalQrType: 'wechat',
 };
 
 const INPUT_CLASS = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent';
@@ -78,6 +82,17 @@ const PAYMENT_METHODS = [
     prerequisite: '无需公司资质，个人即可接入。支持微信/支付宝/QQ钱包等多种支付方式。',
     recommend: '推荐使用。聚合支付平台，接入简单，费率低（1%-2%），无需ICP备案（部分平台）。',
     docs: '注册易支付平台 → 获取商户ID和密钥 → 配置API地址和回调URL',
+  },
+  {
+    key: 'personal-qr',
+    title: '个人收款码',
+    icon: '📱',
+    color: 'rose',
+    badge: '零费率',
+    badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
+    prerequisite: '无需任何资质，只需个人微信/支付宝收款码图片。用户扫码付款后联系客服核销订单。',
+    recommend: '零费率，接入最简单。适合个人站、早期小单量场景。无自动回调，需人工核销。',
+    docs: '保存个人微信/支付宝收款码图片到服务器或图床 → 填入图片URL → 选择收款码类型',
   },
   {
     key: 'wechat',
@@ -189,6 +204,8 @@ export default function AdminPaymentConfigPage() {
           stripePublishableKey: c.stripePublishableKey || '',
           stripeWebhookSecret: c.stripeWebhookSecret || '',
           stripeNotifyUrl: c.stripeNotifyUrl || '',
+          personalQrUrl: c.personalQrUrl || '',
+          personalQrType: c.personalQrType || 'wechat',
         });
         setConfigured({
           wechatPrivateKey: !!c.wechatPrivateKeyConfigured,
@@ -337,6 +354,15 @@ export default function AdminPaymentConfigPage() {
               <li>支持微信/支付宝/QQ钱包等多种方式</li>
               <li>部分平台无需ICP备案</li>
               <li>费率约1%-2%，接入简单</li>
+            </ul>
+          </div>
+          <div className="bg-white rounded-md p-3 border border-rose-100">
+            <div className="font-medium text-gray-800 mb-1">📱 个人收款码（零费率）</div>
+            <ul className="text-gray-600 space-y-0.5 list-disc list-inside">
+              <li>无需任何资质，个人即可使用</li>
+              <li>直接展示微信/支付宝个人收款码</li>
+              <li>用户扫码付款后联系客服核销</li>
+              <li>零费率，但无自动回调</li>
             </ul>
           </div>
           <div className="bg-white rounded-md p-3 border border-blue-100">
@@ -510,6 +536,42 @@ export default function AdminPaymentConfigPage() {
                       <SensitiveField label="Secret Key" configured={configured.stripeSecretKey} value={sensitive.stripeSecretKey} onChange={v => setSensitiveField('stripeSecretKey', v)} mono />
                       <Field label="Webhook Secret" value={form.stripeWebhookSecret} onChange={v => setField('stripeWebhookSecret', v)} placeholder="whsec_..." mono />
                       <Field label="Webhook URL" value={form.stripeNotifyUrl} onChange={v => setField('stripeNotifyUrl', v)} placeholder="https://domain/api/payment/stripe/webhook" mono />
+                    </>
+                  )}
+
+                  {method.key === 'personal-qr' && (
+                    <>
+                      <div>
+                        <label className={LABEL_CLASS}>收款码类型</label>
+                        <select
+                          value={form.personalQrType}
+                          onChange={e => setField('personalQrType', e.target.value as any)}
+                          className={INPUT_CLASS + ' bg-white'}
+                        >
+                          <option value="wechat">微信收款码</option>
+                          <option value="alipay">支付宝收款码</option>
+                          <option value="unionpay">银联收款码</option>
+                        </select>
+                      </div>
+                      <Field
+                        label="收款码图片 URL"
+                        value={form.personalQrUrl}
+                        onChange={v => setField('personalQrUrl', v)}
+                        placeholder="https://domain/images/personal-qr.jpg 或 /images/personal-qr.jpg"
+                      />
+                      {form.personalQrUrl && (
+                        <div className="mt-2 inline-flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                          <div className="w-16 h-16 rounded overflow-hidden bg-white relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={form.personalQrUrl} alt="预览" className="absolute inset-0 w-full h-full object-contain" />
+                          </div>
+                          <div className="text-xs text-gray-500">预览</div>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        提示：将个人收款码图片上传到服务器 <code className="text-[10px]">/public/images/</code> 目录，或使用图床URL。
+                        用户付款后需联系客服核销订单（无自动回调）。
+                      </p>
                     </>
                   )}
 

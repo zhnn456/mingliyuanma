@@ -28,6 +28,7 @@ interface MethodsConfig {
   alipay: boolean;
   paypal: boolean;
   zpay: boolean;
+  personalqr: boolean;
   cardkey: boolean;
 }
 
@@ -44,6 +45,7 @@ const BASE_PAYMENT_METHODS = [
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
   { id: 'zpay', name: 'Z-Pay 支付宝', icon: '💎', desc: '通过 Z-Pay 使用支付宝付款（无需备案）' },
+  { id: 'personalqr', name: '个人收款码', icon: '📱', desc: '微信/支付宝个人收款码，扫码付款后联系客服核销' },
   { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
   { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '' }, // desc 在组件内拼接客服联系方式
 ];
@@ -66,7 +68,9 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
   const [redirecting, setRedirecting] = useState(false);
-  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, zpay: false, cardkey: true });
+  const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, zpay: false, personalqr: false, cardkey: true });
+  // 个人收款码弹窗状态
+  const [personalQrModal, setPersonalQrModal] = useState<{ url: string; type: string } | null>(null);
 
   // 客服配置（联系方式 + 联系方式类型标签），从后台动态获取，替换硬编码
   const [csContact, setCsContact] = useState('Xcbot2026');
@@ -378,6 +382,50 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
 
     // PayPal：创建订单后跳转到 PayPal.me 收款页（新窗口）
     // 付款完成后由客服在后台手动核销订单
+    // 个人收款码：调用 create 创建订单，前端展示收款码弹窗
+    if (selectedMethod === 'personalqr') {
+      setPaying(true);
+      try {
+        const body = buildCreateBody('personalqr');
+        if (!body) {
+          setPaying(false);
+          return;
+        }
+        const res = await fetch('/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || '创建订单失败');
+          setPaying(false);
+          return;
+        }
+        if (data.order?.orderNo) {
+          setPollOrderNo(data.order.orderNo);
+          setOrder((prev) =>
+            prev
+              ? { ...prev, orderNo: data.order.orderNo, amount: data.order.amount ?? prev.amount, paymentMethod: 'personalqr' }
+              : prev,
+          );
+        }
+        const pay = data.payment || {};
+        if (pay.paymentQrUrl) {
+          // 展示个人收款码弹窗
+          setPersonalQrModal({ url: pay.paymentQrUrl, type: pay.paymentQrType || 'wechat' });
+          setPaying(false);
+        } else {
+          setError('个人收款码未配置，请在后台设置收款码图片URL');
+          setPaying(false);
+        }
+      } catch {
+        setError('网络错误，请重试');
+        setPaying(false);
+      }
+      return;
+    }
+
     if (selectedMethod === 'paypal') {
       setPaying(true);
       setRedirecting(true);
@@ -552,6 +600,38 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           </div>
         )}
 
+        {/* 个人收款码弹窗（微信/支付宝个人收款码，扫码付款后联系客服核销） */}
+        {personalQrModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPersonalQrModal(null)}>
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-base font-bold text-gray-900 mb-1">
+                {personalQrModal.type === 'alipay' ? '支付宝' : personalQrModal.type === 'unionpay' ? '银联' : '微信'}扫码付款
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                应付金额：¥{(order?.amount ?? 0).toFixed(2)} · 订单号：{order?.orderNo}
+              </p>
+              <div className="w-full max-w-[260px] mx-auto mb-4 rounded-xl overflow-hidden border-2 border-stone-100 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={personalQrModal.url} alt="个人收款码" className="w-full h-auto" />
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  1. 请使用{personalQrModal.type === 'alipay' ? '支付宝' : '微信'}扫一扫上方收款码<br/>
+                  2. 付款时请<b>备注订单号后 6 位</b>：{(order?.orderNo || '').slice(-6)}<br/>
+                  3. 付款完成后联系客服{csContactLabel} <span className="font-mono">{csContact}</span> 核销订单
+                </p>
+              </div>
+              <button
+                onClick={() => setPersonalQrModal(null)}
+                className="w-full px-4 py-2 bg-stone-800 text-white rounded-lg text-sm"
+              >
+                关闭
+              </button>
+              <p className="text-xs text-gray-400 mt-3">付款后客服核销成功，本页面将自动刷新为已支付</p>
+            </div>
+          </div>
+        )}
+
         {/* 支付方式 */}
         <div className="card mb-6">
           <h2 className="card-title">选择支付方式</h2>
@@ -567,6 +647,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
                   : method.id === 'wechat' ? methodsConfig.wechat
                   : method.id === 'alipay' ? methodsConfig.alipay
                   : method.id === 'zpay' ? (methodsConfig.zpay ?? false)
+                  : method.id === 'personalqr' ? (methodsConfig.personalqr ?? false)
                   : method.id === 'paypal' ? (methodsConfig.paypal ?? false)
                   : method.id === 'cardkey' ? true
                   : false;
