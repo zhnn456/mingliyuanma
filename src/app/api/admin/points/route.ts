@@ -1,3 +1,8 @@
+/**
+ * 积分管理API
+ * 功能：积分流水查询、积分增减操作
+ * 用途：积分系统管理、用户积分调整
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';

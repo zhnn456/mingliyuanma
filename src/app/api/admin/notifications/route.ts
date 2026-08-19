@@ -1,3 +1,8 @@
+/**
+ * 系统通知管理API
+ * 功能：通知列表查询、创建通知（支持按用户/角色定向推送）、标记已读
+ * 用途：向管理员或特定用户群发送系统消息、公告提醒
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

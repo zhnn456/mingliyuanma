@@ -1,3 +1,8 @@
+/**
+ * 命理师管理API
+ * 功能：命理师表管理，支持添加/编辑/禁用命理师账号
+ * 用途：运营团队管理排盘分析师账号和权限
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

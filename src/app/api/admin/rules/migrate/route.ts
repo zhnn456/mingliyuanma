@@ -1,4 +1,10 @@
+/**
+ * 规则迁移API
+ * 功能：将代码中硬编码的命理规则批量导入数据库表
+ * 用途：初始数据迁移、新增古籍资料后批量导入
+ */
 import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
+import { auditLog } from '@/lib/audit';
 /**
  * 规则迁移 API
  *
@@ -278,6 +284,13 @@ export async function POST(request: NextRequest) {
     migrated = await batchUpsertRules(rules);
 
     const stats = await getRuleStats();
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_migrate_rules',
+      details: { migrated, details: log, stats },
+      status: 'success',
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,3 +1,8 @@
+/**
+ * 供品商品管理API
+ * 功能：供品商品CRUD，支持分类管理和库存管理
+ * 用途：运营配置供奉商品，管理香火/鲜花/供品等商品
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute, batch, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';

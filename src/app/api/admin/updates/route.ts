@@ -1,6 +1,12 @@
+/**
+ * 版本更新管理API
+ * 功能：新版本发布管理、更新日志、版本回滚
+ * 用途：应用版本发布控制、更新通知推送
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -65,6 +71,13 @@ export async function POST(req: NextRequest) {
       isCurrent ? 1 : 0, isLatest ? 1 : 0, now, session?.id || null
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_create_updatelog',
+      details: { id, version, title, category: category || '改进', isCurrent, isLatest },
+      status: 'success',
+    });
+
     return NextResponse.json({ success: true, id, version });
   } catch (error) {
     console.error('创建更新日志失败:', error);
@@ -74,7 +87,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { id, version, title, category, content, isCurrent, isLatest } = await req.json();
@@ -104,6 +117,13 @@ export async function PUT(req: NextRequest) {
     params.push(id);
     await execute(`UPDATE UpdateLog SET ${fields.join(', ')} WHERE id = ?`, ...params);
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_updatelog',
+      details: { id, updates: { version, title, category, isCurrent, isLatest } },
+      status: 'success',
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('更新日志失败:', error);
@@ -113,7 +133,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
@@ -129,6 +149,13 @@ export async function DELETE(req: NextRequest) {
     } else {
       await execute('DELETE FROM UpdateLog WHERE version = ?', version!);
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_delete_updatelog',
+      details: { id, version },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,3 +1,8 @@
+/**
+ * 供奉记录查询API
+ * 功能：供奉订单记录查询，支持按用户/状态/时间筛选
+ * 用途：供奉活动订单管理、用户供奉记录查看
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll } from '@/lib/d1';

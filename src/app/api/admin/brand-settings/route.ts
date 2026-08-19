@@ -1,3 +1,8 @@
+/**
+ * 品牌设置API
+ * 功能：读写品牌相关配置（品牌名、Logo、标语），主站和独立站通用
+ * 用途：品牌展示配置，前台通过 /api/public/agent-brand 读取
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll, queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';

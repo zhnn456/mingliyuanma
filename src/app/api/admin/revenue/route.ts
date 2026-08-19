@@ -1,3 +1,8 @@
+/**
+ * 收入趋势API
+ * 功能：按时间范围查询付费订单流水，支持自定义日期范围
+ * 用途：收入趋势分析、日收入统计
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll } from '@/lib/d1';

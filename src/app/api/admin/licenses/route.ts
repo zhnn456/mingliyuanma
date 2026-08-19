@@ -1,3 +1,8 @@
+/**
+ * 授权密钥管理API
+ * 功能：代理商授权密钥的生成、查询、吊销和重置
+ * 用途：源码站授权管理、License分发控制
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';

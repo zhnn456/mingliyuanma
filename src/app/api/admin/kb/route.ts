@@ -1,3 +1,8 @@
+/**
+ * 知识库管理API
+ * 功能：知识库文章CRUD，支持分类管理和搜索
+ * 用途：运营维护帮助中心内容，提升用户体验
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

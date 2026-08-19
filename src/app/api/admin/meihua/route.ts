@@ -1,3 +1,8 @@
+/**
+ * 梅花易数排盘管理API
+ * 功能：梅花易数排盘记录和解读管理
+ * 用途：查看排盘历史、管理梅花易数功能配置
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

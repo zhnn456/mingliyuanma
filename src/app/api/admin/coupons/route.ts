@@ -1,3 +1,8 @@
+/**
+ * 优惠券管理API
+ * 功能：优惠券列表查询、创建优惠券（支持折扣/满减/有效期）、按code兑换
+ * 用途：营销促销、用户激励、代理商专属优惠码
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { listCoupons, createCoupon, getCouponByCode, execute } from '@/lib/d1';

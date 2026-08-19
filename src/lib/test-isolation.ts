@@ -47,9 +47,17 @@ export function buildUserIsolationClause(session: any): { where: string; params:
   const likeConditions = TEST_EMAIL_KEYWORDS.map(() => 'email LIKE ?').join(' OR ');
   const likeParams = TEST_EMAIL_KEYWORDS.map(k => `%${k}%`);
 
+  // 只有当有主管理员邮箱时才添加排除子句，避免生成空括号语法错误
+  const excludeEmailsClause = PRIMARY_ADMIN_EMAILS.length > 0
+    ? ` AND email NOT IN (${PRIMARY_ADMIN_EMAILS.map(() => '?').join(',')})`
+    : '';
+  const excludeEmailsParams = PRIMARY_ADMIN_EMAILS.length > 0
+    ? [...PRIMARY_ADMIN_EMAILS]
+    : [];
+
   return {
-    where: `(${likeConditions} OR id = ?) AND email NOT IN (${PRIMARY_ADMIN_EMAILS.map(() => '?').join(',')})`,
-    params: [...likeParams, currentUserId, ...PRIMARY_ADMIN_EMAILS],
+    where: `(${likeConditions} OR id = ?)${excludeEmailsClause}`,
+    params: [...likeParams, currentUserId, ...excludeEmailsParams],
   };
 }
 
@@ -68,8 +76,13 @@ export function buildAdminIsolationClause(session: any): { where: string; params
   const idPlaceholders = PRIMARY_ADMIN_IDS.map(() => '?').join(',');
   const emailPlaceholders = PRIMARY_ADMIN_EMAILS.map(() => '?').join(',');
 
+  // 只有当有主管理员邮箱时才添加排除子句
+  const excludeEmailsClause = PRIMARY_ADMIN_EMAILS.length > 0
+    ? ` AND email NOT IN (${emailPlaceholders})`
+    : '';
+
   return {
-    where: `(email LIKE ?) AND id NOT IN (${idPlaceholders}) AND email NOT IN (${emailPlaceholders})`,
+    where: `(email LIKE ?) AND id NOT IN (${idPlaceholders})${excludeEmailsClause}`,
     params: ['%test%', ...PRIMARY_ADMIN_IDS, ...PRIMARY_ADMIN_EMAILS],
   };
 }

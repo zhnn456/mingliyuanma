@@ -1,3 +1,8 @@
+/**
+ * 审计日志查询API
+ * 功能：查询所有管理员操作记录，支持按日期/操作类型/状态/用户筛选
+ * 用途：安全审计、操作追溯、异常行为监控
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAuditLogs, cleanOldAuditLogs } from '@/lib/audit';
 import { requireAdmin } from '@/lib/auth-server';

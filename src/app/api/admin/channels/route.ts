@@ -1,3 +1,8 @@
+/**
+ * 渠道管理API
+ * 功能：推广渠道配置管理，追踪各渠道来源用户
+ * 用途：营销渠道效果分析、渠道商管理
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

@@ -6,7 +6,7 @@
  * 未构建时（开发模式）使用占位符，getSystemVersion() 会回退到运行时值
  */
 
-export const APP_VERSION = '4.0.0';
+export const APP_VERSION = '4.1.0';
 export const APP_NAME = '知微阁';
 export const APP_CODENAME = '商源';
 

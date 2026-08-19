@@ -5,13 +5,13 @@ import { queryFirst, queryAll } from '@/lib/d1';
 // 获取用户有效会员等级
 async function getUserMemberLevel(userId: string): Promise<string> {
   const user = await queryFirst(
-    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    'SELECT memberLevel, memberExpiryAt FROM User WHERE id = ?',
     userId
   ) as any;
   if (!user) return 'free';
   let level = user.memberLevel || 'free';
-  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
-    if (new Date(user.memberExpiry) < new Date()) {
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiryAt) {
+    if (new Date(user.memberExpiryAt) < new Date()) {
       level = 'free';
     }
   }

@@ -1,3 +1,8 @@
+/**
+ * 供奉用品供应API
+ * 功能：供奉用品（福灯/鲜花/香烛等）库存管理和配置
+ * 用途：供品库存管理、商品配置
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';

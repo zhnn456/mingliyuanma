@@ -1,3 +1,8 @@
+/**
+ * 公告管理API
+ * 功能：公告列表查询（含禁用状态）、创建/更新/删除公告
+ * 用途：向全站用户发布系统公告、维护通知、功能更新说明
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import {

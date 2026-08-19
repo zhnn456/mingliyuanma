@@ -1,3 +1,8 @@
+/**
+ * 工单消息管理API
+ * 功能：工单聊天记录查询，支持客服和用户对话历史
+ * 用途：客服工单系统消息管理
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

@@ -1,3 +1,8 @@
+/**
+ * 消息模板管理API
+ * 功能：系统消息模板CRUD，支持短信/站内信/邮件模板
+ * 用途：运营配置通知模板，管理消息发送内容
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

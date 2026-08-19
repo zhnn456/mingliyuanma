@@ -1,8 +1,20 @@
+/**
+ * 用户管理API
+ * 功能：用户列表查询、批量更新会员等级/角色、数据隔离（代理商只看自己的用户）
+ * 用法：GET ?page=1&pageSize=20&keyword=xxx - 搜索用户；PUT - 更新用户属性
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, getUserStats } from '@/lib/d1';
 import { buildUserIsolationClause } from '@/lib/test-isolation';
 import { auditLog } from '@/lib/audit';
+
+/**
+ * 获取当前请求的agentId（用于数据隔离）
+ */
+function getAgentId(req: NextRequest): string | null {
+  return req.headers.get('x-agent-id') || null;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,6 +28,9 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
+    // 获取当前代理商ID
+    const agentId = getAgentId(req);
+
     // 数据隔离：非主管理员只看测试用户
     const isolation = buildUserIsolationClause(session);
 
@@ -25,9 +40,16 @@ export async function GET(req: NextRequest) {
     const countParams: any[] = [];
     const whereParts: string[] = [];
 
-    // 隔离条件
+    // 代理商数据隔离：只查看属于该代理商的用户
+    if (agentId) {
+      whereParts.push('agentId = ?');
+      params.push(agentId);
+      countParams.push(agentId);
+    }
+
+    // 隔离条件 - 修复：当PRIMARY_ADMIN_EMAILS为空时不包含NOT IN子句
     if (isolation.where) {
-      whereParts.push(isolation.where);
+      whereParts.push(`(${isolation.where})`);
       params.push(...isolation.params);
       countParams.push(...isolation.params);
     }
@@ -47,8 +69,9 @@ export async function GET(req: NextRequest) {
     }
 
     // mysql2 prepared statement 不支持 LIMIT ? OFFSET ?，用整数拼接（已 parseInt 安全）
-    const offset = (page - 1) * pageSize;
-    sql += ` ORDER BY createdAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
+    const offset = Math.max(0, (page - 1) * pageSize);
+    const limit = Math.max(1, Math.min(100, pageSize));
+    sql += ` ORDER BY createdAt DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const users = await queryAll(sql, ...params) as any[];
     const totalRow = await queryFirst(countSql, ...countParams) as any;
@@ -73,9 +96,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
+    const agentId = getAgentId(req);
     const body = await req.json();
     const { userId, memberLevel, role, memberExpiry } = body;
     if (!userId) return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });
+
+    // 代理商只能修改自己的用户
+    if (agentId) {
+      const user = await queryFirst('SELECT id, agentId FROM User WHERE id = ?', userId);
+      if (!user) return NextResponse.json({ error: '用户不存在' }, { status: 404 });
+      if (user.agentId !== agentId) {
+        return NextResponse.json({ error: '无权限修改该用户' }, { status: 403 });
+      }
+    }
 
     const VALID_MEMBER_LEVELS = ['free', 'monthly', 'yearly', 'lifetime'];
     const VALID_ROLES = ['user', 'admin', 'agent'];

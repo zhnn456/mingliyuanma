@@ -1,3 +1,8 @@
+/**
+ * 首页Banner管理API
+ * 功能：查询和配置首页轮播图/广告位，按位置分类管理
+ * 用途：运营配置首页展示内容，支持多位置banner管理
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

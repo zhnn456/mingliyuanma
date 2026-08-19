@@ -1,3 +1,8 @@
+/**
+ * 佣金规则配置API
+ * 功能：设置各产品类型/代理商等级的佣金比例规则
+ * 用途：灵活配置分账策略，支持多级分销佣金计算
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';

@@ -1,3 +1,8 @@
+/**
+ * 代理商充值API
+ * 功能：管理员为代理商账户充值或扣减余额（正数充值，负数扣减）
+ * 用途：代理商账户余额管理，支持手动调账
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute, ensureCommissionTables } from '@/lib/d1';
 import { requirePrimaryAdmin } from '@/lib/auth-server';

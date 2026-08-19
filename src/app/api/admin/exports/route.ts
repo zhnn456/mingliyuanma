@@ -1,3 +1,8 @@
+/**
+ * 数据导出API
+ * 功能：用户数据、订单数据等多格式导出（CSV/Excel）
+ * 用途：数据分析、报表生成、数据备份
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

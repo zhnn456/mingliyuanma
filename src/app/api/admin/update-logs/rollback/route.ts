@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,6 +62,13 @@ export async function POST(req: NextRequest) {
         currentVersion.version
       );
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_rollback_updatelog',
+      details: { targetVersion, reason, rollbackLogId: id, fromVersion: currentVersion?.version },
+      status: 'success',
+    });
 
     return NextResponse.json({
       success: true,

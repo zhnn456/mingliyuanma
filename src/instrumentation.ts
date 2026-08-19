@@ -40,7 +40,8 @@ export async function register() {
   const licenseKey = process.env.APP_LICENSE_KEY || '';
   const agentId = process.env.APP_AGENT_ID || '';
   const centerApi = process.env.CENTER_API || '';
-  const domain = process.env.NEXTAUTH_URL || '';
+  const rawDomain = process.env.NEXTAUTH_URL || '';
+  const domain = rawDomain.replace(/^https?:\/\//, '');
 
   console.log('[License] 源码站点模式，启动授权验证...');
   console.log(`[License]   AgentID: ${agentId}`);

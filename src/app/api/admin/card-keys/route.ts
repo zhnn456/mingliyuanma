@@ -1,3 +1,8 @@
+/**
+ * 卡密管理API
+ * 功能：卡密批量生成、查询、状态管理，支持积分卡密和代理商余额卡密
+ * 用途：卡密发放、核销管理、过期自动标记
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { ensureCardKeyTable, queryAll, queryFirst, execute } from '@/lib/d1';

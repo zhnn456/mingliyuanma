@@ -1,3 +1,8 @@
+/**
+ * 佣金统计API
+ * 功能：查询代理商佣金汇总、待结算金额、已结算金额
+ * 用途：代理商佣金看板、财务对账
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, ensureCommissionTables } from '@/lib/d1';

@@ -4,6 +4,16 @@
  * 修改价格时只需改这一处，全站自动生效。
  */
 
+// ============ 会员等级定义 ============
+export const MEMBER_LEVELS = {
+  free: '免费用户',
+  basic: '基础会员',
+  premium: '高级会员',
+  lifetime: '终身会员',
+} as const;
+
+export type MemberLevel = keyof typeof MEMBER_LEVELS;
+
 // ============ 代理商套餐价格 ============
 export const AGENT_PLANS = {
   trial: {
@@ -11,24 +21,28 @@ export const AGENT_PLANS = {
     price: 0,                    // 修改这里调整试用版价格
     durationDays: 7,
     maxCustomers: 10,
+    commissionRate: 0.30,
   },
   monthly: {
     name: '月费版',
     price: 99,                   // 修改这里调整月费版价格
     durationDays: 30,
     maxCustomers: 500,
+    commissionRate: 0.30,
   },
   yearly: {
     name: '年费版',
     price: 980,                  // 修改这里调整年费版价格
     durationDays: 365,
     maxCustomers: 500,
+    commissionRate: 0.30,
   },
-  lifetime: {
-    name: '终身版',
-    price: 2980,                 // 修改这里调整终身版价格
-    durationDays: 36500,
+  flagship: {
+    name: '旗舰版',
+    price: 2980,                 // 修改这里调整旗舰版价格
+    durationDays: 365,
     maxCustomers: 9999,
+    commissionRate: 0.35,
   },
 } as const;
 
@@ -46,6 +60,15 @@ export const AGENT_ADDONS = {
     price: 2980,                 // 修改这里调整源码买断费
     durationDays: 36500,
   },
+} as const;
+
+// ============ 代理商等级与分润比例 ============
+export const AGENT_TIERS = {
+  trial: { name: '试用代理', minCustomers: 0, commissionRate: 0.30 },
+  formal: { name: '正式代理', minCustomers: 0, commissionRate: 0.30 },
+  silver: { name: '银牌代理', minCustomers: 100, commissionRate: 0.32 },
+  gold: { name: '金牌代理', minCustomers: 500, commissionRate: 0.35 },
+  diamond: { name: '钻石代理', minCustomers: 1000, commissionRate: 0.38 },
 } as const;
 
 // ============ 用户积分充值 ============
@@ -75,3 +98,25 @@ export const CARD_KEY_DENOMINATIONS = [
 
 // ============ 汇率 ============
 export const LINGZHU_PER_YUAN = 10;  // 1元 = 10积分
+
+// ============ 提现规则 ============
+export const WITHDRAWAL_RULES = {
+  minAmount: 100,        // 最低提现金额（元）
+  maxPerMonth: 3,        // 每月最多提现次数
+  feeRate: 0.05,         // 提现手续费率（5%）
+  reviewDays: 3,         // 审核时限（工作日）
+} as const;
+
+// ============ 获取代理商等级 ============
+export function getAgentTier(customerCount: number): typeof AGENT_TIERS[keyof typeof AGENT_TIERS] {
+  if (customerCount >= AGENT_TIERS.diamond.minCustomers) return AGENT_TIERS.diamond;
+  if (customerCount >= AGENT_TIERS.gold.minCustomers) return AGENT_TIERS.gold;
+  if (customerCount >= AGENT_TIERS.silver.minCustomers) return AGENT_TIERS.silver;
+  if (customerCount >= AGENT_TIERS.formal.minCustomers) return AGENT_TIERS.formal;
+  return AGENT_TIERS.trial;
+}
+
+// ============ 根据套餐类型获取配置 ============
+export function getAgentPlanConfig(planType: string) {
+  return AGENT_PLANS[planType as keyof typeof AGENT_PLANS] || AGENT_PLANS.monthly;
+}

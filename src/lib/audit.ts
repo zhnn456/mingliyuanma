@@ -22,7 +22,13 @@ export type AuditAction =
   | 'security_violation' | 'rate_limit_hit'
   | 'admin_create_admin' | 'admin_update_admin' | 'admin_delete_admin'
   | 'admin_create_announcement' | 'admin_update_announcement' | 'admin_delete_announcement'
-  | 'admin_update_payment_config' | 'admin_update_brand_settings';
+  | 'admin_update_payment_config' | 'admin_update_brand_settings'
+  | 'admin_create_updatelog' | 'admin_update_updatelog' | 'admin_delete_updatelog'
+  | 'admin_apply_upgrade'
+  | 'admin_rollback_upgrade'
+  | 'admin_migrate_rules'
+  | 'admin_publish_version' | 'admin_update_version' | 'admin_delete_version'
+  | 'admin_rollback_updatelog' | 'admin_batch_tag' | 'admin_update_mock_config' | 'admin_clawback_commission';
 
 export interface AuditLogData {
   userId?: string;

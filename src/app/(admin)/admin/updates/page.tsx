@@ -101,6 +101,11 @@ export default function AdminUpdatesPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeStatus, setUpgradeStatus] = useState('');
   const [upgradeResult, setUpgradeResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showRollback, setShowRollback] = useState(false);
+  const [rollbackLoading, setRollbackLoading] = useState(false);
+  const [rollbackList, setRollbackList] = useState<Array<{ path: string; name: string; ts: string; size: string; mtime: string }>>([]);
+  const [rolling, setRolling] = useState(false);
+  const [rollbackResult, setRollbackResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const applyUpgrade = async () => {
     if (!confirm('确定要执行一键升级吗？升级过程中服务会短暂重启。')) return;
@@ -140,6 +145,53 @@ export default function AdminUpdatesPage() {
       });
       setUpgrading(false);
       setUpgradeStatus('');
+    }
+  };
+
+  const loadBackups = async () => {
+    setRollbackLoading(true);
+    try {
+      const res = await fetch('/api/admin/rollback');
+      const data = await res.json();
+      setRollbackList(data.backups || []);
+    } catch {
+      setRollbackList([]);
+    } finally {
+      setRollbackLoading(false);
+    }
+  };
+
+  const toggleRollback = () => {
+    const next = !showRollback;
+    setShowRollback(next);
+    if (next && rollbackList.length === 0) loadBackups();
+  };
+
+  const applyRollback = async (backupPath: string, backupName: string) => {
+    if (!confirm(`确定要回滚到此备份吗？\n${backupName}\n\n回滚后服务会短暂重启，当前版本将自动备份。`)) return;
+    setRolling(true);
+    setRollbackResult(null);
+    try {
+      const res = await fetch('/api/admin/rollback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backupPath }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRollbackResult({ success: true, message: '已从备份恢复，服务正在重启' });
+        setTimeout(() => {
+          setShowRollback(false);
+          setRolling(false);
+          fetchUpgradeInfo();
+        }, 10000);
+      } else {
+        setRollbackResult({ success: false, message: data.reason || data.error || '回滚失败' });
+        setRolling(false);
+      }
+    } catch (e) {
+      setRollbackResult({ success: false, message: e instanceof Error ? e.message : '网络错误' });
+      setRolling(false);
     }
   };
 
@@ -474,6 +526,65 @@ export default function AdminUpdatesPage() {
                       </div>
                       <div className="mt-2 text-xs text-gray-400">
                         点击"一键升级"将自动下载并安装更新，升级后服务会自动重启
+                      </div>
+                      {/* 回滚区域 */}
+                      <div className="mt-3 pt-3 border-t border-orange-200">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={toggleRollback}
+                            disabled={rolling}
+                            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 border border-gray-300 inline-flex items-center gap-1.5"
+                          >
+                            {showRollback ? '收起备份列表' : '↩ 回滚到旧版本'}
+                          </button>
+                          {showRollback && (
+                            <button
+                              onClick={loadBackups}
+                              disabled={rollbackLoading}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              {rollbackLoading ? '刷新中...' : '刷新列表'}
+                            </button>
+                          )}
+                          {rollbackResult && (
+                            <span className={`text-xs ${rollbackResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                              {rollbackResult.success ? '✓ ' : '✗ '}{rollbackResult.message}
+                            </span>
+                          )}
+                        </div>
+                        {showRollback && (
+                          <div className="mt-2">
+                            {rollbackLoading && rollbackList.length === 0 ? (
+                              <div className="text-xs text-gray-400 py-2">加载备份列表中...</div>
+                            ) : rollbackList.length === 0 ? (
+                              <div className="text-xs text-gray-400 py-2">暂无可用备份</div>
+                            ) : (
+                              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                {rollbackList.map((b) => (
+                                  <div key={b.path} className="flex items-center justify-between bg-white border border-gray-200 rounded-md px-3 py-1.5 text-xs">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-gray-700 truncate">{b.name}</div>
+                                      <div className="text-[10px] text-gray-400">
+                                        {b.mtime && <span>时间: {b.mtime}</span>}
+                                        {b.size && <span className="ml-2">大小: {b.size}</span>}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => applyRollback(b.path, b.name)}
+                                      disabled={rolling}
+                                      className="ml-2 px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-medium hover:bg-red-100 disabled:opacity-50 whitespace-nowrap"
+                                    >
+                                      {rolling ? '回滚中...' : '回滚'}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-1.5 text-[10px] text-gray-400">
+                              回滚会将 .next 恢复到备份时的状态，当前版本会自动备份
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

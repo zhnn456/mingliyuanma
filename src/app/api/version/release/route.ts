@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
 import { queryAll } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
       now
     );
 
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_publish_version',
+      details: { id, version, title, makeLatest },
+      status: 'success',
+    });
+
     return NextResponse.json({
       success: true,
       version,
@@ -118,7 +126,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
@@ -133,21 +141,45 @@ export async function PUT(req: NextRequest) {
     if (action === 'make_latest') {
       await execute('UPDATE Version SET isLatest = 0');
       await execute('UPDATE Version SET isLatest = 1 WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_version',
+        details: { id, action: 'make_latest' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, message: '已设为最新版本' });
     }
 
     if (action === 'deprecate') {
       await execute('UPDATE Version SET isDeprecated = 1, isLatest = 0 WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_version',
+        details: { id, action: 'deprecate' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, message: '版本已弃用' });
     }
 
     if (action === 'undeprecate') {
       await execute('UPDATE Version SET isDeprecated = 0 WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_version',
+        details: { id, action: 'undeprecate' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, message: '版本已恢复' });
     }
 
     if (action === 'delete') {
       await execute('DELETE FROM Version WHERE id = ?', id);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_delete_version',
+        details: { id },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, message: '版本已删除' });
     }
 

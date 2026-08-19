@@ -1,3 +1,8 @@
+/**
+ * 营销活动管理API
+ * 功能：活动列表查询、创建/更新/删除营销活动
+ * 用途：运营配置限时活动、促销活动等营销场景
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

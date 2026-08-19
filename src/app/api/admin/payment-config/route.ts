@@ -1,3 +1,8 @@
+/**
+ * 支付配置管理API
+ * 功能：微信支付/支付宝等支付渠道配置管理
+ * 用途：配置支付密钥、开关支付渠道、管理支付参数
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';

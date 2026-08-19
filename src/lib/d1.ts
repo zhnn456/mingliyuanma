@@ -386,7 +386,10 @@ export async function ensureWithdrawalTable() {
     `CREATE TABLE IF NOT EXISTS "Withdrawal" (
       "id" VARCHAR(255) NOT NULL PRIMARY KEY,
       "userId" VARCHAR(255) NOT NULL,
+      "agentId" VARCHAR(255),
       "amount" DOUBLE NOT NULL,
+      "fee" DOUBLE NOT NULL DEFAULT 0,
+      "actualAmount" DOUBLE NOT NULL DEFAULT 0,
       "method" VARCHAR(50) NOT NULL,
       "account" VARCHAR(255) NOT NULL,
       "accountName" VARCHAR(255) NOT NULL,
@@ -395,10 +398,23 @@ export async function ensureWithdrawalTable() {
       "auditRemark" TEXT,
       "auditorId" VARCHAR(255),
       "auditedAt" DATETIME,
+      "paidAt" DATETIME,
+      "paidMethod" VARCHAR(50),
+      "paidAccount" VARCHAR(255),
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
   );
+
+  // 添加缺失的字段（兼容旧表）
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "agentId" VARCHAR(255)'); } catch {}
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "fee" DOUBLE NOT NULL DEFAULT 0'); } catch {}
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "actualAmount" DOUBLE NOT NULL DEFAULT 0'); } catch {}
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "paidAt" DATETIME'); } catch {}
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "paidMethod" VARCHAR(50)'); } catch {}
+  try { await execute('ALTER TABLE "Withdrawal" ADD COLUMN "paidAccount" VARCHAR(255)'); } catch {}
+
   await execute('CREATE INDEX IF NOT EXISTS "Withdrawal_userId_idx" ON "Withdrawal"("userId")');
+  await execute('CREATE INDEX IF NOT EXISTS "Withdrawal_agentId_idx" ON "Withdrawal"("agentId")');
   await execute('CREATE INDEX IF NOT EXISTS "Withdrawal_status_idx" ON "Withdrawal"("status")');
   await execute('CREATE INDEX IF NOT EXISTS "Withdrawal_createdAt_idx" ON "Withdrawal"("createdAt")');
 }
@@ -416,11 +432,16 @@ export async function getWithdrawalStats() {
     'SELECT COALESCE(SUM(amount), 0) as total, COUNT(*) as cnt FROM "Withdrawal" WHERE createdAt >= ?',
     firstDay
   ) as any;
+  const completedRow = await queryFirst(
+    'SELECT COALESCE(SUM(amount), 0) as total FROM "Withdrawal" WHERE status = ?',
+    'completed'
+  ) as any;
   return {
     pendingAmount: pendingRow?.total || 0,
     pendingCount: pendingRow?.cnt || 0,
     monthAmount: monthRow?.total || 0,
     monthCount: monthRow?.cnt || 0,
+    completedAmount: completedRow?.total || 0,
   };
 }
 

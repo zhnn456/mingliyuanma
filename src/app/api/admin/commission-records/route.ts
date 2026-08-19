@@ -1,6 +1,12 @@
+/**
+ * 佣金记录查询API
+ * 功能：查询各代理商佣金明细、平台佣金统计、佣金追回
+ * 用途：佣金对账、财务审计、异常佣金处理
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { listCommissionRecords, getPlatformCommissionStats, clawbackCommission } from '@/lib/commission';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -44,7 +50,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -54,6 +60,12 @@ export async function POST(req: NextRequest) {
       if (!orderId) return NextResponse.json({ error: '缺少订单ID' }, { status: 400 });
 
       const count = await clawbackCommission(orderId);
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_clawback_commission',
+        details: { orderId, clawedBackCount: count },
+        status: 'success',
+      });
       return NextResponse.json({ success: true, clawedBackCount: count });
     }
 

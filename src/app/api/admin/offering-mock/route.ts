@@ -1,6 +1,12 @@
+/**
+ * 供奉模拟统计API
+ * 功能：供奉数据统计，支持模拟供奉记录和统计
+ * 用途：数据分析、供奉活动效果统计
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { execute, queryFirst, getMockConfig, ensureOfferingMockConfigTable, seedMockConfig, calcMockStats } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,7 +44,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -52,6 +58,12 @@ export async function POST(req: NextRequest) {
          WHERE id='default'`,
         '2026-01-01', 12800, 3200, 256000, 80, 15, 12000, 1
       );
+      await auditLog({
+        userId: session?.sub,
+        action: 'admin_update_mock_config',
+        details: { action: 'reset' },
+        status: 'success',
+      });
       return NextResponse.json({ success: true });
     }
 
@@ -83,6 +95,13 @@ export async function POST(req: NextRequest) {
 
     const config = await getMockConfig();
     const mockStats = config ? calcMockStats(config) : null;
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_update_mock_config',
+      details: { action: 'update', fields: updates },
+      status: 'success',
+    });
 
     return NextResponse.json({ success: true, config, mockStats });
   } catch (error: any) {

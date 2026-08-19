@@ -1,3 +1,8 @@
+/**
+ * 文章管理API
+ * 功能：知识库文章CRUD，支持分类、标签、发布状态管理
+ * 用途：管理帮助中心文章、运势资讯等内容
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

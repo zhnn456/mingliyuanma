@@ -1,3 +1,8 @@
+/**
+ * 用户标签管理API
+ * 功能：标签CRUD、用户打标签、按标签筛选用户
+ * 用途：用户分群、精准运营、客户画像
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

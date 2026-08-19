@@ -1,3 +1,8 @@
+/**
+ * 财务对账报表API
+ * 功能：生成财务对账报表，支持按时间范围导出收支明细
+ * 用途：财务审计、对账核查
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';

@@ -1,3 +1,8 @@
+/**
+ * 供奉活动配置API
+ * 功能：供奉活动配置管理，支持分类、活动设置
+ * 用途：运营配置供奉活动规则、商品分类
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, execute, ensureOfferingSupplyTable, seedDefaultSupplies } from '@/lib/d1';

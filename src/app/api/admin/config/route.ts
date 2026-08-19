@@ -1,3 +1,8 @@
+/**
+ * 系统配置管理API
+ * 功能：站点全局配置项的读写，支持分类管理（支付/会员/功能开关等）
+ * 用途：动态调整系统参数，无需重启服务即可生效
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, queryFirst, execute } from '@/lib/d1';

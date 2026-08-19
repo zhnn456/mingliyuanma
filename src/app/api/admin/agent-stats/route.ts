@@ -1,3 +1,8 @@
+/**
+ * 代理商统计API
+ * 功能：按时间范围查询代理商相关订单统计数据
+ * 用途：代理商业绩分析、收入趋势统计
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';

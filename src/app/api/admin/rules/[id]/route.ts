@@ -1,3 +1,8 @@
+/**
+ * 单条规则管理API
+ * 功能：查询、更新、删除单条命理规则（八字/紫微/奇门/梅花）
+ * 用途：规则精准编辑、缓存清理
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, execute } from '@/lib/d1';
 import { requireAdmin } from '@/lib/auth-server';

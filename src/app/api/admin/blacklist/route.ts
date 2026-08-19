@@ -1,3 +1,8 @@
+/**
+ * 用户黑名单管理API
+ * 功能：封禁/解禁用户、设置封禁原因和有效期、支持永久封禁
+ * 用途：违规用户管控、风控拦截、账号安全管理
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

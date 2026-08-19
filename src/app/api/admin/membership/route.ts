@@ -1,3 +1,8 @@
+/**
+ * 会员统计分析API
+ * 功能：查询各会员等级用户分布统计，用于运营决策和会员体系分析
+ * 用途：了解会员结构、评估套餐吸引力、指导营销策略
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

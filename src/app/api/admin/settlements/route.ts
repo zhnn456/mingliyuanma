@@ -1,3 +1,8 @@
+/**
+ * 结算管理API
+ * 功能：结算记录查询、审批结算（通过/拒绝/已支付），联动佣金记录和代理商余额
+ * 用途：代理商佣金结算流程管理
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureCommissionTables } from '@/lib/d1';
 import { requirePrimaryAdmin } from '@/lib/auth-server';

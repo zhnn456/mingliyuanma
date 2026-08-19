@@ -1,39 +1,66 @@
-# 知微阁部署指南（香港服务器）
+# 知微阁部署指南
 
-> 生产环境：香港服务器（47.82.116.220）· PM2 + MySQL · https://ming8.online
+> 生产环境：新中央站 47.79.237.103 · PM2 + MySQL · https://ming8.online
 
 ## 快速部署（一键）
 
 在项目根目录执行：
 
 ```powershell
-# 1. 本地构建（version-inject + 生成知识库 + next build）
+# 1. 本地构建
 npm run build:server
 
-# 2. 打包构建产物（自动排除 .next/cache，仅 ~30MB）
-python deploy/build-zip.py
+# 2. 部署到中央站（默认）
+python scripts/deploy.py
 
-# 3. 部署到服务器（SSH 上传 + 解压 + PM2 重启）
-python deploy/remote-deploy.py
+# 或部署到源码站
+python scripts/deploy.py --target source
+
+# 或部署到测试SaaS站
+python scripts/deploy.py --target test-source
 ```
 
-`remote-deploy.py` 会自动完成：
-1. 停止 ming8 进程
-2. 服务器上 `git pull` 拉取最新代码
-3. 执行 `scripts/mysql-init.sql`（幂等，不会重复插入）
-4. 上传 `next-build.zip` 并解压替换 `.next`
-5. PM2 启动 + 健康检查（HTTP 200）
+`deploy.py` 会自动完成：
+1. 打包本地 `.next`（排除 cache，约 30MB）
+2. SSH 上传到服务器 `/tmp/deploy-next.tar.gz`
+3. 备份旧 `.next` 到 `/www/ming8-backup-{时间戳}`
+4. 解压覆盖 `.next/static`、`.next/server`、`.next/BUILD_ID`
+5. PM2 重启 + 健康检查（HTTP 200）
 
 ## 服务器环境
 
+### 中央站（ming8.online）
+
 | 项 | 值 |
 |---|---|
-| 服务器 | 47.82.116.220（香港，1.6G 内存 + 2G swap）|
+| 服务器 | 47.79.237.103 |
 | 应用目录 | `/www/ming8` |
 | PM2 进程 | `ming8`（`next start -p 3001`）|
 | 数据库 | MySQL `ming8_db`（用户 `ming8`）|
 | 反向代理 | Nginx（80/443 → 3001）|
 | 域名 | https://ming8.online |
+| 角色 | IS_CENTER=true（中央平台模式）|
+
+### 源码站（bazi6.cc.cd）
+
+| 项 | 值 |
+|---|---|
+| 服务器 | 47.79.3.189 |
+| 应用目录 | `/www/ming8` |
+| PM2 进程 | `ming8` |
+| 数据库 | MySQL `ming8_db`（独立） |
+| 角色 | 源码代理站点（需 APP_LICENSE_KEY） |
+
+### 测试 SaaS 站
+
+| 项 | 值 |
+|---|---|
+| 服务器 | 47.79.237.103（与中央站同机） |
+| 应用目录 | `/www/test-source` |
+| PM2 进程 | `test-source` |
+| 数据库 | MySQL `test_source_db`（独立） |
+| 端口 | 3002 |
+| 域名 | https://test-source.ming8.online |
 
 ## 数据库
 
@@ -41,30 +68,21 @@ python deploy/remote-deploy.py
 # 初始化/迁移（幂等，每次部署自动执行）
 mysql -u ming8 -p ming8_db < scripts/mysql-init.sql
 
-# 合规改造专用（供品去宗教化等存量数据更新）
+# 合规改造专用
 mysql -u ming8 -p ming8_db < scripts/update_supplies_compliance.sql
 ```
 
-## 服务器内存受限说明
+## 部署目标对照
 
-服务器内存仅 1.6G，**不要在服务器上执行 `next build`**（会 OOM）。
-标准流程是本地构建 → 上传产物。打包脚本 `deploy/build-zip.py` 已排除
-`.next/cache`（约 950MB 构建缓存），将上传体积从 285MB 降到约 30MB。
-
-## 常见问题
-
-### Q: 上传慢 / 文件大
-A: 确认用的是 `python deploy/build-zip.py` 打包（排除缓存），而非直接压缩 `.next` 整个目录。
-
-### Q: git pull 报 "insufficient permission"
-A: 执行 `chown -R admin:admin /www/ming8/.git` 修复仓库权限。
-
-### Q: 页面 500
-A: `pm2 logs ming8 --lines 50` 查看日志；确认数据库连接（.env.production 中 MYSQL_* 配置）。
+| 服务器 | IP | 部署命令 |
+|--------|-----|---------|
+| 中央站 ming8.online | 47.79.237.103 | `python scripts\deploy.py` |
+| 源码站 bazi6.cc.cd | 47.79.3.189 | `python scripts\deploy.py --target source` |
+| 测试SaaS站 | 47.79.237.103 | `python scripts\deploy.py --target test-source` |
 
 ## 环境变量
 
-`.env.production` 配置（部署时复制到服务器）：
+`.env` 配置（部署时通过脚本写入服务器）：
 
 ```
 MYSQL_HOST=localhost
@@ -74,7 +92,18 @@ MYSQL_PASSWORD=***
 MYSQL_DATABASE=ming8_db
 NEXTAUTH_URL=https://ming8.online
 NEXTAUTH_SECRET=***
-PORT=3001
+IS_CENTER=true
 ```
 
-> 密钥类配置（Stripe 等）不要在代码中硬编码，通过环境变量注入。
+> 密钥类配置（Stripe、PayPal 等）不要在代码中硬编码，通过环境变量注入。
+
+## 常见问题
+
+### Q: 页面 502
+A: PM2 进程未启动。执行 `pm2 list` 查看，若为空则 `cd /www/ming8 && pm2 start ecosystem.config.js`。
+
+### Q: 页面 500
+A: `pm2 logs ming8 --lines 50` 查看日志；确认数据库连接（`.env` 中 MYSQL_* 配置）。
+
+### Q: chunk 404
+A: `.next/static` 缺失或构建不完整。重新 `npm run build:server` 并部署。

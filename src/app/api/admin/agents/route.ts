@@ -1,3 +1,9 @@
+/**
+ * 代理商管理API（仅主管理员可访问）
+ * 功能：代理商列表查询（含客户数统计）、创建新代理商、更新信息、删除、重启license
+ * 支持SaaS和源码两种代理商类型，创建时自动生成授权密钥和子域名
+ * 用法：GET - 列表；POST action=create - 创建；PUT - 更新；DELETE - 删除
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute, ensureAgentDomainFields } from '@/lib/d1';
 import { requirePrimaryAdmin } from '@/lib/auth-server'
@@ -6,6 +12,7 @@ import { hashPassword } from '@/lib/password';
 import { auditLog } from '@/lib/audit';
 import { generateAgentLicenseAsync } from '@/lib/license-generator';
 import { generateSubdomain } from '@/lib/agent-domain';
+import { AGENT_PLANS, AGENT_TIERS, getAgentTier } from '@/lib/pricing';
 
 export async function GET(req: NextRequest) {
   try {

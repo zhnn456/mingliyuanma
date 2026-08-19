@@ -1,3 +1,8 @@
+/**
+ * 代理商财务分成API
+ * 功能：查询各代理商收入分成、佣金结算明细
+ * 用途：代理商财务对账、分账明细查看
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

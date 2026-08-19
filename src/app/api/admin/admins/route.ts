@@ -1,3 +1,8 @@
+/**
+ * 管理员账号管理API
+ * 功能：子管理员列表查询、创建/更新/禁用管理员账号
+ * 用途：主站运营团队权限管理，支持多角色（admin/editor）
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

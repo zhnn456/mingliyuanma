@@ -1,3 +1,8 @@
+/**
+ * 代理商审核API
+ * 功能：代理商入驻申请审核（通过/拒绝），管理代理商授权状态
+ * 用途：审核新代理商申请，控制代理商入驻流程
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

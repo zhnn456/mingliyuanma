@@ -1,3 +1,8 @@
+/**
+ * 命理规则管理API
+ * 功能：规则列表查询（支持分类/类型筛选、关键词搜索、分页）、规则创建/更新/删除
+ * 用途：命理规则库管理，支撑八字/紫微/奇门/梅花排盘算法配置
+ */
 import { requireAdmin, requireAgent, requireAuth } from '@/lib/auth-server';
 /**
  * 规则管理 API

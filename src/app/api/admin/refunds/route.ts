@@ -1,3 +1,8 @@
+/**
+ * 退款管理API
+ * 功能：退款申请审核、退款记录查询、订单退款处理
+ * 用途：售后处理、退款对账
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

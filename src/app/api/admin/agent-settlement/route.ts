@@ -1,3 +1,8 @@
+/**
+ * 代理商结算API
+ * 功能：代理商结算记录管理，支持按周期结算、查看结算明细
+ * 用途：代理商佣金结算管理，跟踪结算进度和支付状态
+ */
 import { requirePrimaryAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

@@ -1,3 +1,8 @@
+/**
+ * 交易导出下载API
+ * 功能：下载已生成的交易导出文件（CSV/Excel格式）
+ * 用途：获取导出报表文件
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll } from '@/lib/d1';

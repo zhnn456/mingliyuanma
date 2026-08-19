@@ -1,3 +1,8 @@
+/**
+ * 导出任务日志API
+ * 功能：查询数据导出任务执行历史和状态
+ * 用途：导出任务监控、失败排查
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

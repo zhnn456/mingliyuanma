@@ -27,12 +27,14 @@ nul
 
 # 部署构建产物（大文件，不进仓库）
 *.zip
+*.tar.gz
 deploy.zip
 next-build.zip
 deploy-assets/
 deploy-tmp/
 deploy-root/
 deploy.zip
+dist-deploy/
 
 # 根目录临时文件（不进仓库）
 /*.txt
@@ -40,6 +42,7 @@ deploy.zip
 /*.html
 /*.png
 /*.py
+/*.jpg
 /gen_hash.js
 /verify_hash.js
 
@@ -49,7 +52,12 @@ deploy.zip
 .lingma/
 .qoder/
 .trae/
+.mimosa/
 skills/
 skills-lock.json
 .vscode/
 .idea/
+
+# 数据库临时文件
+prisma/dev.db-shm
+prisma/dev.db-wal

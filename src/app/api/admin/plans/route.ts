@@ -1,3 +1,8 @@
+/**
+ * 会员套餐管理API
+ * 功能：套餐列表查询、创建/更新套餐（定价/时长/功能描述）、排序管理
+ * 用途：管理销售套餐配置，控制各会员等级的权益和价格
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, queryFirst, execute } from '@/lib/d1';

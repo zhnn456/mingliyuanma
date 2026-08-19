@@ -1,3 +1,8 @@
+/**
+ * 客服聊天管理API
+ * 功能：聊天会话列表查询、消息记录查看
+ * 用途：客服管理、用户咨询历史记录
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute, batch } from '@/lib/d1';
@@ -69,7 +74,7 @@ export async function GET(req: NextRequest) {
       sql += ' AND (s.subject LIKE ? OR s.lastMessage LIKE ? OR u.name LIKE ? OR u.email LIKE ?)';
       params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
     }
-    sql += ` ORDER BY s.lastMessageAt DESC NULLS LAST LIMIT ${pageSize} OFFSET ${offset}`;
+    sql += ` ORDER BY s.lastMessageAt IS NULL, s.lastMessageAt DESC LIMIT ${pageSize} OFFSET ${offset}`;
     const rows = await queryAll(sql, ...params);
 
     let countSql = 'SELECT COUNT(*) as total FROM ChatSession s LEFT JOIN User u ON s.userId = u.id WHERE 1=1';

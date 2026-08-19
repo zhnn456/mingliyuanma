@@ -1,3 +1,8 @@
+/**
+ * 联系留言管理API
+ * 功能：用户提交的各种表单留言查询和管理
+ * 用途：客服跟进、用户反馈处理
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

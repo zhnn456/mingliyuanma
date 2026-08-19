@@ -1,3 +1,8 @@
+/**
+ * 排盘记录查询API
+ * 功能：四类排盘（八字/紫微/奇门/梅花）记录统一查询
+ * 用途：用户排盘历史管理、数据导出
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';

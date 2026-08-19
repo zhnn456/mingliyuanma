@@ -1,3 +1,8 @@
+/**
+ * 协议签署记录管理API
+ * 功能：管理用户签署的协议记录（如服务协议、隐私政策等）
+ * 用途：合规审计、用户协议签署状态查询
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

@@ -1,3 +1,8 @@
+/**
+ * 供奉日历API
+ * 功能：查询和管理供奉活动日历，展示吉日宜忌
+ * 用途：运营查看供奉活动排期，用户端展示宜忌信息
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryAll, queryFirst } from '@/lib/d1';

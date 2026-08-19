@@ -1,3 +1,8 @@
+/**
+ * 命理百科管理API
+ * 功能：百科词条CRUD，支持分类管理和内容编辑
+ * 用途：SEO内容建设、用户教育、知识库运营
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

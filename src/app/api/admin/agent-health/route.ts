@@ -1,3 +1,8 @@
+/**
+ * 独立站健康看板API
+ * 功能：监控所有源码部署代理商的在线状态、版本、最后同步时间、授权到期提醒
+ * 用途：主站监控各独立站运行状态，及时发现异常和即将到期的授权
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll } from '@/lib/d1';
 import { requirePrimaryAdmin } from '@/lib/auth-server';

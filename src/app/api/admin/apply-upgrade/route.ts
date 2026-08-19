@@ -10,7 +10,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePrimaryAdmin } from '@/lib/auth-server';
-import { statSync, createWriteStream } from 'fs';
+import { auditLog } from '@/lib/audit';
+import { statSync, createWriteStream, readFileSync, writeFileSync, existsSync } from 'fs';
 import { createHash } from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -19,7 +20,7 @@ const execAsync = promisify(exec);
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requirePrimaryAdmin(req);
+    const { allowed, session } = await requirePrimaryAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const licenseKey = process.env.APP_LICENSE_KEY || '';
@@ -151,6 +152,29 @@ export async function POST(req: NextRequest) {
       await execAsync(`rm -rf ${tmpDir}`);
     } catch {}
 
+    // 6.5 更新 .env 中的 APP_VERSION（让重启后版本号同步）
+    try {
+      const envPath = '/www/ming8/.env';
+      if (existsSync(envPath)) {
+        const envContent = readFileSync(envPath, 'utf-8');
+        const newEnvContent = envContent.replace(
+          /^APP_VERSION=.*$/m,
+          `APP_VERSION=${checkData.latestVersion}`
+        );
+        if (newEnvContent !== envContent) {
+          writeFileSync(envPath, newEnvContent);
+          console.log(`[Upgrade] APP_VERSION 已更新为 ${checkData.latestVersion}`);
+        } else {
+          // 如果 .env 中没有 APP_VERSION 行，追加一行
+          const appended = envContent.trimEnd() + `\nAPP_VERSION=${checkData.latestVersion}\n`;
+          writeFileSync(envPath, appended);
+          console.log(`[Upgrade] APP_VERSION 已追加为 ${checkData.latestVersion}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('[Upgrade] 更新 APP_VERSION 失败（不影响升级）:', e?.message);
+    }
+
     // 7. 异步重启 PM2（延迟 2 秒，让 API 响应先返回）
     console.log('[Upgrade] 升级完成，正在重启...');
     setTimeout(() => {
@@ -158,6 +182,19 @@ export async function POST(req: NextRequest) {
         if (err) console.error('[Upgrade] PM2 重启失败:', err?.message);
       });
     }, 2000);
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_apply_upgrade',
+      details: {
+        oldVersion: currentVersion,
+        newVersion: checkData.latestVersion,
+        backupPath: backupDir,
+        fileSize,
+        checksum: actualChecksum.slice(0, 16) + '...',
+      },
+      status: 'success',
+    });
 
     return NextResponse.json({
       success: true,

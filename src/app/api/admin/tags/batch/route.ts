@@ -1,10 +1,16 @@
+/**
+ * 用户标签批量操作API
+ * 功能：批量为用户添加/移除标签，支持批量打标签和批量移除标签
+ * 用途：用户分群批量管理、精准营销标签操作
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { addTagsToUsers, removeTagsFromUsers, queryAll, queryFirst, ensureTagRelationTable } from '@/lib/d1';
+import { auditLog } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
     const body = await req.json();
@@ -22,6 +28,13 @@ export async function POST(req: NextRequest) {
     } else {
       await addTagsToUsers(userIds, tagIds);
     }
+
+    await auditLog({
+      userId: session?.sub,
+      action: 'admin_batch_tag',
+      details: { mode, userCount: userIds.length, tagCount: tagIds.length, userIds: userIds.slice(0, 10), tagIds },
+      status: 'success',
+    });
 
     return NextResponse.json({
       success: true,

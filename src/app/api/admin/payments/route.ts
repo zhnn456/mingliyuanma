@@ -1,3 +1,8 @@
+/**
+ * 支付记录查询API
+ * 功能：支付流水记录查询，支持按状态/时间范围筛选
+ * 用途：支付对账、交易记录查询
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';

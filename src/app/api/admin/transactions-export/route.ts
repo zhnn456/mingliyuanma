@@ -1,3 +1,8 @@
+/**
+ * 交易导出API
+ * 功能：导出交易记录为CSV/Excel，支持按时间范围和状态筛选
+ * 用途：财务对账、数据备份、报表导出
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';

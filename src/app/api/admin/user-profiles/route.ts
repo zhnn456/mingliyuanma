@@ -1,3 +1,8 @@
+/**
+ * 用户画像API
+ * 功能：查看用户详细信息、行为记录、会员状态
+ * 用途：用户分析、客户服务支持
+ */
 import { requireAdmin } from '@/lib/auth-server';
 import { auditLog } from '@/lib/audit';
 import { NextRequest, NextResponse } from 'next/server';

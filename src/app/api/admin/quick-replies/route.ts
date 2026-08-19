@@ -1,3 +1,8 @@
+/**
+ * 快捷回复管理API
+ * 功能：客服快捷回复模板CRUD，支持分类和排序
+ * 用途：客服效率工具、常见问答配置
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-server';
 import { queryFirst, queryAll, execute } from '@/lib/d1';
