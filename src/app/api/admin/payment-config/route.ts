@@ -149,7 +149,7 @@ interface StoredConfig {
 
 async function loadStored(): Promise<{ data: StoredConfig | null; updatedAt: string }> {
   const row = await queryFirst(
-    'SELECT value, updatedAt FROM SiteConfig WHERE category = ? AND "key" = ?',
+    'SELECT value, updatedAt FROM SiteConfig WHERE category = ? AND `key` = ?',
     CONFIG_CATEGORY, CONFIG_KEY
   ) as any;
   if (!row?.value) return { data: null, updatedAt: '' };
@@ -163,17 +163,17 @@ async function loadStored(): Promise<{ data: StoredConfig | null; updatedAt: str
 async function saveStored(data: StoredConfig): Promise<void> {
   const now = new Date().toISOString();
   const value = JSON.stringify(data);
-  const existing = await queryFirst('SELECT id FROM SiteConfig WHERE "key" = ?', CONFIG_KEY) as any;
+  // SiteConfig 表主键是 `key`（无独立 id 列）
+  const existing = await queryFirst('SELECT `key` FROM SiteConfig WHERE `key` = ?', CONFIG_KEY) as any;
   if (existing) {
     await execute(
-      'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+      'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE `key` = ?',
       value, CONFIG_CATEGORY, now, CONFIG_KEY
     );
   } else {
-    const id = `cfg_${Date.now()}`;
     await execute(
-      'INSERT INTO SiteConfig (id, key, value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
-      id, CONFIG_KEY, value, CONFIG_CATEGORY, '支付参数配置（微信/支付宝）', now
+      'INSERT INTO SiteConfig (`key`, value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?)',
+      CONFIG_KEY, value, CONFIG_CATEGORY, '支付参数配置（微信/支付宝）', now
     );
   }
 }
