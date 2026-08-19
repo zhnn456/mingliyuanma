@@ -172,8 +172,8 @@ async function saveStored(data: StoredConfig): Promise<void> {
     );
   } else {
     await execute(
-      'INSERT INTO SiteConfig (`key`, value, category, description, updatedAt) VALUES (?, ?, ?, ?, ?)',
-      CONFIG_KEY, value, CONFIG_CATEGORY, '支付参数配置（微信/支付宝）', now
+      'INSERT INTO SiteConfig (`key`, value, category, updatedAt) VALUES (?, ?, ?, ?)',
+      CONFIG_KEY, value, CONFIG_CATEGORY, now
     );
   }
 }
