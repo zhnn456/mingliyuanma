@@ -45,6 +45,10 @@ dist-deploy/
 /*.jpg
 /gen_hash.js
 /verify_hash.js
+/COMMIT_MSG.txt
+
+# 测试源码站备份文件
+/test-source-backup-*
 
 # IDE/工具目录（不进仓库）
 .agents/
