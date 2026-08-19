@@ -136,6 +136,7 @@ interface StoredConfig {
   // 个人收款码（微信/支付宝个人收款码图片URL）
   personalQrUrl?: string;
   personalQrType?: 'wechat' | 'alipay' | 'unionpay';
+  personalQrAlipayUrl?: string;
   // 启用状态
   enabledMethods?: string[];
   // 敏感字段（加密存储）
@@ -210,6 +211,7 @@ async function buildDecryptedConfig(stored: StoredConfig | null) {
     // 个人收款码
     personalQrUrl: stored.personalQrUrl || '',
     personalQrType: stored.personalQrType || 'wechat',
+    personalQrAlipayUrl: stored.personalQrAlipayUrl || '',
     enabledMethods: stored.enabledMethods || [],
   };
 }
@@ -345,6 +347,7 @@ export async function GET(req: NextRequest) {
       // 个人收款码
       personalQrUrl: data?.personalQrUrl || '',
       personalQrType: data?.personalQrType || 'wechat',
+      personalQrAlipayUrl: data?.personalQrAlipayUrl || '',
       enabledMethods: data?.enabledMethods || [],
       updatedAt,
     };
@@ -408,6 +411,7 @@ export async function POST(req: NextRequest) {
       // 个人收款码（明文存储，仅图片URL，无敏感信息）
       personalQrUrl: body.personalQrUrl ?? existing?.personalQrUrl ?? '',
       personalQrType: body.personalQrType ?? existing?.personalQrType ?? 'wechat',
+      personalQrAlipayUrl: body.personalQrAlipayUrl ?? existing?.personalQrAlipayUrl ?? '',
       // 启用状态
       enabledMethods: Array.isArray(body.enabledMethods) ? body.enabledMethods : (existing?.enabledMethods || []),
       // 敏感字段：仅在提交非空值时更新；否则保留原加密值

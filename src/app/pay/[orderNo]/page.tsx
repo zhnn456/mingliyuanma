@@ -68,8 +68,8 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, zpay: false, personalqr: false, cardkey: true });
-  // 个人收款码弹窗状态
-  const [personalQrModal, setPersonalQrModal] = useState<{ url: string; type: string } | null>(null);
+  // 个人收款码弹窗状态：同时展示微信和支付宝收款码（已配置的）
+  const [personalQrModal, setPersonalQrModal] = useState<{ wechatUrl?: string; alipayUrl?: string } | null>(null);
 
   // 客服配置（联系方式 + 联系方式类型标签），从后台动态获取，替换硬编码
   const [csContact, setCsContact] = useState('Xcbot2026');
@@ -410,9 +410,11 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           );
         }
         const pay = data.payment || {};
-        if (pay.paymentQrUrl) {
-          // 展示个人收款码弹窗
-          setPersonalQrModal({ url: pay.paymentQrUrl, type: pay.paymentQrType || 'wechat' });
+        // 同时展示微信和支付宝收款码（已配置的才展示）
+        const wechatUrl = pay.paymentQrWechatUrl || (pay.paymentQrType === 'wechat' ? pay.paymentQrUrl : undefined);
+        const alipayUrl = pay.paymentQrAlipayUrl || (pay.paymentQrType === 'alipay' ? pay.paymentQrUrl : undefined);
+        if (wechatUrl || alipayUrl) {
+          setPersonalQrModal({ wechatUrl, alipayUrl });
           setPaying(false);
         } else {
           setError('个人收款码未配置，请在后台设置收款码图片URL');
@@ -599,23 +601,37 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           </div>
         )}
 
-        {/* 个人收款码弹窗（微信/支付宝个人收款码，扫码付款后联系客服核销） */}
+        {/* 个人收款码弹窗（同时展示微信/支付宝收款码，扫码付款后联系客服核销） */}
         {personalQrModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPersonalQrModal(null)}>
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-base font-bold text-gray-900 mb-1">
-                {personalQrModal.type === 'alipay' ? '支付宝' : personalQrModal.type === 'unionpay' ? '银联' : '微信'}扫码付款
-              </h3>
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-base font-bold text-gray-900 mb-1">扫码付款</h3>
               <p className="text-xs text-gray-500 mb-4">
                 应付金额：¥{(order?.amount ?? 0).toFixed(2)} · 订单号：{order?.orderNo}
               </p>
-              <div className="w-full max-w-[260px] mx-auto mb-4 rounded-xl overflow-hidden border-2 border-stone-100 bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={personalQrModal.url} alt="个人收款码" className="w-full h-auto" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {personalQrModal.wechatUrl && (
+                  <div>
+                    <div className="w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border-2 border-green-100 bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={personalQrModal.wechatUrl} alt="微信收款码" className="w-full h-auto" />
+                    </div>
+                    <p className="text-xs text-green-700 font-medium mt-2">💚 微信收款码</p>
+                  </div>
+                )}
+                {personalQrModal.alipayUrl && (
+                  <div>
+                    <div className="w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border-2 border-blue-100 bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={personalQrModal.alipayUrl} alt="支付宝收款码" className="w-full h-auto" />
+                    </div>
+                    <p className="text-xs text-blue-700 font-medium mt-2">💙 支付宝收款码</p>
+                  </div>
+                )}
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-xs text-amber-800 leading-relaxed">
-                  1. 请使用{personalQrModal.type === 'alipay' ? '支付宝' : '微信'}扫一扫上方收款码<br/>
+                  1. 请使用微信或支付宝扫一扫上方对应收款码<br/>
                   2. 付款时请<b>备注订单号后 6 位</b>：{(order?.orderNo || '').slice(-6)}<br/>
                   3. 付款完成后联系客服{csContactLabel} <span className="font-mono">{csContact}</span> 核销订单
                 </p>

@@ -97,6 +97,7 @@ interface StoredConfig {
   // 个人收款码
   personalQrUrl?: string;
   personalQrType?: 'wechat' | 'alipay' | 'unionpay';
+  personalQrAlipayUrl?: string;
   enabledMethods?: string[];
   // 敏感字段（加密存储）
   wechatPrivateKeyEnc?: string;
@@ -144,8 +145,8 @@ export async function getMethodsConfiguredState(): Promise<{
     // 兼容 PAYPAL_ME_USERNAME 环境变量
     paypal: !!(stored?.paypalClientId) || !!process.env.PAYPAL_ME_USERNAME,
     zpay: !!(stored?.zpayPid && stored?.zpayKeyEnc) || !!(process.env.ZPAY_PID && process.env.ZPAY_KEY),
-    // 个人收款码：只需配置收款码图片URL即可
-    personalqr: !!stored?.personalQrUrl || !!process.env.PERSONAL_QR_URL,
+    // 个人收款码：微信或支付宝收款码任一配置即可
+    personalqr: !!stored?.personalQrUrl || !!stored?.personalQrAlipayUrl || !!process.env.PERSONAL_QR_URL,
     cardkey: true,
   };
 }
@@ -198,6 +199,7 @@ export async function loadPaymentConfig(agentId?: string) {
     // 个人收款码（微信/支付宝个人收款码图片URL）
     personalQrUrl: stored?.personalQrUrl || process.env.PERSONAL_QR_URL,
     personalQrType: stored?.personalQrType || (process.env.PERSONAL_QR_TYPE as any) || 'wechat',
+    personalQrAlipayUrl: stored?.personalQrAlipayUrl || process.env.PERSONAL_QR_ALIPAY_URL,
     // 启用的支付方式
     enabledMethods: stored?.enabledMethods || [],
     agentId,

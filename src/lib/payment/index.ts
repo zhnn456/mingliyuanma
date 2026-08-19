@@ -57,6 +57,7 @@ export interface PaymentConfig {
   // 个人收款码（微信/支付宝个人收款码，用户扫码付款后联系客服核销）
   personalQrUrl?: string;
   personalQrType?: 'wechat' | 'alipay' | 'unionpay';
+  personalQrAlipayUrl?: string;
   // 代理商配置（多租户）
   agentId?: string;
 }
@@ -84,6 +85,9 @@ export interface CreateOrderResult {
   // 个人收款码方案：返回收款码图片 URL，前端展示二维码（不跳转）
   paymentQrUrl?: string;
   paymentQrType?: 'wechat' | 'alipay' | 'unionpay';
+  // 同时返回微信和支付宝两个收款码 URL，前端同时展示
+  paymentQrWechatUrl?: string;
+  paymentQrAlipayUrl?: string;
   // PayPal 汇率信息
   amount?: number;
   usdAmount?: number;
@@ -529,25 +533,28 @@ export class PaymentService {
    */
   private async createPersonalQrOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
     if (!this.isPersonalQrConfigured()) {
-      console.warn('[个人收款码] 未配置 personalQrUrl，降级为 mock 模式');
+      console.warn('[个人收款码] 未配置任何收款码，降级为 mock 模式');
       return this.createMockOrder(params);
     }
 
-    // 不跳转外部页面，前端通过 paymentQrUrl 展示收款码
+    // 不跳转外部页面，前端通过 paymentQrWechatUrl / paymentQrAlipayUrl 展示收款码
     return {
       orderNo: params.orderNo,
-      // paymentUrl 留空表示不跳转，前端应读取 paymentQrUrl 展示二维码
+      // paymentUrl 留空表示不跳转，前端应读取 paymentQrUrls 展示二维码
       paymentUrl: '',
       status: 'pending',
-      // 附加信息供前端展示
+      // 附加信息供前端展示（向后兼容字段）
       amount: params.amount,
       paymentQrUrl: this.config.personalQrUrl,
       paymentQrType: this.config.personalQrType || 'wechat',
+      // 同时返回微信和支付宝收款码 URL（前端同时展示已配置的）
+      paymentQrWechatUrl: this.config.personalQrUrl,
+      paymentQrAlipayUrl: this.config.personalQrAlipayUrl,
     } as CreateOrderResult;
   }
 
   private isPersonalQrConfigured(): boolean {
-    return !!this.config.personalQrUrl;
+    return !!(this.config.personalQrUrl || this.config.personalQrAlipayUrl);
   }
 
   private async handleZpayCallback(rawBody: string): Promise<CallbackResult> {
@@ -666,6 +673,7 @@ export async function createPaymentService(agentId?: string): Promise<PaymentSer
     // 个人收款码（DB 优先，fallback env）
     personalQrUrl: dbConfig.personalQrUrl || process.env.PERSONAL_QR_URL,
     personalQrType: dbConfig.personalQrType || (process.env.PERSONAL_QR_TYPE as any) || 'wechat',
+    personalQrAlipayUrl: dbConfig.personalQrAlipayUrl || process.env.PERSONAL_QR_ALIPAY_URL,
     agentId,
   };
   return new PaymentService(config);

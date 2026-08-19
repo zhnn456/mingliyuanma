@@ -32,6 +32,7 @@ interface PaymentConfigForm {
   // 个人收款码
   personalQrUrl: string;
   personalQrType: 'wechat' | 'alipay' | 'unionpay';
+  personalQrAlipayUrl: string;
 }
 
 interface SensitiveInputs {
@@ -63,7 +64,7 @@ const DEFAULT_FORM: PaymentConfigForm = {
   zpayPid: '', zpayApiUrl: '', zpayNotifyUrl: '', zpayReturnUrl: '',
   paypalClientId: '', paypalMode: 'sandbox', paypalNotifyUrl: '',
   stripePublishableKey: '', stripeWebhookSecret: '', stripeNotifyUrl: '',
-  personalQrUrl: '', personalQrType: 'wechat',
+  personalQrUrl: '', personalQrType: 'wechat', personalQrAlipayUrl: '',
 };
 
 const INPUT_CLASS = 'w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent';
@@ -206,6 +207,7 @@ export default function AdminPaymentConfigPage() {
           stripeNotifyUrl: c.stripeNotifyUrl || '',
           personalQrUrl: c.personalQrUrl || '',
           personalQrType: c.personalQrType || 'wechat',
+          personalQrAlipayUrl: c.personalQrAlipayUrl || '',
         });
         setConfigured({
           wechatPrivateKey: !!c.wechatPrivateKeyConfigured,
@@ -542,34 +544,44 @@ export default function AdminPaymentConfigPage() {
                   {method.key === 'personal-qr' && (
                     <>
                       <div>
-                        <label className={LABEL_CLASS}>收款码类型</label>
-                        <select
-                          value={form.personalQrType}
-                          onChange={e => setField('personalQrType', e.target.value as any)}
-                          className={INPUT_CLASS + ' bg-white'}
-                        >
-                          <option value="wechat">微信收款码</option>
-                          <option value="alipay">支付宝收款码</option>
-                          <option value="unionpay">银联收款码</option>
-                        </select>
-                      </div>
-                      <Field
-                        label="收款码图片 URL"
-                        value={form.personalQrUrl}
-                        onChange={v => setField('personalQrUrl', v)}
-                        placeholder="https://domain/images/personal-qr.jpg 或 /images/personal-qr.jpg"
-                      />
-                      {form.personalQrUrl && (
-                        <div className="mt-2 inline-flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                          <div className="w-16 h-16 rounded overflow-hidden bg-white relative">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={form.personalQrUrl} alt="预览" className="absolute inset-0 w-full h-full object-contain" />
+                        <label className={LABEL_CLASS}>💚 微信收款码图片 URL</label>
+                        <input
+                          value={form.personalQrUrl}
+                          onChange={e => setField('personalQrUrl', e.target.value)}
+                          placeholder="/images/personal-wechat-qr.jpg 或 https://..."
+                          className={INPUT_CLASS}
+                        />
+                        {form.personalQrUrl && (
+                          <div className="mt-1 inline-flex items-center gap-2 p-1.5 bg-gray-50 rounded-lg border border-dashed border-green-200">
+                            <div className="w-14 h-14 rounded overflow-hidden bg-white relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={form.personalQrUrl} alt="微信预览" className="absolute inset-0 w-full h-full object-contain" />
+                            </div>
+                            <div className="text-[10px] text-gray-500">微信预览</div>
                           </div>
-                          <div className="text-xs text-gray-500">预览</div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      <div>
+                        <label className={LABEL_CLASS}>💙 支付宝收款码图片 URL</label>
+                        <input
+                          value={form.personalQrAlipayUrl}
+                          onChange={e => setField('personalQrAlipayUrl', e.target.value)}
+                          placeholder="/images/personal-alipay-qr.jpg 或 https://..."
+                          className={INPUT_CLASS}
+                        />
+                        {form.personalQrAlipayUrl && (
+                          <div className="mt-1 inline-flex items-center gap-2 p-1.5 bg-gray-50 rounded-lg border border-dashed border-blue-200">
+                            <div className="w-14 h-14 rounded overflow-hidden bg-white relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={form.personalQrAlipayUrl} alt="支付宝预览" className="absolute inset-0 w-full h-full object-contain" />
+                            </div>
+                            <div className="text-[10px] text-gray-500">支付宝预览</div>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400 mt-1">
-                        提示：将个人收款码图片上传到服务器 <code className="text-[10px]">/public/images/</code> 目录，或使用图床URL。
+                        提示：可同时配置微信和支付宝两个收款码，支付页弹窗会同时展示。
+                        将收款码图片上传到服务器 <code className="text-[10px]">/public/images/</code> 目录，或使用图床URL。
                         用户付款后需联系客服核销订单（无自动回调）。
                       </p>
                     </>
