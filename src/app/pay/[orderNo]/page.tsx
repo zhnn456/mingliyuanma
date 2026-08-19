@@ -41,7 +41,6 @@ const TYPE_LABELS: Record<string, string> = {
 
 // 基础支付方式列表（卡密描述中的客服联系方式在组件内动态拼接）
 const BASE_PAYMENT_METHODS = [
-  { id: 'mock', name: '模拟支付（测试用）', icon: '🧪', desc: '开发测试用' },
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
   { id: 'zpay', name: 'Z-Pay 支付宝', icon: '💎', desc: '通过 Z-Pay 使用支付宝付款（无需备案）' },
@@ -256,7 +255,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         } else if (pay.qrCode) {
           // Native 扫码支付
           if (pay.qrCode.startsWith('mock://')) {
-            setError('微信支付未配置，请联系管理员或选择模拟支付');
+            setError('微信支付未配置，请联系管理员');
             setPaying(false);
             return;
           }
@@ -307,7 +306,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         if (pay.paymentUrl) {
           // 检测是否为 mock 降级（未配置时 paymentUrl 为 /pay/xxx）
           if (pay.paymentUrl.startsWith('/pay/')) {
-            setError('支付宝未配置，请联系管理员或选择模拟支付');
+            setError('支付宝未配置，请联系管理员');
             setPaying(false);
             setRedirecting(false);
             return;
@@ -641,10 +640,9 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
                 ...m,
                 desc: m.id === 'cardkey' ? `联系客服${csContactLabel} ${csContact} 购买卡密后兑换` : m.desc,
               }))
-              .filter(m => m.id !== 'mock' || session?.role === 'admin').map((method) => {
+              .map((method) => {
               const configured =
-                method.id === 'mock' ? true
-                  : method.id === 'wechat' ? methodsConfig.wechat
+                method.id === 'wechat' ? methodsConfig.wechat
                   : method.id === 'alipay' ? methodsConfig.alipay
                   : method.id === 'zpay' ? (methodsConfig.zpay ?? false)
                   : method.id === 'personalqr' ? (methodsConfig.personalqr ?? false)
@@ -672,7 +670,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 flex items-center gap-2">
                       {method.name}
-                      {method.id !== 'mock' && !configured && (
+                      {!configured && (
                         <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded">未配置</span>
                       )}
                     </div>
