@@ -11,8 +11,8 @@ export const APP_NAME = '知微阁';
 export const APP_CODENAME = '商源';
 
 // 构建时注入（version-inject.js 替换占位符）
-export const BUILD_TIME = '2026-08-19T13:37:36.957Z';
-export const GIT_COMMIT = '211fa31';
+export const BUILD_TIME = '2026-08-19T14:35:39.947Z';
+export const GIT_COMMIT = '400e0d9';
 
 export interface SystemVersion {
   version: string;
