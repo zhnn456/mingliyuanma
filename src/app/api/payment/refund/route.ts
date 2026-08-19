@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '订单状态不支持退款' }, { status: 400 });
     }
 
-    const paymentService = createPaymentService();
+    const paymentService = await createPaymentService();
     const refundResult = await paymentService.refund(
       order.orderNo,
       order.amount,

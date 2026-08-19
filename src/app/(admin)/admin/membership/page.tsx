@@ -26,10 +26,13 @@ export default function AdminMembershipPage() {
     sortOrder: 0,
     isActive: true,
   });
-  const [qrForm, setQrForm] = useState({
-    url: '',
-    title: '扫码联系客服',
-    subtitle: '微信/支付宝咨询 · 人工协助开通',
+  // 客服配置：联系方式 + 联系方式类型 + 二维码（统一管理，供支付页/支付结果页/会员页使用）
+  const [csForm, setCsForm] = useState({
+    contact: 'Xcbot2026',
+    contactType: 'wechat',
+    qrUrl: '/images/qr-customer-service.jpg',
+    qrTitle: '扫码添加客服',
+    qrSubtitle: '微信 / 支付宝均可扫码',
   });
   const [qrLoading, setQrLoading] = useState(false);
   const [qrSaved, setQrSaved] = useState(false);
@@ -55,13 +58,15 @@ export default function AdminMembershipPage() {
 
   const fetchQrConfig = async () => {
     try {
-      const res = await fetch('/api/config/membership-qr');
+      const res = await fetch('/api/config/customer-service');
       if (res.ok) {
         const d = await res.json();
-        setQrForm({
-          url: d.url || '',
-          title: d.title || '扫码联系客服',
-          subtitle: d.subtitle || '微信/支付宝咨询 · 人工协助开通',
+        setCsForm({
+          contact: d.contact || 'Xcbot2026',
+          contactType: d.contactType || 'wechat',
+          qrUrl: d.qrUrl || '/images/qr-customer-service.jpg',
+          qrTitle: d.qrTitle || '扫码添加客服',
+          qrSubtitle: d.qrSubtitle || '微信 / 支付宝均可扫码',
         });
       }
     } catch {}
@@ -180,9 +185,11 @@ export default function AdminMembershipPage() {
     setQrSaved(false);
     try {
       const entries = [
-        { key: 'membership_qr_url', value: qrForm.url, category: 'payment', description: '会员页二维码图片URL' },
-        { key: 'membership_qr_title', value: qrForm.title, category: 'payment', description: '会员页二维码标题' },
-        { key: 'membership_qr_subtitle', value: qrForm.subtitle, category: 'payment', description: '会员页二维码副标题' },
+        { key: 'customer_service_contact', value: csForm.contact, category: 'payment', description: '客服联系方式（微信号/手机号/QQ/邮箱等）' },
+        { key: 'customer_service_contact_type', value: csForm.contactType, category: 'payment', description: '客服联系方式类型：wechat|phone|qq|email|other' },
+        { key: 'customer_service_qr_url', value: csForm.qrUrl, category: 'payment', description: '客服二维码图片URL（留空使用默认本地图片）' },
+        { key: 'customer_service_qr_title', value: csForm.qrTitle, category: 'payment', description: '客服二维码上方标题' },
+        { key: 'customer_service_qr_subtitle', value: csForm.qrSubtitle, category: 'payment', description: '客服二维码下方副标题' },
       ];
       for (const item of entries) {
         const res = await fetch('/api/admin/config', {
@@ -195,7 +202,7 @@ export default function AdminMembershipPage() {
       setQrSaved(true);
       setTimeout(() => setQrSaved(false), 2000);
     } catch {
-      alert('二维码配置保存失败，请重试');
+      alert('客服配置保存失败，请重试');
     } finally {
       setQrLoading(false);
     }
@@ -440,58 +447,97 @@ export default function AdminMembershipPage() {
         </div>
       </div>
 
-      {/* 会员页二维码配置 */}
+      {/* 客服配置（联系方式 + 二维码，统一管理） */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-base font-bold text-gray-900 mb-1">会员页二维码</h3>
-        <p className="text-xs text-gray-500 mb-4">配置后将显示在会员中心「支付方式说明」右侧。将二维码图片上传至服务器/图床后，把图片地址填入下方。</p>
+        <h3 className="text-base font-bold text-gray-900 mb-1">客服配置</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          统一管理客服联系方式和二维码。配置后将在支付页（卡密兑换说明、PayPal 核销提示）、支付结果页、会员中心右侧客服栏同步生效。
+        </p>
+
+        {/* 联系方式配置 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">二维码图片 URL</label>
-            <input
-              value={qrForm.url}
-              onChange={(e) => setQrForm({ ...qrForm, url: e.target.value })}
-              placeholder="如：https://ming8.online/images/membership-qr.png"
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
+            <label className="block text-xs text-gray-500 mb-1">联系方式类型</label>
+            <select
+              value={csForm.contactType}
+              onChange={(e) => setCsForm({ ...csForm, contactType: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+            >
+              <option value="wechat">微信</option>
+              <option value="phone">手机号</option>
+              <option value="qq">QQ</option>
+              <option value="email">邮箱</option>
+              <option value="other">其他</option>
+            </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">标题</label>
+            <label className="block text-xs text-gray-500 mb-1">联系方式账号</label>
             <input
-              value={qrForm.title}
-              onChange={(e) => setQrForm({ ...qrForm, title: e.target.value })}
-              placeholder="如：扫码联系客服"
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">副标题</label>
-            <input
-              value={qrForm.subtitle}
-              onChange={(e) => setQrForm({ ...qrForm, subtitle: e.target.value })}
-              placeholder="如：微信/支付宝咨询 · 人工协助开通"
+              value={csForm.contact}
+              onChange={(e) => setCsForm({ ...csForm, contact: e.target.value })}
+              placeholder="如：Xcbot2026（微信号）/ 13800138000（手机号）"
               className="w-full px-3 py-2 border rounded-lg text-sm"
             />
           </div>
         </div>
-        {qrForm.url && (
+
+        <div className="border-t border-gray-100 my-4" />
+
+        {/* 二维码配置 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">客服二维码图片 URL</label>
+            <input
+              value={csForm.qrUrl}
+              onChange={(e) => setCsForm({ ...csForm, qrUrl: e.target.value })}
+              placeholder="留空则使用默认 /images/qr-customer-service.jpg，或填写图床/服务器图片地址"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">二维码上方标题</label>
+            <input
+              value={csForm.qrTitle}
+              onChange={(e) => setCsForm({ ...csForm, qrTitle: e.target.value })}
+              placeholder="如：扫码添加客服"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">二维码下方副标题</label>
+            <input
+              value={csForm.qrSubtitle}
+              onChange={(e) => setCsForm({ ...csForm, qrSubtitle: e.target.value })}
+              placeholder="如：微信 / 支付宝均可扫码"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+        </div>
+
+        {/* 预览 */}
+        {csForm.qrUrl && (
           <div className="mb-4 inline-flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
             <div className="w-20 h-20 rounded-lg overflow-hidden bg-white relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrForm.url} alt="预览" className="absolute inset-0 w-full h-full object-contain" />
+              <img src={csForm.qrUrl} alt="预览" className="absolute inset-0 w-full h-full object-contain" />
             </div>
             <div className="text-sm text-gray-600">
-              <div className="font-medium text-gray-800">{qrForm.title}</div>
-              <div className="text-xs mt-0.5">{qrForm.subtitle}</div>
+              <div className="font-medium text-gray-800">{csForm.qrTitle}</div>
+              <div className="text-xs mt-0.5">{csForm.qrSubtitle}</div>
+              <div className="text-xs mt-1 text-gray-500">
+                客服：{csForm.contact}
+              </div>
             </div>
           </div>
         )}
+
         <div className="flex items-center gap-3">
           <button
             onClick={saveQrConfig}
             disabled={qrLoading}
             className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm disabled:opacity-50"
           >
-            {qrLoading ? '保存中...' : '保存配置'}
+            {qrLoading ? '保存中...' : '保存客服配置'}
           </button>
           {qrSaved && <span className="text-sm text-green-600">已保存</span>}
         </div>

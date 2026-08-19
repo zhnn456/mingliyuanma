@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst } from '@/lib/d1';
 import { requireAuth } from '@/lib/auth-server';
+import { getMethodsConfiguredState } from '@/lib/payment/config';
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,12 +29,8 @@ export async function GET(req: NextRequest) {
     ) as any;
 
     // 暴露各支付方式配置状态（供前端展示"未配置"标记）
-    const methods = {
-      wechat: !!(process.env.WECHAT_APP_ID && process.env.WECHAT_MCH_ID && process.env.WECHAT_PRIVATE_KEY),
-      alipay: !!(process.env.ALIPAY_APP_ID && process.env.ALIPAY_PRIVATE_KEY && process.env.ALIPAY_PUBLIC_KEY),
-      paypal: !!process.env.PAYPAL_ME_USERNAME,
-      cardkey: true, // 卡密兑换始终可用（联系客服获取卡密后自助兑换）
-    };
+    // 优先读取后台 DB 配置，fallback 到 env 环境变量
+    const methods = await getMethodsConfiguredState();
 
     return NextResponse.json({
       order: {

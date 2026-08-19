@@ -12,6 +12,9 @@ export default function PaymentResultPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // 客服配置（联系方式从后台动态读取，替换硬编码）
+  const [csContact, setCsContact] = useState('Xcbot2026');
+  const [csContactLabel, setCsContactLabel] = useState('微信');
 
   useEffect(() => {
     if (!orderNo) {
@@ -31,6 +34,19 @@ export default function PaymentResultPage() {
         setLoading(false);
       });
   }, [orderNo]);
+
+  // 获取客服配置
+  useEffect(() => {
+    fetch('/api/config/customer-service')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) {
+          setCsContact(d.contact || 'Xcbot2026');
+          setCsContactLabel(d.contactLabel || '微信');
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -124,7 +140,7 @@ export default function PaymentResultPage() {
         {/* 客服信息 */}
         <div className="text-center mt-6">
           <p className="text-xs text-gray-400">
-            如有疑问请联系客服 · 微信: Xcbot2026
+            如有疑问请联系客服 · {csContactLabel}: {csContact}
           </p>
         </div>
       </div>

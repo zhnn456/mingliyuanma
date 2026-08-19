@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       headers[key] = value;
     });
 
-    const paymentService = createPaymentService();
+    const paymentService = await createPaymentService();
     const result = await paymentService.handleCallback('wechat', rawBody, headers);
 
     if (!result.success) {

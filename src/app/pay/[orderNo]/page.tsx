@@ -38,13 +38,14 @@ const TYPE_LABELS: Record<string, string> = {
   recharge: '积分充值',
 };
 
-const PAYMENT_METHODS = [
+// 基础支付方式列表（卡密描述中的客服联系方式在组件内动态拼接）
+const BASE_PAYMENT_METHODS = [
   { id: 'mock', name: '模拟支付（测试用）', icon: '🧪', desc: '开发测试用' },
   { id: 'wechat', name: '微信支付', icon: '💚', desc: '微信扫码支付' },
   { id: 'alipay', name: '支付宝', icon: '💙', desc: '支付宝支付' },
   { id: 'zpay', name: 'Z-Pay 支付宝', icon: '💎', desc: '通过 Z-Pay 使用支付宝付款（无需备案）' },
   { id: 'paypal', name: 'PayPal', icon: '🅿️', desc: '国际 PayPal.me 收款（付款后联系客服核销）' },
-  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '联系客服微信 Xcbot2026 购买卡密后兑换' },
+  { id: 'cardkey', name: '卡密兑换', icon: '🎫', desc: '' }, // desc 在组件内拼接客服联系方式
 ];
 
 export default function PayPage({ params }: { params: Promise<{ orderNo: string }> }) {
@@ -66,6 +67,10 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   const [jsapiParams, setJsapiParams] = useState<Record<string, string> | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [methodsConfig, setMethodsConfig] = useState<MethodsConfig>({ wechat: false, alipay: false, paypal: false, zpay: false, cardkey: true });
+
+  // 客服配置（联系方式 + 联系方式类型标签），从后台动态获取，替换硬编码
+  const [csContact, setCsContact] = useState('Xcbot2026');
+  const [csContactLabel, setCsContactLabel] = useState('微信');
 
   // 获取订单信息
   const fetchOrder = useCallback(async () => {
@@ -94,6 +99,19 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  // 获取客服配置（联系方式从后台动态读取）
+  useEffect(() => {
+    fetch('/api/config/customer-service')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) {
+          setCsContact(d.contact || 'Xcbot2026');
+          setCsContactLabel(d.contactLabel || '微信');
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // 轮询订单状态（支付后）
   useEffect(() => {
@@ -402,7 +420,7 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
           const usdAmount = pay.usdAmount as number | undefined;
           const rate = pay.exchangeRate as number | undefined;
           setTimeout(() => {
-            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${cnyAmount.toFixed(2)}（约 $${usdAmount?.toFixed(2) || (cnyAmount / 7.15).toFixed(2)} USD，汇率 ${rate || 7.15}）\n\n付款完成后请联系客服微信 Xcbot2026 核销订单，或刷新本页面查看订单状态。`);
+            alert(`已跳转到 PayPal 完成付款\n\n订单号：${data.order?.orderNo || order?.orderNo}\n应付金额：¥${cnyAmount.toFixed(2)}（约 $${usdAmount?.toFixed(2) || (cnyAmount / 7.15).toFixed(2)} USD，汇率 ${rate || 7.15}）\n\n付款完成后请联系客服${csContactLabel} ${csContact} 核销订单，或刷新本页面查看订单状态。`);
           }, 300);
         } else if (pay.paymentUrl && pay.paymentUrl.startsWith('/pay/')) {
           setError('PayPal 未配置（缺少 PAYPAL_ME_USERNAME），请联系管理员');
@@ -538,11 +556,17 @@ export default function PayPage({ params }: { params: Promise<{ orderNo: string 
         <div className="card mb-6">
           <h2 className="card-title">选择支付方式</h2>
           <div className="space-y-3 mt-3">
-            {PAYMENT_METHODS.filter(m => m.id !== 'mock' || session?.role === 'admin').map((method) => {
+            {BASE_PAYMENT_METHODS
+              .map((m) => ({
+                ...m,
+                desc: m.id === 'cardkey' ? `联系客服${csContactLabel} ${csContact} 购买卡密后兑换` : m.desc,
+              }))
+              .filter(m => m.id !== 'mock' || session?.role === 'admin').map((method) => {
               const configured =
                 method.id === 'mock' ? true
                   : method.id === 'wechat' ? methodsConfig.wechat
                   : method.id === 'alipay' ? methodsConfig.alipay
+                  : method.id === 'zpay' ? (methodsConfig.zpay ?? false)
                   : method.id === 'paypal' ? (methodsConfig.paypal ?? false)
                   : method.id === 'cardkey' ? true
                   : false;

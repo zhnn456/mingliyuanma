@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     );
     const order = await queryFirst('SELECT * FROM "Order" WHERE id = ?', orderId);
 
-    const paymentService = createPaymentService();
+    const paymentService = await createPaymentService()
     const result = await paymentService.createOrder({
       orderNo, amount: finalAmount, title, description: title,
       method: paymentMethod, userId, targetType, targetId: type === 'offering' ? targetId?.split(':::')[0] : targetId,

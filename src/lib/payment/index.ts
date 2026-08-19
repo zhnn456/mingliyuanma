@@ -536,6 +536,10 @@ export class PaymentService {
 
 // ============ 工厂函数 ============
 
+/**
+ * 同步读取支付配置（仅从环境变量，保留向后兼容）
+ * @deprecated 新代码应使用异步的 createPaymentService()，它会优先读取后台 DB 配置
+ */
 export function getPaymentConfig(agentId?: string): PaymentConfig {
   const baseConfig: PaymentConfig = {
     method: (process.env.PAYMENT_DEFAULT_METHOD as PaymentMethod) || 'mock',
@@ -565,7 +569,34 @@ export function getPaymentConfig(agentId?: string): PaymentConfig {
   return baseConfig;
 }
 
-export function createPaymentService(agentId?: string): PaymentService {
-  const config = getPaymentConfig(agentId);
+/**
+ * 创建支付服务（异步，优先读取后台 DB 配置）
+ *
+ * 配置优先级：后台 DB 配置（/admin/payment-config 页面配置）> .env 环境变量 > 默认值
+ * 这样管理员在后台修改的配置能立即生效，无需改 .env 重启服务。
+ */
+export async function createPaymentService(agentId?: string): Promise<PaymentService> {
+  const { loadPaymentConfig } = await import('./config');
+  const dbConfig = await loadPaymentConfig(agentId);
+  const config: PaymentConfig = {
+    method: (process.env.PAYMENT_DEFAULT_METHOD as PaymentMethod) || 'mock',
+    wechatAppId: dbConfig.wechatAppId,
+    wechatMchId: dbConfig.wechatMchId,
+    wechatApiV3Key: dbConfig.wechatApiV3Key,
+    wechatPrivateKey: dbConfig.wechatPrivateKey,
+    wechatCertSerial: dbConfig.wechatCertSerial,
+    wechatNotifyUrl: dbConfig.wechatNotifyUrl,
+    alipayAppId: dbConfig.alipayAppId,
+    alipayPrivateKey: dbConfig.alipayPrivateKey,
+    alipayPublicKey: dbConfig.alipayPublicKey,
+    alipayNotifyUrl: dbConfig.alipayNotifyUrl,
+    alipayReturnUrl: dbConfig.alipayReturnUrl,
+    alipayGateway: dbConfig.alipayGateway,
+    paypalMeUsername: dbConfig.paypalMeUsername,
+    zpayPid: dbConfig.zpayPid,
+    zpayKey: dbConfig.zpayKey,
+    zpayApiUrl: dbConfig.zpayApiUrl,
+    agentId,
+  };
   return new PaymentService(config);
 }
