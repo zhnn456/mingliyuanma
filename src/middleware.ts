@@ -369,8 +369,12 @@ export async function middleware(req: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https:"
+  );
   
-  if (!pathname.startsWith('/_next/static') && !pathname.startsWith('/_next/image')) {
+  if (!pathname.startsWith('/_next/static') && !pathname.startsWith('/_next/image') && pathname !== '/api/offering/square') {
     response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
     response.headers.set('CDN-Cache-Control', 'public, max-age=0, must-revalidate');
   }

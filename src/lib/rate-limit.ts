@@ -51,7 +51,7 @@ export const MEMBERSHIP_GIFT_LINGZHU: Record<string, number> = {
  */
 async function getEffectiveMemberLevel(userId: string): Promise<{ level: MemberLevelKey; user: any }> {
   const user = await queryFirst(
-    'SELECT id, memberLevel, memberExpiry, dailyUsage, lastUsageDate FROM User WHERE id = ?',
+    'SELECT id, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate FROM User WHERE id = ?',
     userId
   ) as any;
 
@@ -59,9 +59,9 @@ async function getEffectiveMemberLevel(userId: string): Promise<{ level: MemberL
 
   let level = (user.memberLevel || 'free') as MemberLevelKey;
   if (level !== 'free' && level !== 'lifetime') {
-    if (user.memberExpiry && new Date(user.memberExpiry) < new Date()) {
+    if (user.memberExpiryAt && new Date(user.memberExpiryAt) < new Date()) {
       await execute(
-        'UPDATE User SET memberLevel = ?, memberExpiry = NULL, updatedAt = ? WHERE id = ?',
+        'UPDATE User SET memberLevel = ?, memberExpiryAt = NULL, updatedAt = ? WHERE id = ?',
         'free', new Date().toISOString(), user.id
       );
       level = 'free';

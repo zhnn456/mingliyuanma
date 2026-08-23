@@ -9,8 +9,11 @@
  * 防止通过测试账号获取最高管理员权限或真实用户信息
  */
 
-// 主管理员 ID 白名单（唯一能看全部数据的账号）
-export const PRIMARY_ADMIN_IDS = ['admin', 'cm1admin001'];
+// 主管理员 ID 白名单（唯一能看全部数据的账号；支持环境变量覆盖，避免源码硬编码枚举）
+export const PRIMARY_ADMIN_IDS = (process.env.PRIMARY_ADMIN_IDS || 'admin,cm1admin001')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 // 主管理员邮箱白名单
 export const PRIMARY_ADMIN_EMAILS = (process.env.PRIMARY_ADMIN_EMAIL || '').split(',').filter(Boolean);

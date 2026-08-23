@@ -14,15 +14,15 @@ const MEMBER_DISCOUNT: Record<string, number> = {
 // 获取用户有效会员等级（检查过期）
 async function getUserMemberLevel(userId: string): Promise<string> {
   const user = await queryFirst(
-    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    'SELECT memberLevel, memberExpiryAt FROM User WHERE id = ?',
     userId
   ) as any;
   if (!user) return 'free';
   let level = user.memberLevel || 'free';
-  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
-    if (new Date(user.memberExpiry) < new Date()) {
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiryAt) {
+    if (new Date(user.memberExpiryAt) < new Date()) {
       await execute(
-        'UPDATE User SET memberLevel = ?, memberExpiry = NULL WHERE id = ?',
+        'UPDATE User SET memberLevel = ?, memberExpiryAt = NULL WHERE id = ?',
         'free', userId
       );
       level = 'free';

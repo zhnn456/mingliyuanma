@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     const placeholders = customerIds.map(() => '?').join(',');
 
     const customers = await queryAll(
-      `SELECT id, email, name, phone, memberLevel, memberExpiry, dailyUsage, lastUsageDate, createdAt,
+      `SELECT id, email, name, phone, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate, createdAt,
        (SELECT COUNT(*) FROM BaziRecord WHERE userId = u.id) as baziCount,
        (SELECT COUNT(*) FROM ZiweiRecord WHERE userId = u.id) as ziweiCount,
        (SELECT COUNT(*) FROM QimenRecord WHERE userId = u.id) as qimenCount,
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     const memberExpiry = memberLevel !== 'free' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
 
     await execute(
-      `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, memberExpiry, createdAt)
+      `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, memberExpiryAt, createdAt)
        VALUES (?, ?, ?, ?, ?, 'user', ?, ?, ?)`,
       userId, email, passwordHash, name, phone || null, memberLevel, memberExpiry, now
     );

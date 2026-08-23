@@ -8,7 +8,7 @@ interface Customer {
   name: string | null;
   phone: string | null;
   memberLevel: string;
-  memberExpiry: string | null;
+  memberExpiryAt: string | null;
   dailyUsage: number;
   lastUsageDate: string | null;
   createdAt: string;

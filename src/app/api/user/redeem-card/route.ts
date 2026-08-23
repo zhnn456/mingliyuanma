@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
 import { ensureCardKeyTable, queryFirst, execute, addPoints } from '@/lib/d1';
 import { auditLog } from '@/lib/audit';
+import { checkIPRateLimit, getClientIP } from '@/lib/security';
 
 /**
  * 用户兑换卡密 API
@@ -21,6 +22,11 @@ export async function POST(req: NextRequest) {
     }
     const userId = session.sub;
 
+    const rl = await checkIPRateLimit(`card:${userId}:${getClientIP(req)}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: '兑换尝试过于频繁，请稍后再试' }, { status: 429 });
+    }
+
     await ensureCardKeyTable();
 
     const body = await req.json();
@@ -36,18 +42,12 @@ export async function POST(req: NextRequest) {
     // 查询卡密
     const card = await queryFirst('SELECT * FROM CardKey WHERE code = ? OR code = ?', normalizedCode, code.trim().toUpperCase()) as any;
     if (!card) {
-      return NextResponse.json({ error: '卡密不存在' }, { status: 404 });
+      return NextResponse.json({ error: '卡密无效，请检查后重试' }, { status: 404 });
     }
 
-    // 校验状态
-    if (card.status === 'used') {
-      return NextResponse.json({ error: '该卡密已被使用' }, { status: 400 });
-    }
-    if (card.status === 'disabled') {
-      return NextResponse.json({ error: '该卡密已被禁用' }, { status: 400 });
-    }
-    if (card.status === 'expired') {
-      return NextResponse.json({ error: '该卡密已过期' }, { status: 400 });
+    // 校验状态（统一话术，防止卡密枚举探测）
+    if (card.status !== 'unused') {
+      return NextResponse.json({ error: '卡密无效，请检查后重试' }, { status: 400 });
     }
 
     // 校验过期时间
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       if (expiry.getTime() < Date.now()) {
         // 自动标记为过期
         await execute('UPDATE CardKey SET status = ? WHERE id = ?', 'expired', card.id);
-        return NextResponse.json({ error: '该卡密已过期' }, { status: 400 });
+        return NextResponse.json({ error: '卡密无效，请检查后重试' }, { status: 400 });
       }
     }
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     if (claimResult.changes === 0) {
       // 卡密已被其他并发请求抢占
-      return NextResponse.json({ error: '该卡密已被使用' }, { status: 400 });
+      return NextResponse.json({ error: '卡密无效，请检查后重试' }, { status: 400 });
     }
 
     // === 抢占成功，执行充值 ===
@@ -161,6 +161,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('兑换卡密失败:', error?.message);
-    return NextResponse.json({ error: error?.message || '兑换失败，请稍后重试' }, { status: 500 });
+    return NextResponse.json({ error: '兑换失败，请稍后重试' }, { status: 500 });
   }
 }

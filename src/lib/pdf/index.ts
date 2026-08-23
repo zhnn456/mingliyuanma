@@ -233,6 +233,21 @@ export async function checkReportAccess(
     return { allowed: false, reason: '用户不存在' };
   }
 
+  // 归属校验（防御纵深：即使上游调用遗漏归属判断也在此拦截）
+  const REPORT_TABLES: Record<string, string> = {
+    bazi: 'BaziRecord',
+    ziwei: 'ZiweiRecord',
+    qimen: 'QimenRecord',
+    meihua: 'MeihuaRecord',
+  };
+  const recordTable = REPORT_TABLES[type];
+  if (recordTable) {
+    const target = await queryFirst(`SELECT userId FROM ${recordTable} WHERE id = ?`, recordId) as any;
+    if (target && target.userId !== userId && user.role !== 'admin') {
+      return { allowed: false, reason: '无权访问该报告' };
+    }
+  }
+
   // 管理员和代理商免费
   if (['admin', 'agent'].includes(user.role)) {
     return { allowed: true };
@@ -241,7 +256,7 @@ export async function checkReportAccess(
   // 年卡及以上会员免费
   if (['yearly', 'lifetime'].includes(user.memberLevel)) {
     // 检查会员是否过期
-    if (user.memberExpiry && user.memberExpiry < new Date()) {
+    if (user.memberExpiryAt && user.memberExpiryAt < new Date()) {
       return {
         allowed: false,
         reason: '会员已过期，请续费',

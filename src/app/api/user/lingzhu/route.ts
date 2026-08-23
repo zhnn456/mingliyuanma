@@ -51,12 +51,12 @@ export async function GET(req: NextRequest) {
 
     // 获取会员等级
     const user = await queryFirst(
-      'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+      'SELECT memberLevel, memberExpiryAt FROM User WHERE id = ?',
       userId
     ) as any;
     let memberLevel = user?.memberLevel || 'free';
-    if (memberLevel !== 'free' && memberLevel !== 'lifetime' && user?.memberExpiry) {
-      if (new Date(user.memberExpiry) < new Date()) {
+    if (memberLevel !== 'free' && memberLevel !== 'lifetime' && user?.memberExpiryAt) {
+      if (new Date(user.memberExpiryAt) < new Date()) {
         memberLevel = 'free';
       }
     }

@@ -112,6 +112,11 @@ export async function GET() {
         totalUsers: (realStats?.totalUsers || 0) + (isActive ? mockStats.totalUsers : 0),
         totalLingzhu: (realStats?.totalLing || 0) + (isActive ? mockStats.totalLingzhu : 0),
       },
+    }, {
+      // 公开聚合数据，允许边缘缓存30秒吸收洪水流量
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+      },
     });
   } catch (error: any) {
     console.error('祈福广场获取失败:', error?.message);

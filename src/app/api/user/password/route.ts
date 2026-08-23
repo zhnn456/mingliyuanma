@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
 import { hashPassword, verifyPassword } from '@/lib/password';
+import { validatePassword } from '@/lib/security';
 import { execute, queryFirst } from '@/lib/d1';
 
 export async function PUT(req: NextRequest) {
@@ -16,8 +17,9 @@ export async function PUT(req: NextRequest) {
     if (!oldPassword || !newPassword) {
       return NextResponse.json({ error: '请填写所有字段' }, { status: 400 });
     }
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: '新密码至少6位' }, { status: 400 });
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.message || '新密码不符合安全要求' }, { status: 400 });
     }
 
     const user = await queryFirst('SELECT passwordHash FROM User WHERE id = ?', session.sub) as any;

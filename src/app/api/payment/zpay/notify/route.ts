@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
       const expiry = days ? new Date(Date.now() + days * 86400000).toISOString() : null;
 
       batchStatements.push({
-        sql: 'UPDATE User SET memberLevel = ?, memberExpiry = ?, updatedAt = ? WHERE id = ?',
+        sql: 'UPDATE User SET memberLevel = ?, memberExpiryAt = ?, updatedAt = ? WHERE id = ?',
         params: [order.targetId || 'monthly', expiry, now, order.userId],
       });
 

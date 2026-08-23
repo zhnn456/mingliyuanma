@@ -16,13 +16,13 @@ async function getUserMemberLevel(req: NextRequest): Promise<string> {
   const { allowed, session } = await requireAuth(req);
   if (!allowed || !session?.sub) return 'free';
   const user = await queryFirst(
-    'SELECT memberLevel, memberExpiry FROM User WHERE id = ?',
+    'SELECT memberLevel, memberExpiryAt FROM User WHERE id = ?',
     session.sub
   ) as any;
   if (!user) return 'free';
   let level = user.memberLevel || 'free';
-  if (level !== 'free' && level !== 'lifetime' && user.memberExpiry) {
-    if (new Date(user.memberExpiry) < new Date()) {
+  if (level !== 'free' && level !== 'lifetime' && user.memberExpiryAt) {
+    if (new Date(user.memberExpiryAt) < new Date()) {
       level = 'free';
     }
   }

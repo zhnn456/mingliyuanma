@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
 
     await execute(
-      `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, memberExpiry, createdAt)
+      `INSERT INTO User (id, email, passwordHash, name, phone, role, memberLevel, memberExpiryAt, createdAt)
        VALUES (?, ?, ?, ?, ?, 'agent', 'free', NULL, ?)`,
       userId, contactEmail, passwordHash, contactName || companyName, contactPhone || null, now
     );
