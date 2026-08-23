@@ -9,18 +9,21 @@ import { queryFirst, queryAll, execute } from '@/lib/d1';
 import { auditLog } from '@/lib/audit';
 
 /**
- * 获取当前请求的agentId
+ * 从已验证的 session 解析代理商 ID（安全来源）
+ * 不再信任客户端传入的 x-agent-id 请求头
  */
-function getAgentId(req: NextRequest): string | null {
-  return req.headers.get('x-agent-id') || null;
+async function resolveAgentIdFromSession(session: any): Promise<string | null> {
+  if (!session || session.role !== 'agent') return null;
+  const agent = await queryFirst('SELECT id FROM Agent WHERE userId = ?', session.sub) as any;
+  return agent?.id || null;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const agentId = getAgentId(req);
+    const agentId = await resolveAgentIdFromSession(session);
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
@@ -62,7 +65,7 @@ export async function PUT(req: NextRequest) {
     const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const agentId = getAgentId(req);
+    const agentId = await resolveAgentIdFromSession(session);
     const { orderId, status } = await req.json();
     if (!orderId || !status) return NextResponse.json({ error: '参数不足' }, { status: 400 });
 

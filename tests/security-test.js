@@ -65,8 +65,8 @@ function req(method, pathStr, body, extraHeaders) {
         catch { resolve({ status: res.statusCode, body: data, headers: res.headers }); }
       });
     });
-    r.on('error', reject);
-    r.on('timeout', () => { r.destroy(); reject(new Error('timeout')); });
+    r.on('error', (e) => resolve({ status: -1, body: {}, headers: {}, error: e.message }));
+    r.on('timeout', () => { r.destroy(); resolve({ status: -1, body: {}, headers: {}, error: 'timeout' }); });
     if (body) r.write(JSON.stringify(body));
     r.end();
   });
@@ -212,7 +212,7 @@ function report(id, name, risk, passed, detail) {
   console.log('\n[5] 登录接口速率限制');
   if (ADMIN_EMAIL) {
     let rateLimited = false;
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 60; i++) {
       const r = await req('POST', '/api/auth/login', { email: ADMIN_EMAIL, password: `wrong_pass_${i}_xxx` });
       if (r.status === 429) { rateLimited = true; break; }
     }
@@ -221,7 +221,7 @@ function report(id, name, risk, passed, detail) {
       '登录接口无速率限制，可暴力破解（无 429 响应）',
       '高危',
       rateLimited,
-      rateLimited ? '触发限流（有防护）' : '连续 120 次请求全部返回 401，未触发 429'
+      rateLimited ? '触发限流（有防护）' : '连续 60 次错误密码请求未触发 429'
     );
   }
 
@@ -361,6 +361,155 @@ function report(id, name, risk, passed, detail) {
     false,
     '源码中 PRIMARY_ADMIN_IDS = [admin, cm1admin001]，攻击者可直接枚举管理员ID，绕过数据隔离'
   );
+
+  // 13. IDOR 数据越权探测（普通用户访问他人/不存在的资源）
+  console.log('\n[13] IDOR 数据越权探测');
+  if (normalToken) {
+    const idorProbes = [
+      { method: 'GET', path: '/api/ticket/tkt_attacker_forged_001', desc: '他人工单详情（伪造ID）' },
+      { method: 'GET', path: '/api/payment/status?orderId=ord_attacker_forged_001', desc: '他人订单支付状态（伪造ID）' },
+      { method: 'GET', path: '/api/report/generate?type=bazi&recordId=bazi_others_record_001', desc: '他人命理报告（伪造记录ID）' },
+      { method: 'GET', path: '/api/user/orders?page=9999', desc: '订单列表越页探测' },
+    ];
+    for (const p of idorProbes) {
+      const r = await req(p.method, p.path, null, authHeader(normalToken));
+      const bodyStr = JSON.stringify(r.body || {});
+      const leaked = r.status === 200 && !r.body?.error && bodyStr.length > 4;
+      report(
+        `VULN-13-IDOR-${p.path.replace(/[^a-z0-9]/gi, '-').slice(0, 40)}`,
+        `数据越权探测: ${p.desc}`,
+        '高危',
+        !leaked,
+        leaked ? `返回200且带数据，归属校验疑似缺失: ${bodyStr.slice(0, 120)}` : `返回 ${r.status}（拦截正常）`
+      );
+    }
+  }
+
+  // 14. 字段篡改提权（批量赋值 mass assignment）
+  console.log('\n[14] 字段篡改提权测试');
+  {
+    const r14 = await req('POST', '/api/user/register', {
+      email: `sec_tamper_${Date.now()}@example.com`,
+      password: process.env.TEST_REGISTER_PASSWORD || 'SecTest#2026x',
+      name: 'TamperTest',
+      role: 'admin',
+      memberLevel: 'lifetime',
+      balance: 999999999,
+      isAdmin: true,
+    });
+    const respRole = r14.body?.user?.role ?? r14.body?.role ?? r14.body?.data?.role;
+    report(
+      'VULN-14-MASS-ASSIGN',
+      '注册时塞入 role=admin / memberLevel=lifetime 字段',
+      '极高危',
+      !(r14.status === 200 && (respRole === 'admin' || respRole === 'lifetime')),
+      r14.status === 200
+        ? `注册成功，响应角色字段=${respRole ?? '未返回'}（需人工核验数据库实际 role 是否被污染）`
+        : `返回 ${r14.status}（字段被忽略或注册被拒）`
+    );
+  }
+
+  // 15. 供奉接口价格篡改与负数数量
+  console.log('\n[15] 供奉接口字段篡改');
+  if (normalToken) {
+    const r15a = await req('POST', '/api/offering/pay',
+      { itemName: '清香', quantity: -5, price: 0, amount: 0, totalCost: 0, forceFree: true },
+      authHeader(normalToken));
+    const cost = r15a.body?.cost;
+    const ok15a = r15a.status === 400 || (typeof cost === 'number' && cost > 0);
+    report(
+      'VULN-15-PRICE-TAMPER',
+      '供奉下单塞入 price=0 / quantity=-5 / totalCost=0',
+      '极高危',
+      ok15a,
+      r15a.status === 200 && cost === 0
+        ? '服务端接受了客户端价格，0 元供奉成功！'
+        : `返回 ${r15a.status}，cost=${cost ?? '无'}（服务端计价未被污染）`
+    );
+  }
+
+  // 16. 祈福广场 _debug 敏感信息泄露（未登录可访问）
+  console.log('\n[16] 敏感信息泄露（祈福广场 _debug）');
+  {
+    const r16 = await req('GET', '/api/offering/square');
+    const dbg = r16.body?._debug;
+    const realCount = Array.isArray(dbg?.real?.items) ? dbg.real.items.length : 0;
+    report(
+      'VULN-16-SQUARE-DEBUG',
+      '祈福广场 _debug 公开暴露真实用户供奉记录（用户名+金额+真实统计）',
+      '中危',
+      !dbg,
+      dbg
+        ? `未登录即可读取 _debug.real：${realCount} 条真实记录 + 真实营收统计（模拟数据脱敏形同虚设）`
+        : '无 _debug 字段泄露'
+    );
+  }
+
+  // 17. Token 签名篡改与伪造检测
+  console.log('\n[17] 身份凭证伪造/篡改');
+  if (normalToken) {
+    const [payloadB64] = normalToken.split('.');
+    let payloadObj = {};
+    try {
+      payloadObj = JSON.parse(Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+    } catch {}
+    const evilPayload = b64urlEncode(JSON.stringify({ ...payloadObj, sub: 'admin', role: 'admin', memberLevel: 'lifetime' }));
+
+    const r17a = await req('GET', '/api/admin/stats', null, authHeader(`${evilPayload}.${normalToken.split('.')[1]}`));
+    report(
+      'VULN-17-TAMPER-ROLE',
+      '篡改 payload(role→admin) 重放原签名',
+      '高危',
+      r17a.status === 401 || r17a.status === 403,
+      r17a.status === 200 ? '签名校验失效，普通用户提权为管理员！' : `正确拒绝 ${r17a.status}`
+    );
+
+    const r17b = await req('GET', '/api/admin/stats', null, authHeader(`${evilPayload}.deadbeefdeadbeef`));
+    report(
+      'VULN-17-FAKE-SIG',
+      '完全伪造签名访问管理员接口',
+      '高危',
+      r17b.status === 401 || r17b.status === 403,
+      r17b.status === 200 ? '伪造签名通过校验！' : `正确拒绝 ${r17b.status}`
+    );
+  }
+  {
+    const r17c = await req('GET', '/api/admin/stats', null, { Cookie: 'token=' });
+    report(
+      'VULN-17-NO-AUTH',
+      '空 token 访问管理员接口',
+      '高危',
+      r17c.status === 401 || r17c.status === 403,
+      r17c.status === 200 ? '空 token 竟然通过！' : `正确拒绝 ${r17c.status}`
+    );
+    const r17d = await req('GET', '/api/user/points', null, {});
+    report(
+      'VULN-17-NO-COOKIE',
+      '不带 Cookie 访问个人积分接口',
+      '高危',
+      r17d.status === 401,
+      r17d.status !== 401 ? `返回 ${r17d.status}: ${JSON.stringify(r17d.body).slice(0, 100)}` : '正确返回 401'
+    );
+  }
+
+  // 18. 卡密兑换接口爆破速率限制
+  console.log('\n[18] 卡密兑换防刷');
+  if (normalToken) {
+    let limited = false;
+    let lastStatus = 0;
+    for (let i = 0; i < 30; i++) {
+      const r = await req('POST', '/api/user/redeem-card', { code: `GUESS${String(i).padStart(4, '0')}XXXX` }, authHeader(normalToken));
+      lastStatus = r.status;
+      if (r.status === 429) { limited = true; break; }
+    }
+    report(
+      'VULN-18-CARD-BRUTE',
+      '卡密兑换接口无速率限制，可枚举爆破卡密',
+      '中危',
+      limited,
+      limited ? '触发 429 限流（有防护）' : `连续 30 次错误卡密请求均返回 ${lastStatus}，未触发 429，可无限爆破`
+    );
+  }
 
   // 汇总
   console.log('\n' + '='.repeat(60));

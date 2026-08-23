@@ -8,18 +8,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryFirst, queryAll } from '@/lib/d1';
 
 /**
- * 获取当前请求的agentId
+ * 从已验证的 session 解析代理商 ID（安全来源）
+ * 不再信任客户端传入的 x-agent-id 请求头
  */
-function getAgentId(req: NextRequest): string | null {
-  return req.headers.get('x-agent-id') || null;
+async function resolveAgentIdFromSession(session: any): Promise<string | null> {
+  if (!session || session.role !== 'agent') return null;
+  const agent = await queryFirst('SELECT id FROM Agent WHERE userId = ?', session.sub) as any;
+  return agent?.id || null;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const { allowed } = await requireAdmin(req);
+    const { allowed, session } = await requireAdmin(req);
     if (!allowed) return NextResponse.json({ error: '无权限' }, { status: 403 });
 
-    const agentId = getAgentId(req);
+    const agentId = await resolveAgentIdFromSession(session);
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get('days') || '30');
     const startDateParam = searchParams.get('startDate');

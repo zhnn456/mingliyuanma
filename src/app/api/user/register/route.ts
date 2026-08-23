@@ -8,7 +8,7 @@ import { MEMBER_LEVELS } from '@/lib/pricing';
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIP(req);
-    const rateLimit = checkIPRateLimit(ip, 5, 60000);
+    const rateLimit = await checkIPRateLimit(ip, 5, 60000);
     if (!rateLimit.allowed) return NextResponse.json({ error: '注册尝试过于频繁' }, { status: 429 });
 
     const body = await req.json();
@@ -18,7 +18,17 @@ export async function POST(req: NextRequest) {
     name = name ? sanitizeString(name).slice(0, 30) : undefined;
     phone = phone ? sanitizeString(phone) : undefined;
 
-    // 获取agentId：优先使用请求头中的x-agent-id（由middleware设置）
+    if (!validateEmail(email)) {
+      return NextResponse.json({ error: '邮箱格式不正确' }, { status: 400 });
+    }
+
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.message || '密码不符合要求' }, { status: 400 });
+    }
+
+    // 获取agentId：使用 middleware 注入的 x-agent-id（由服务端安全设置，非客户端）
+    // 注意：此值由 middleware 从数据库查询结果注入，不可被客户端伪造
     const agentIdFromHeader = req.headers.get('x-agent-id');
 
     // 如果有 agentRef，验证代理商是否存在且有效
@@ -36,6 +46,11 @@ export async function POST(req: NextRequest) {
     } else if (agentIdFromHeader) {
       // 如果没有agentRef但middleware设置了agentId，使用该agentId
       agentId = agentIdFromHeader;
+    }
+
+    const existingUser = await queryFirst('SELECT id FROM User WHERE email = ?', email);
+    if (existingUser) {
+      return NextResponse.json({ error: '该邮箱已被注册' }, { status: 409 });
     }
 
     const passwordHash = await hashPassword(password);

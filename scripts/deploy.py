@@ -36,7 +36,13 @@ HOST = SERVERS[target]['host']
 USER = 'root'
 PASS = SERVERS[target]['pass']
 LOCAL_DIR = r'f:\mingliyuanma'
-REMOTE_DIR = f'/www/{target}'
+# 各目标远程应用目录必须与 PM2 实际 cwd 一致（源码站与中央站同为 /www/ming8）
+REMOTE_DIRS = {
+    'ming8': '/www/ming8',
+    'test-source': '/www/test-source',
+    'source': '/www/ming8',
+}
+REMOTE_DIR = REMOTE_DIRS[target]
 
 print(f'=== 部署到 {target} ({REMOTE_DIR}) ===')
 print('=== 1. 打包 .next ===')
@@ -60,8 +66,16 @@ print('  上传完成')
 
 print('\n=== 3. 备份并解压 ===')
 def run(cmd):
-    stdin, stdout, stderr = ssh.exec_command(cmd, timeout=60)
-    return stdout.read().decode('utf-8', errors='replace').strip()
+    stdin, stdout, stderr = ssh.exec_command(cmd, timeout=120)
+    exit_code = stdout.channel.recv_exit_status()
+    out = stdout.read().decode('utf-8', errors='replace').strip()
+    err = stderr.read().decode('utf-8', errors='replace').strip()
+    if exit_code != 0:
+        print(f'  [失败 exit={exit_code}] {cmd}')
+        if err:
+            print(f'    {err[:400]}')
+        raise SystemExit(f'部署中止：远程命令执行失败 → {cmd}')
+    return out
 
 # 备份
 backup_dir = '%s-backup-%d' % (REMOTE_DIR, int(time.time()))

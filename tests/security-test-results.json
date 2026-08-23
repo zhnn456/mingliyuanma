@@ -1,0 +1,181 @@
+{
+  "target": "https://bazi6.cc.cd",
+  "timestamp": "2026-08-23T08:08:52.701Z",
+  "total": 24,
+  "passed": 17,
+  "failed": 7,
+  "critical": 1,
+  "high": 2,
+  "medium": 3,
+  "low": 1,
+  "items": [
+    {
+      "id": "VULN-05-LOGIN-RATELIMIT",
+      "name": "登录接口无速率限制，可暴力破解（无 429 响应）",
+      "risk": "高危",
+      "passed": false,
+      "detail": "连续 60 次错误密码请求未触发 429"
+    },
+    {
+      "id": "VULN-08-UNAUTH-api-admin-users?page=1",
+      "name": "未认证访问 /api/admin/users?page=1",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 403"
+    },
+    {
+      "id": "VULN-08-UNAUTH-api-admin-config",
+      "name": "未认证访问 /api/admin/config",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 403"
+    },
+    {
+      "id": "VULN-08-UNAUTH-api-admin-finance",
+      "name": "未认证访问 /api/admin/finance",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 403"
+    },
+    {
+      "id": "VULN-08-UNAUTH-api-admin-refunds",
+      "name": "未认证访问 /api/admin/refunds",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 403"
+    },
+    {
+      "id": "VULN-08-UNAUTH-api-admin-card-keys",
+      "name": "未认证访问 /api/admin/card-keys",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 403"
+    },
+    {
+      "id": "VULN-10-REGISTER",
+      "name": "注册接口无验证码，可批量注册（撞库/刷号）",
+      "risk": "中危",
+      "passed": false,
+      "detail": "注册成功，无任何验证码保护"
+    },
+    {
+      "id": "VULN-11-INJECT-邮箱SQL注入",
+      "name": "邮箱SQL注入",
+      "risk": "中危",
+      "passed": true,
+      "detail": "正常返回 400"
+    },
+    {
+      "id": "VULN-11-INJECT-密码SQL注入",
+      "name": "密码SQL注入",
+      "risk": "中危",
+      "passed": true,
+      "detail": "正常返回 401"
+    },
+    {
+      "id": "VULN-11-INJECT-密码XSS",
+      "name": "密码XSS",
+      "risk": "中危",
+      "passed": true,
+      "detail": "正常返回 401"
+    },
+    {
+      "id": "VULN-11-INJECT-超长密码",
+      "name": "超长密码",
+      "risk": "中危",
+      "passed": true,
+      "detail": "正常返回 401"
+    },
+    {
+      "id": "VULN-12-HARDCODED",
+      "name": "PRIMARY_ADMIN_IDS 硬编码在源码（可被枚举）",
+      "risk": "低危",
+      "passed": false,
+      "detail": "源码中 PRIMARY_ADMIN_IDS = [admin, cm1admin001]，攻击者可直接枚举管理员ID，绕过数据隔离"
+    },
+    {
+      "id": "VULN-13-IDOR--api-ticket-tkt-attacker-forged-001",
+      "name": "数据越权探测: 他人工单详情（伪造ID）",
+      "risk": "高危",
+      "passed": true,
+      "detail": "返回 404（拦截正常）"
+    },
+    {
+      "id": "VULN-13-IDOR--api-payment-status-orderId-ord-attacker",
+      "name": "数据越权探测: 他人订单支付状态（伪造ID）",
+      "risk": "高危",
+      "passed": true,
+      "detail": "返回 400（拦截正常）"
+    },
+    {
+      "id": "VULN-13-IDOR--api-report-generate-type-bazi-recordId-",
+      "name": "数据越权探测: 他人命理报告（伪造记录ID）",
+      "risk": "高危",
+      "passed": true,
+      "detail": "返回 403（拦截正常）"
+    },
+    {
+      "id": "VULN-13-IDOR--api-user-orders-page-9999",
+      "name": "数据越权探测: 订单列表越页探测",
+      "risk": "高危",
+      "passed": false,
+      "detail": "返回200且带数据，归属校验疑似缺失: {\"orders\":[]}"
+    },
+    {
+      "id": "VULN-14-MASS-ASSIGN",
+      "name": "注册时塞入 role=admin / memberLevel=lifetime 字段",
+      "risk": "极高危",
+      "passed": true,
+      "detail": "注册成功，响应角色字段=未返回（需人工核验数据库实际 role 是否被污染）"
+    },
+    {
+      "id": "VULN-15-PRICE-TAMPER",
+      "name": "供奉下单塞入 price=0 / quantity=-5 / totalCost=0",
+      "risk": "极高危",
+      "passed": false,
+      "detail": "返回 500，cost=无（服务端计价未被污染）"
+    },
+    {
+      "id": "VULN-16-SQUARE-DEBUG",
+      "name": "祈福广场 _debug 公开暴露真实用户供奉记录（用户名+金额+真实统计）",
+      "risk": "中危",
+      "passed": false,
+      "detail": "未登录即可读取 _debug.real：0 条真实记录 + 真实营收统计（模拟数据脱敏形同虚设）"
+    },
+    {
+      "id": "VULN-17-TAMPER-ROLE",
+      "name": "篡改 payload(role→admin) 重放原签名",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确拒绝 403"
+    },
+    {
+      "id": "VULN-17-FAKE-SIG",
+      "name": "完全伪造签名访问管理员接口",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确拒绝 403"
+    },
+    {
+      "id": "VULN-17-NO-AUTH",
+      "name": "空 token 访问管理员接口",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确拒绝 403"
+    },
+    {
+      "id": "VULN-17-NO-COOKIE",
+      "name": "不带 Cookie 访问个人积分接口",
+      "risk": "高危",
+      "passed": true,
+      "detail": "正确返回 401"
+    },
+    {
+      "id": "VULN-18-CARD-BRUTE",
+      "name": "卡密兑换接口无速率限制，可枚举爆破卡密",
+      "risk": "中危",
+      "passed": false,
+      "detail": "连续 30 次错误卡密请求均返回 404，未触发 429，可无限爆破"
+    }
+  ]
+}

@@ -30,7 +30,7 @@ async function generateUniqueReferralCode(maxAttempts = 5): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIP(req);
-    const rateLimit = checkIPRateLimit(ip, 3, 60000);
+    const rateLimit = await checkIPRateLimit(ip, 3, 60000);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: '注册尝试过于频繁' }, { status: 429 });
     }
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (token) {
-      const cookieStr = `token=${token}; Path=/; SameSite=Lax; Max-Age=2592000; Secure`;
+      const cookieStr = `token=${token}; Path=/; SameSite=Lax; Max-Age=2592000; Secure; HttpOnly`;
       return new NextResponse(JSON.stringify(responseBody), {
         status: 200,
         headers: {

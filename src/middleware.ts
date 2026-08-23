@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW = 60_000;
+const ADMIN_RATE_LIMIT_MAX = 200; // 管理员 API 更宽松的阈值
 const EXEMPT_PATHS = ['/_next', '/favicon.ico', '/api/health', '/api/auth/login', '/api/license/verify', '/api/watermark', '/api/features', '/api/internal'];
 const AGENT_PROTECTED_PATHS = ['/agent', '/api/agent'];
 
@@ -66,17 +67,12 @@ let _cachedSecret: string | null = null;
 async function getSecretKey(): Promise<string> {
   if (_cachedSecret) return _cachedSecret;
 
-  // 从环境变量获取（普通服务器通过 process.env 注入）
-  try {
-    if (process.env?.NEXTAUTH_SECRET) {
-      _cachedSecret = process.env.NEXTAUTH_SECRET;
-      return _cachedSecret;
-    }
-  } catch {}
-
-  // 生产环境必须设置 NEXTAUTH_SECRET，否则服务无法启动
-  console.error('[FATAL] NEXTAUTH_SECRET 未设置，请检查 .env.production 配置');
-  _cachedSecret = '';
+  const secret = process.env?.NEXTAUTH_SECRET;
+  if (!secret) {
+    console.error('[FATAL] NEXTAUTH_SECRET 未设置，请检查 .env.production 配置');
+    throw new Error('NEXTAUTH_SECRET 环境变量未设置');
+  }
+  _cachedSecret = secret;
   return _cachedSecret;
 }
 
@@ -103,10 +99,17 @@ async function verifyAndParseToken(token: string): Promise<any> {
 
     if (sig !== expectedHex) return null;
 
-    const binary = atob(payload);
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const binary = atob(padded);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const parsed = JSON.parse(new TextDecoder().decode(bytes));
+
+    if (!parsed.exp) return null;
+    const expMs = typeof parsed.exp === 'number' && parsed.exp < 1e12 ? parsed.exp * 1000 : parsed.exp;
+    if (Date.now() > expMs) return null;
+    return parsed;
   } catch {
     return null;
   }
@@ -335,18 +338,19 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 管理后台 API 不限流（管理员操作需要频繁调用多个 API）
-  if (!pathname.startsWith('/api/admin/') && !pathname.startsWith('/admin')) {
+  // 所有 API 统一限流（管理员 API 使用更宽松的阈值）
+  if (!pathname.startsWith('/_next') && !pathname.startsWith('/admin')) {
     const forwarded = req.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
     cleanupRateLimit();
     const key = `ip:${ip}`;
     const entry = rateLimitMap.get(key);
+    const limit = pathname.startsWith('/api/admin/') ? ADMIN_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
     if (!entry || Date.now() > entry.resetTime) {
       rateLimitMap.set(key, { count: 1, resetTime: Date.now() + RATE_LIMIT_WINDOW });
     } else {
       entry.count++;
-      if (entry.count > RATE_LIMIT_MAX) {
+      if (entry.count > limit) {
         return NextResponse.json({ error: '请求过于频繁' }, { status: 429 });
       }
     }

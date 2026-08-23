@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { execute, queryFirst } from './d1';
 
 // ============ 输入清理 ============
 
@@ -99,29 +100,31 @@ export function sanitizeNumber(input: unknown, min?: number, max?: number): numb
   return num;
 }
 
-// ============ IP 限流（单实例内存版） ============
-// 单实例限流，精确度取决于服务器部署方式
+// ============ IP 限流（数据库持久化，多实例/Serverless 均有效） ============
 
 interface RateLimitEntry {
   count: number;
   resetTime: number;
 }
 
+// 内存兜底（数据库异常时降级为单机限流）
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
-/**
- * IP 级别速率限制（尽力而为，非精确）
- */
-export function checkIPRateLimit(
-  ip: string,
-  maxRequests: number = 60,
-  windowMs: number = 60_000
-): { allowed: boolean; remaining: number; resetTime: number } {
-  // 无需处理时直接放行
-  if (typeof process !== 'undefined' && process.env.CLOUDFLARE_WORKER) {
-    return { allowed: true, remaining: maxRequests, resetTime: Date.now() + windowMs };
-  }
+let rateLimitTableReady = false;
 
+async function ensureRateLimitTable(): Promise<void> {
+  if (rateLimitTableReady) return;
+  await execute(
+    'CREATE TABLE IF NOT EXISTS RateLimitBucket (bucketKey VARCHAR(191) PRIMARY KEY, count INT NOT NULL DEFAULT 0, windowStart BIGINT NOT NULL)'
+  );
+  rateLimitTableReady = true;
+}
+
+function memoryRateLimit(
+  ip: string,
+  maxRequests: number,
+  windowMs: number
+): { allowed: boolean; remaining: number; resetTime: number } {
   const key = `ip:${ip}`;
   const now = Date.now();
   const entry = rateLimitMap.get(key);
@@ -137,6 +140,53 @@ export function checkIPRateLimit(
   }
 
   return { allowed: true, remaining: maxRequests - entry.count, resetTime: entry.resetTime };
+}
+
+/**
+ * IP 级别速率限制（固定窗口计数，持久化到数据库，跨实例生效）
+ */
+export async function checkIPRateLimit(
+  ip: string,
+  maxRequests: number = 60,
+  windowMs: number = 60_000
+): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+  try {
+    await ensureRateLimitTable();
+    const key = `ip:${ip}`.slice(0, 180);
+    const now = Date.now();
+
+    const bumped = await execute(
+      'UPDATE RateLimitBucket SET count = count + 1 WHERE bucketKey = ? AND windowStart > ?',
+      key, now - windowMs
+    );
+
+    if (bumped.changes === 0) {
+      await execute('DELETE FROM RateLimitBucket WHERE bucketKey = ?', key);
+      try {
+        await execute(
+          'INSERT INTO RateLimitBucket (bucketKey, count, windowStart) VALUES (?, 1, ?)',
+          key, now
+        );
+      } catch {
+        await execute(
+          'UPDATE RateLimitBucket SET count = count + 1 WHERE bucketKey = ? AND windowStart > ?',
+          key, now - windowMs
+        );
+      }
+    }
+
+    const row = await queryFirst('SELECT count, windowStart FROM RateLimitBucket WHERE bucketKey = ?', key) as any;
+    const count = Number(row?.count || 1);
+    const resetTime = Number(row?.windowStart || now) + windowMs;
+
+    return {
+      allowed: count <= maxRequests,
+      remaining: Math.max(0, maxRequests - count),
+      resetTime,
+    };
+  } catch {
+    return memoryRateLimit(ip, maxRequests, windowMs);
+  }
 }
 
 /**
@@ -156,9 +206,9 @@ export function getClientIP(req: NextRequest): string {
  * API 速率限制中间件
  */
 export function withRateLimit(maxRequests: number = 60, windowMs: number = 60_000) {
-  return function (req: NextRequest): NextResponse | null {
+  return async function (req: NextRequest): Promise<NextResponse | null> {
     const ip = getClientIP(req);
-    const result = checkIPRateLimit(ip, maxRequests, windowMs);
+    const result = await checkIPRateLimit(ip, maxRequests, windowMs);
     if (!result.allowed) {
       return NextResponse.json(
         { error: '请求过于频繁，请稍后再试' },

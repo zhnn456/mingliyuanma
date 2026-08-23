@@ -13,15 +13,15 @@ import { queryFirst } from '@/lib/d1';
 
 const CONFIG_KEY = 'payment_config';
 const CONFIG_CATEGORY = 'system';
-const FALLBACK_SECRET = 'zhiwei-secret-key-2026-production';
 
 // ==================== 密钥与加密（AES-GCM） ====================
 
 async function getSecret(): Promise<string> {
-  try {
-    if (process.env?.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
-  } catch {}
-  return FALLBACK_SECRET;
+  const secret = process.env?.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: NEXTAUTH_SECRET 环境变量未设置，支付配置解密不可用');
+  }
+  return secret;
 }
 
 async function getAesKey(): Promise<CryptoKey> {

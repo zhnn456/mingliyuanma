@@ -112,21 +112,6 @@ export async function GET() {
         totalUsers: (realStats?.totalUsers || 0) + (isActive ? mockStats.totalUsers : 0),
         totalLingzhu: (realStats?.totalLing || 0) + (isActive ? mockStats.totalLingzhu : 0),
       },
-      // 分离数据供调试/后台使用
-      _debug: {
-        mock: {
-          stats: isActive ? mockStats : { totalOfferings: 0, totalUsers: 0, totalLingzhu: 0 },
-          items: mockItems,
-        },
-        real: {
-          stats: {
-            totalOfferings: realStats?.totalOff || 0,
-            totalUsers: realStats?.totalUsers || 0,
-            totalLingzhu: realStats?.totalLing || 0,
-          },
-          items: realItems,
-        },
-      },
     });
   } catch (error: any) {
     console.error('祈福广场获取失败:', error?.message);

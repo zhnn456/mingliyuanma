@@ -21,16 +21,14 @@ import { auditLog } from '@/lib/audit';
 const CONFIG_KEY = 'payment_config';
 const CONFIG_CATEGORY = 'system';
 
-const FALLBACK_SECRET = 'zhiwei-secret-key-2026-production';
-
 // ==================== 密钥与加密（AES-GCM，基于 Web Crypto） ====================
 
 async function getSecret(): Promise<string> {
-  // 普通服务器通过 process.env 注入密钥
-  try {
-    if (process.env?.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
-  } catch {}
-  return FALLBACK_SECRET;
+  const secret = process.env?.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: NEXTAUTH_SECRET 环境变量未设置');
+  }
+  return secret;
 }
 
 async function getAesKey(): Promise<CryptoKey> {

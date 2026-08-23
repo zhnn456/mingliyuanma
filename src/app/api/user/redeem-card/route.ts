@@ -117,8 +117,9 @@ export async function POST(req: NextRequest) {
         }
 
         const oldBalance = Number(agent.balance ?? 0);
-        const newBalance = oldBalance + cardValue;
-        await execute('UPDATE Agent SET balance = ? WHERE id = ?', newBalance, agent.id);
+        await execute('UPDATE Agent SET balance = balance + ? WHERE id = ?', cardValue, agent.id);
+        const freshAgent = await queryFirst('SELECT balance FROM Agent WHERE id = ?', agent.id) as any;
+        const newBalance = Number(freshAgent?.balance ?? (oldBalance + cardValue));
 
         await auditLog({
           userId,

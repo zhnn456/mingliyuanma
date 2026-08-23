@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, signToken } from '@/lib/auth-server';
 import { queryFirst, execute } from '@/lib/d1';
 import { verifyPassword, hashPassword } from '@/lib/password';
+import { checkIPRateLimit, getClientIP } from '@/lib/security';
+
+// 登录速率限制：同一 IP 每分钟最多 10 次尝试
+const LOGIN_RATE_LIMIT = 10;
+const LOGIN_RATE_WINDOW = 60_000; // 1 分钟
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +15,13 @@ export async function POST(req: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json({ error: '请输入邮箱和密码' }, { status: 400 });
+    }
+
+    // 登录速率限制（IP 级别）
+    const ip = getClientIP(req);
+    const rateLimit = await checkIPRateLimit(ip, LOGIN_RATE_LIMIT, LOGIN_RATE_WINDOW);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: '请求过于频繁，请稍后再试' }, { status: 429 });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -81,7 +93,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Token生成失败: ' + signErr?.message }, { status: 500 });
     }
 
-    const cookieStr = `token=${token}; Path=/; SameSite=Lax; Max-Age=2592000; Secure`;
+    const cookieStr = `token=${token}; Path=/; SameSite=Lax; Max-Age=2592000; Secure; HttpOnly`;
 
     return new NextResponse(JSON.stringify({
       user: {
@@ -100,6 +112,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Login error:', error?.message, error?.stack);
-    return NextResponse.json({ error: '登录失败: ' + (error?.message || '未知错误') }, { status: 500 });
+    return NextResponse.json({ error: '登录失败，请稍后再试' }, { status: 500 });
   }
 }

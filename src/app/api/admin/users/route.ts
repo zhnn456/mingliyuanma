@@ -10,10 +10,13 @@ import { buildUserIsolationClause } from '@/lib/test-isolation';
 import { auditLog } from '@/lib/audit';
 
 /**
- * 获取当前请求的agentId（用于数据隔离）
+ * 从已验证的 session 解析代理商 ID（安全来源）
+ * 不再信任客户端传入的 x-agent-id 请求头
  */
-function getAgentId(req: NextRequest): string | null {
-  return req.headers.get('x-agent-id') || null;
+async function resolveAgentIdFromSession(session: any): Promise<string | null> {
+  if (!session || session.role !== 'agent') return null;
+  const agent = await queryFirst('SELECT id FROM Agent WHERE userId = ?', session.sub) as any;
+  return agent?.id || null;
 }
 
 export async function GET(req: NextRequest) {
@@ -28,13 +31,13 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
-    // 获取当前代理商ID
-    const agentId = getAgentId(req);
-
     // 数据隔离：非主管理员只看测试用户
     const isolation = buildUserIsolationClause(session);
 
-    let sql = "SELECT id, email, name, phone, role, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate, createdAt FROM User";
+    // 从已验证的 session 解析代理商 ID（安全来源）
+    const agentId = await resolveAgentIdFromSession(session);
+
+    let sql = "SELECT id, email, name, REPLACE(phone, SUBSTRING(phone, 4, 3), '***') as phone, role, memberLevel, memberExpiryAt, dailyUsage, lastUsageDate, createdAt FROM User";
     let countSql = "SELECT COUNT(*) as total FROM User";
     const params: any[] = [];
     const countParams: any[] = [];
@@ -96,7 +99,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
 
-    const agentId = getAgentId(req);
+    const agentId = await resolveAgentIdFromSession(session);
     const body = await req.json();
     const { userId, memberLevel, role, memberExpiry } = body;
     if (!userId) return NextResponse.json({ error: '缺少用户ID' }, { status: 400 });

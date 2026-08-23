@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     if (id) {
       const user = await queryFirst(
-        `SELECT id, email, name, phone, avatar, role, memberLevel, memberExpiryAt, createdAt
+        `SELECT id, email, name, REPLACE(phone, SUBSTRING(phone, 4, 3), '***') as phone, avatar, role, memberLevel, memberExpiryAt, createdAt
          FROM "User" WHERE id = ?`,
         id
       ) as any;
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const keyword = searchParams.get('keyword') || '';
 
-    let sql = `SELECT u.id, u.email, u.name, u.phone, u.avatar, u.role, u.memberLevel, u.memberExpiryAt, u.createdAt,
+    let sql = `SELECT u.id, u.email, u.name, REPLACE(u.phone, SUBSTRING(u.phone, 4, 3), '***') as phone, u.avatar, u.role, u.memberLevel, u.memberExpiryAt, u.createdAt,
                (SELECT COUNT(*) FROM "Order" o WHERE o.userId = u.id) as orderCount,
                (SELECT COALESCE(SUM(amount), 0) FROM "Order" o WHERE o.userId = u.id) as totalAmount,
                (SELECT COUNT(*) FROM BaziRecord b WHERE b.userId = u.id) +

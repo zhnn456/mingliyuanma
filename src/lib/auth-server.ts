@@ -8,7 +8,6 @@ import { NextRequest } from 'next/server';
 import { createHmac } from 'crypto';
 
 const TOKEN_TTL = 86_400_000; // 24小时
-const FALLBACK_SECRET = 'zhiwei-secret-key-2026-production';
 
 // 缓存密钥，但如果为空则不缓存，允许重试
 let _cachedSecret: string | null = null;
@@ -20,18 +19,12 @@ async function getSecretKey(): Promise<string> {
   if (_cachedSecretPromise) return _cachedSecretPromise;
 
   _cachedSecretPromise = (async () => {
-    try {
-      if (process.env?.NEXTAUTH_SECRET) {
-        _cachedSecret = process.env.NEXTAUTH_SECRET;
-        return _cachedSecret;
-      }
-
-      console.warn('[auth] ⚠️ 使用回退密钥！生产环境必须设置 NEXTAUTH_SECRET');
-      _cachedSecret = FALLBACK_SECRET;
-      return _cachedSecret;
-    } finally {
-      _cachedSecretPromise = null;
+    const secret = process.env?.NEXTAUTH_SECRET;
+    if (!secret) {
+      throw new Error('FATAL: NEXTAUTH_SECRET 环境变量未设置，服务无法启动');
     }
+    _cachedSecret = secret;
+    return _cachedSecret;
   })();
 
   return _cachedSecretPromise;

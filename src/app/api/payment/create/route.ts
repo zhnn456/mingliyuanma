@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!allowed || !session) return NextResponse.json({ error: '请先登录' }, { status: 401 });
 
     const ip = getClientIP(req);
-    const rateLimit = checkIPRateLimit(ip, 10, 60000);
+    const rateLimit = await checkIPRateLimit(ip, 10, 60000);
     if (!rateLimit.allowed) return NextResponse.json({ error: '操作过于频繁' }, { status: 429 });
 
     const body = await req.json();
