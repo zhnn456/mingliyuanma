@@ -84,13 +84,18 @@ def exclude_filter(info):
     return info
 
 
-print('\n=== 1. 打包 .next + server.js ===')
+print('\n=== 1. 打包 .next + server.js + public ===')
 archive_path = os.path.join(LOCAL_DIR, 'deploy-next.tar.gz')
 with tarfile.open(archive_path, 'w:gz') as tar:
     tar.add(os.path.join(LOCAL_DIR, '.next'), arcname='.next', filter=exclude_filter)
     server_js = os.path.join(LOCAL_DIR, 'server.js')
     if os.path.exists(server_js):
         tar.add(server_js, arcname='server.js')
+    public_dir = os.path.join(LOCAL_DIR, 'public')
+    if os.path.isdir(public_dir):
+        tar.add(public_dir, arcname='public')
+    else:
+        print('  ⚠️ 本地缺少 public 目录，跳过静态资源打包')
 size = os.path.getsize(archive_path)
 print(f'  打包完成: {size // 1024 // 1024} MB')
 
@@ -135,7 +140,7 @@ if mark == 'YES':
     run('cp %s/server.js %s/server.js' % (REMOTE_DIR, backup_dir))
 print('  备份: %s' % backup_dir)
 
-run('rm -rf /tmp/.next /tmp/server.js && cd /tmp && tar -xzf deploy-next.tar.gz')
+run('rm -rf /tmp/.next /tmp/server.js /tmp/public && cd /tmp && tar -xzf deploy-next.tar.gz')
 run('rm -rf %s/.next/static %s/.next/server' % (REMOTE_DIR, REMOTE_DIR))
 run('cp -r /tmp/.next/static %s/.next/static' % REMOTE_DIR)
 run('cp -r /tmp/.next/server %s/.next/server' % REMOTE_DIR)
@@ -147,6 +152,12 @@ for extra in ('routes-manifest.json', 'prerender-manifest.json'):
     else:
         print('  ⚠️ 本地构建缺少 %s，未同步（headers/redirects 可能失效）' % extra)
 run('cp /tmp/server.js %s/server.js' % REMOTE_DIR)
+mark = run('test -d /tmp/public && echo YES || echo NO')
+if mark == 'YES':
+    run('mkdir -p %s/public && cp -r /tmp/public/. %s/public/' % (REMOTE_DIR, REMOTE_DIR))
+    print('  public 静态资源已同步（favicon/og-image/brand-hero 等）')
+else:
+    print('  ⚠️ 包内无 public 目录，跳过静态资源同步')
 print('  解压覆盖完成（含 server.js）')
 
 print('\n=== 4. 重启 PM2 ===')
