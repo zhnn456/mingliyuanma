@@ -12,22 +12,46 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default: `${siteName} - 传统文化智慧平台`,
+      default: `${siteName} - 免费八字排盘·紫微斗数·奇门遁甲·梅花易数`,
       template: `%s - ${siteName}`,
     },
-    description: '传承千年智慧，融合现代科技，以传统文化视角提供性格分析与文化解读服务。',
-    keywords: ['八字', '紫微斗数', '奇门遁甲', '梅花易数', '命理', '排盘', '传统文化', '国学'],
+    description: '知微阁提供免费八字排盘、紫微斗数排盘、奇门遁甲排盘、梅花易数起卦等在线命理工具，融合四柱八字、紫微斗数、奇门遁甲、梅花易数四大传统命理体系，并收录传统文化知识文章。',
+    keywords: ['八字排盘', '紫微斗数', '奇门遁甲', '梅花易数', '免费排盘', '算命', '命理', '在线占卜', '传统文化', '知微阁'],
+    metadataBase: new URL('https://ming8.online'),
     verification: {
       other: {
         'baidu-site-verification': 'codeva-hyw462vt6N',
       },
     },
+    icons: {
+      icon: '/favicon.svg',
+      shortcut: '/favicon.svg',
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
     openGraph: {
-      title: `${siteName} - 传统文化智慧平台`,
-      description: '传承千年智慧，以传统文化视角提供性格分析与文化解读服务',
+      title: `${siteName} - 免费八字排盘·紫微斗数·奇门遁甲·梅花易数在线工具`,
+      description: '免费八字排盘、紫微斗数、奇门遁甲、梅花易数在线工具与传统文化知识库。',
       type: 'website',
       locale: 'zh_CN',
       siteName,
+      images: [
+        {
+          url: 'https://ming8.online/og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: siteName,
+        },
+      ],
     },
   };
 }

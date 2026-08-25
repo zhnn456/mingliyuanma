@@ -169,6 +169,22 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Brand Image Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-parchment-100 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+          <div className="rounded-2xl overflow-hidden shadow-xl">
+            <img
+              src="/images/brand-hero.jpg"
+              alt="知微阁 - 八字排盘·紫微斗数·奇门遁甲·梅花易数在线工具"
+              className="w-full h-auto object-cover"
+              loading="eager"
+              width="1200"
+              height="600"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Services Section */}
       <section className="py-28 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

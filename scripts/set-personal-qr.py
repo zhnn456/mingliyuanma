@@ -1,10 +1,11 @@
 """设置个人收款码配置（上传微信收款码后）"""
+import os
 import paramiko
 import json
 
 HOST = '47.79.237.103'
 USER = 'root'
-PWD = 'Aa20260618'
+PWD = os.environ['DEPLOY_SSH_PASSWORD']
 
 t = paramiko.Transport((HOST, 22))
 t.connect(username=USER, password=PWD)

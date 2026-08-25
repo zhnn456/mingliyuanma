@@ -23,6 +23,8 @@ export interface KnowledgeArticle {
   prevId?: string;
   nextId?: string;
   readingTime?: number;
+  /** 文件最后修改时间（用于 sitemap lastModified） */
+  lastModified?: Date;
 }
 
 export interface KnowledgeCategory {

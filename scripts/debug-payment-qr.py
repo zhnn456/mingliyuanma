@@ -1,8 +1,9 @@
 """排查保存失败 + 图片404 问题"""
+import os
 import paramiko
 
 t = paramiko.Transport(('47.79.237.103', 22))
-t.connect(username='root', password='Aa20260618')
+t.connect(username='root', password=os.environ['DEPLOY_SSH_PASSWORD'])
 ssh = paramiko.SSHClient()
 ssh._transport = t
 

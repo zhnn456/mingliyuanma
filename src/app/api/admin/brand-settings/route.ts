@@ -14,7 +14,7 @@ import { auditLog } from '@/lib/audit';
  * 前台通过 /api/public/agent-brand 读取并显示
  */
 
-const BRAND_KEYS = ['brandName', 'logo', 'tagline'];
+const BRAND_KEYS = ['brandName', 'logo', 'tagline', 'supportEmail'];
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
       brandName: map.brandName || '',
       logo: map.logo || '',
       tagline: map.tagline || '',
+      supportEmail: map.supportEmail || '',
     });
   } catch (error) {
     console.error('获取品牌设置失败:', error);
@@ -49,6 +50,7 @@ export async function PUT(req: NextRequest) {
     const brandName = (body.brandName || '').trim();
     const logo = (body.logo || '').trim();
     const tagline = (body.tagline || '').trim();
+    const supportEmail = (body.supportEmail || '').trim();
 
     if (!brandName) {
       return NextResponse.json({ error: '网站名称不能为空' }, { status: 400 });
@@ -60,19 +62,21 @@ export async function PUT(req: NextRequest) {
       ['brandName', brandName],
       ['logo', logo],
       ['tagline', tagline],
+      ['supportEmail', supportEmail],
     ];
     for (const [key, value] of values) {
-      const existing = await queryFirst('SELECT id FROM SiteConfig WHERE "key" = ?', key) as any;
+      // 【人工修复 · Fix】SiteConfig 主键为 `key`，无 `id` 列：
+      // - 之前 SELECT/INSERT 引用了不存在的 `id` 列，导致"新增配置 key"（如 supportEmail）写入时 500
+      const existing = await queryFirst('SELECT `key` FROM SiteConfig WHERE `key` = ?', key) as any;
       if (existing) {
         await execute(
-          'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE "key" = ?',
+          'UPDATE SiteConfig SET value = ?, category = ?, updatedAt = ? WHERE `key` = ?',
           value, 'brand', now, key
         );
       } else {
-        const id = `cfg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         await execute(
-          'INSERT INTO SiteConfig (id, "key", value, category, updatedAt) VALUES (?, ?, ?, ?, ?)',
-          id, key, value, 'brand', now
+          'INSERT INTO SiteConfig (`key`, value, category, updatedAt) VALUES (?, ?, ?, ?)',
+          key, value, 'brand', now
         );
       }
     }
@@ -84,7 +88,7 @@ export async function PUT(req: NextRequest) {
       status: 'success',
     });
 
-    return NextResponse.json({ success: true, brandName, logo, tagline });
+    return NextResponse.json({ success: true, brandName, logo, tagline, supportEmail });
   } catch (error) {
     console.error('保存品牌设置失败:', error);
     return NextResponse.json({ error: '保存失败' }, { status: 500 });

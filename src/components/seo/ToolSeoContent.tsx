@@ -4,6 +4,13 @@ import type { KnowledgeArticle } from '@/lib/knowledge/types';
 
 const BASE_URL = 'https://ming8.online';
 
+interface ToolLink {
+  name: string;
+  path: string;
+  icon: string;
+  desc: string;
+}
+
 interface SeoFaq {
   q: string;
   a: string;
@@ -22,12 +29,22 @@ interface ToolSeoContentProps {
   relatedCategory: string;
   /** 展示模式：full=底部宽屏（默认），sidebar=右侧紧凑侧栏 */
   variant?: 'full' | 'sidebar';
+  /** 交叉推荐的其他工具列表 */
+  relatedTools?: ToolLink[];
 }
+
+/** 所有工具定义（用于交叉推荐） */
+const ALL_TOOLS: ToolLink[] = [
+  { name: '四柱八字排盘', path: '/bazi', icon: '☰', desc: '免费生辰八字四柱排盘' },
+  { name: '紫微斗数排盘', path: '/ziwei', icon: '★', desc: '免费紫微命盘查询' },
+  { name: '奇门遁甲排盘', path: '/qimen', icon: '◈', desc: '时家奇门预测' },
+  { name: '梅花易数起卦', path: '/meihua', icon: '✿', desc: '免费占卜解卦' },
+];
 
 /**
  * 工具页 SEO 内容组件（Server Component）
- * - 输出 WebApplication + FAQPage JSON-LD 结构化数据
- * - 输出工具说明正文、FAQ 问答、相关文章内链（解决客户端渲染工具的薄内容问题）
+ * - 输出 WebApplication + FAQPage + BreadcrumbList JSON-LD 结构化数据
+ * - 输出工具说明正文、FAQ 问答、相关文章内链、交叉推荐工具
  */
 export default function ToolSeoContent({
   toolName,
@@ -36,50 +53,59 @@ export default function ToolSeoContent({
   faqs,
   relatedCategory,
   variant = 'full',
+  relatedTools,
 }: ToolSeoContentProps) {
   const related: KnowledgeArticle[] = getArticlesByCategory(relatedCategory).slice(0, 6);
   const toolUrl = `${BASE_URL}${toolPath}`;
   const isSidebar = variant === 'sidebar';
 
-  const jsonLd = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebApplication',
-        name: `${toolName} - 知微阁`,
-        url: toolUrl,
-        description: introParagraphs[0],
-        applicationCategory: 'UtilitiesApplication',
-        operatingSystem: 'Any',
-        inLanguage: 'zh-CN',
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: 'CNY',
-        },
-        publisher: {
-          '@type': 'Organization',
-          name: '知微阁',
-          url: BASE_URL,
-        },
+  const graphItems: object[] = [
+    {
+      '@type': 'WebApplication',
+      name: `${toolName} - 知微阁`,
+      url: toolUrl,
+      description: introParagraphs[0],
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any',
+      inLanguage: 'zh-CN',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'CNY',
       },
-      {
-        '@type': 'FAQPage',
-        mainEntity: faqs.map(f => ({
-          '@type': 'Question',
-          name: f.q,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: f.a,
-          },
-        })),
+      publisher: {
+        '@type': 'Organization',
+        name: '知微阁',
+        url: BASE_URL,
       },
-    ],
-  });
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: f.a,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: '首页', item: BASE_URL },
+        { '@type': 'ListItem', position: 2, name: toolName, item: toolUrl },
+      ],
+    },
+  ];
+
+  const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': graphItems });
+
+  const tools = relatedTools || ALL_TOOLS.filter(t => t.path !== toolPath);
 
   return (
     <>
-      {/* 结构化数据：WebApplication + FAQPage */}
+      {/* 结构化数据：WebApplication + FAQPage + BreadcrumbList */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd }}
@@ -102,6 +128,34 @@ export default function ToolSeoContent({
               ))}
             </div>
           </article>
+
+          {/* 交叉推荐：其他工具 */}
+          {tools.length > 0 && (
+            <article className="card p-4">
+              <h2 className="text-sm font-bold text-gray-900 font-kai mb-3 flex items-center gap-1.5">
+                <span className="w-0.5 h-4 bg-amber-700 rounded-full" aria-hidden="true" />
+                相关工具
+              </h2>
+              <ul className="space-y-1.5">
+                {tools.map(t => (
+                  <li key={t.path}>
+                    <Link
+                      href={t.path}
+                      className="flex items-center gap-2 p-1.5 rounded-md hover:bg-amber-50/50 transition-colors group"
+                    >
+                      <span aria-hidden="true" className="text-xs">{t.icon}</span>
+                      <div className="min-w-0">
+                        <span className="text-xs text-gray-600 group-hover:text-amber-700 transition-colors block truncate">
+                          {t.name}
+                        </span>
+                        <span className="text-[10px] text-gray-400 block truncate">{t.desc}</span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
 
           {/* 常见问题 - 折叠式 */}
           <article className="card p-4">

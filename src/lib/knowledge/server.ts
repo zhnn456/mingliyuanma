@@ -82,9 +82,15 @@ function loadArticles(): KnowledgeArticle[] {
           const files = fsMod.readdirSync(catPath).filter((f: string) => f.endsWith('.md'));
 
           for (const file of files) {
-            const rawContent = fsMod.readFileSync(pathMod.join(catPath, file), 'utf-8');
+            const filePath = pathMod.join(catPath, file);
+            const rawContent = fsMod.readFileSync(filePath, 'utf-8');
             const { frontmatter, body } = parseFrontmatter(rawContent);
             const id = file.replace(/\.md$/, '');
+            let fileMtime: Date | undefined;
+            try {
+              const stat = fsMod.statSync(filePath);
+              fileMtime = stat.mtime;
+            } catch { /* 忽略 */ }
 
             articles.push({
               id, title: frontmatter.title || id,
@@ -98,6 +104,7 @@ function loadArticles(): KnowledgeArticle[] {
               relatedIds: frontmatter.relatedIds?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
               prevId: frontmatter.prevId, nextId: frontmatter.nextId,
               readingTime: frontmatter.readingTime || Math.max(1, Math.ceil(body.length / 500)),
+              lastModified: fileMtime,
             });
           }
         }

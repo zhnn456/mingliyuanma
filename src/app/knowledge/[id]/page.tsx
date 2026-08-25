@@ -14,12 +14,12 @@ import type { KnowledgeArticle } from '@/lib/knowledge/types';
 const BASE_URL = 'https://ming8.online';
 
 /* ========== 分类 → 工具映射（内链到工具页） ========== */
-const TOOL_MAP: Record<string, { name: string; href: string; icon: string; desc: string }> = {
-  bazi: { name: '四柱八字排盘', href: '/bazi', icon: '☰', desc: '输入出生信息，免费在线生成生辰八字命盘' },
-  ziwei: { name: '紫微斗数排盘', href: '/ziwei', icon: '★', desc: '免费安布十二宫星曜命盘，解读人生格局' },
-  qimen: { name: '奇门遁甲排盘', href: '/qimen', icon: '⚔', desc: '时家奇门自动布局，择时趋吉避凶' },
-  meihua: { name: '梅花易数起卦', href: '/meihua', icon: '✿', desc: '时间或数字起卦，体用生克断吉凶' },
-};
+const ALL_TOOLS = [
+  { name: '四柱八字排盘', href: '/bazi', icon: '☰', desc: '输入出生信息，免费在线生成生辰八字命盘' },
+  { name: '紫微斗数排盘', href: '/ziwei', icon: '★', desc: '免费安布十二宫星曜命盘，解读人生格局' },
+  { name: '奇门遁甲排盘', href: '/qimen', icon: '⚔', desc: '时家奇门自动布局，择时趋吉避凶' },
+  { name: '梅花易数起卦', href: '/meihua', icon: '✿', desc: '时间或数字起卦，体用生克断吉凶' },
+];
 
 /* ========== 封面图映射（与客户端一致） ========== */
 function getArticleImage(article: { id: string; category: string }): string | null {
@@ -97,6 +97,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       siteName: brandName,
       url: `${BASE_URL}/knowledge/${article.id}`,
       images: getArticleImage(article) ? [{ url: `${BASE_URL}${getArticleImage(article)}` }] : undefined,
+      publishedTime: article.lastModified?.toISOString(),
+      modifiedTime: article.lastModified?.toISOString(),
+      tags: article.tags,
     },
   };
 }
@@ -115,8 +118,8 @@ function buildJsonLd(article: KnowledgeArticle, prev: KnowledgeArticle | null, n
     author: { '@type': 'Organization', name: brandName, url: BASE_URL },
     publisher: { '@type': 'Organization', name: brandName, url: BASE_URL },
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
-    datePublished: '2026-01-01',
-    dateModified: '2026-08-12',
+    datePublished: article.lastModified ? article.lastModified.toISOString().split('T')[0] : '2026-01-01',
+    dateModified: article.lastModified ? article.lastModified.toISOString().split('T')[0] : '2026-08-12',
   };
 
   const breadcrumbLd = {
@@ -335,29 +338,29 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
                 </section>
               )}
 
-              {/* 相关工具（内链：文章 → 工具页） */}
-              {TOOL_MAP[article.category] && (
-                <section className="mt-8" aria-label="相关工具">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 font-kai">在线工具</h2>
-                  <Link
-                    href={TOOL_MAP[article.category].href}
-                    className="card flex items-center gap-4 p-4 hover:shadow-md transition-all group"
-                  >
-                    <span className="text-3xl" aria-hidden="true">{TOOL_MAP[article.category].icon}</span>
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-800 group-hover:text-red-700 transition-colors">
-                        {TOOL_MAP[article.category].name}
+              {/* 相关工具（内链：文章 → 所有工具页） */}
+              <section className="mt-8" aria-label="相关工具">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 font-kai">在线工具</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ALL_TOOLS.map(tool => (
+                    <Link
+                      key={tool.href}
+                      href={tool.href}
+                      className="card flex items-center gap-3 p-3 hover:shadow-md transition-all group"
+                    >
+                      <span className="text-2xl" aria-hidden="true">{tool.icon}</span>
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm text-gray-800 group-hover:text-red-700 transition-colors">
+                          {tool.name}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5 truncate">
+                          {tool.desc}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {TOOL_MAP[article.category].desc}
-                      </div>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </section>
-              )}
+                    </Link>
+                  ))}
+                </div>
+              </section>
             </div>
 
             {/* 目录侧边栏 */}

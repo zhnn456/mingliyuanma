@@ -6,6 +6,7 @@ export default function BrandSettingsPage() {
   const [brandName, setBrandName] = useState('');
   const [logo, setLogo] = useState('');
   const [tagline, setTagline] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -24,6 +25,7 @@ export default function BrandSettingsPage() {
         setBrandName(d.brandName || '');
         setLogo(d.logo || '');
         setTagline(d.tagline || '');
+        setSupportEmail(d.supportEmail || '');
       }
     } catch {} finally {
       setLoading(false);
@@ -42,7 +44,7 @@ export default function BrandSettingsPage() {
       const res = await fetch('/api/admin/brand-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandName: brandName.trim(), logo: logo.trim(), tagline: tagline.trim() }),
+        body: JSON.stringify({ brandName: brandName.trim(), logo: logo.trim(), tagline: tagline.trim(), supportEmail: supportEmail.trim() }),
       });
       if (res.ok) {
         showToast('保存成功，前台已生效');
@@ -61,6 +63,7 @@ export default function BrandSettingsPage() {
     setBrandName('');
     setLogo('');
     setTagline('');
+    setSupportEmail('');
   };
 
   return (
@@ -130,6 +133,20 @@ export default function BrandSettingsPage() {
               maxLength={60}
             />
             <p className="text-xs text-gray-400 mt-1">显示在页脚等位置</p>
+          </div>
+
+          {/* 联系邮箱 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">官方联系邮箱</label>
+            <input
+              type="email"
+              value={supportEmail}
+              onChange={e => setSupportEmail(e.target.value)}
+              placeholder="例如：support@example.com"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              maxLength={100}
+            />
+            <p className="text-xs text-gray-400 mt-1">用于服务条款、隐私政策、版权声明中展示的联系方式；留空则使用默认邮箱</p>
           </div>
 
           {/* 操作按钮 */}

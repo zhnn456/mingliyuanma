@@ -1,9 +1,10 @@
+import os
 import paramiko
 import warnings
 import time
 warnings.filterwarnings('ignore')
 
-HOST, PASS = '47.79.3.189', 'Aa20260618'
+HOST, PASS = '47.79.3.189', os.environ['DEPLOY_SSH_PASSWORD']
 CONF_PATH = '/etc/nginx/sites-available/bazi6.cc.cd'
 BACKUP = CONF_PATH + '.bak.' + str(int(time.time()))
 

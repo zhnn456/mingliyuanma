@@ -1,8 +1,9 @@
 """更新 nginx 配置：添加 /images/ 静态文件直接服务，避免 404"""
+import os
 import paramiko
 
 t = paramiko.Transport(('47.79.237.103', 22))
-t.connect(username='root', password='Aa20260618')
+t.connect(username='root', password=os.environ['DEPLOY_SSH_PASSWORD'])
 ssh = paramiko.SSHClient()
 ssh._transport = t
 

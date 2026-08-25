@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getBrandName } from '@/lib/brand';
+import { getBrandName, getBrandConfig, getCurrentDomain } from '@/lib/brand';
 import Link from 'next/link';
 import AgentBrandNotice from '../_components/AgentBrandNotice';
 
@@ -12,7 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function CopyrightPage() {
+export default async function CopyrightPage() {
+  const brand = await getBrandConfig();
+  const brandName = brand.brandName;
+  const tagline = brand.tagline;
+  const supportEmail = brand.supportEmail;
+  const domain = (await getCurrentDomain()) || brandName;
   return (
     <div className="min-h-screen bg-gradient-to-b from-parchment-50 via-paper to-white py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,7 +25,7 @@ export default function CopyrightPage() {
         <div className="text-center mb-10">
           <div className="text-xs tracking-[0.2em] text-gray-500 mb-2">COPYRIGHT</div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">版权声明</h1>
-          <p className="text-gray-600">最后更新日期：2026年7月31日</p>
+          <p className="text-gray-600">最后更新日期：2026年8月24日</p>
         </div>
 
         {/* 代理商授权声明 */}
@@ -29,8 +34,8 @@ export default function CopyrightPage() {
         {/* 版权信息 */}
         <div className="bg-gradient-to-br from-red-50 to-amber-50 rounded-2xl shadow-sm border border-red-100 p-8 mb-6 text-center">
           <div className="text-4xl mb-4">©</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">知微阁 ZhiWeiGe</h2>
-          <p className="text-gray-600 mb-4">传承千年智慧 · 融合现代科技</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">{brandName}</h2>
+          <p className="text-gray-600 mb-4">{tagline}</p>
           <p className="text-sm text-gray-500">本网站所有内容受相关法律法规保护</p>
         </div>
 
@@ -39,8 +44,8 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">1. 版权归属</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              知微阁（域名：ming8.online）的所有内容，除非另有说明，其知识产权均归知微阁运营团队所有，
-              受《中华人民共和国著作权法》及相关国际条约的保护。
+              {brandName}（域名：{domain}）中由我们原创的内容，除另有说明外，其知识产权归{brandName}运营方所有，
+              受《中华人民共和国著作权法》及相关法律法规的保护。
             </p>
             <p>受版权保护的内容包括但不限于：</p>
             <ul className="pl-5 list-disc space-y-1">
@@ -58,12 +63,12 @@ export default function CopyrightPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">2. 禁止行为</h2>
           <div className="space-y-3 text-sm text-gray-600">
-            <p>未经知微阁书面授权，任何单位和个人不得以任何形式使用本网站内容，包括但不限于：</p>
+            <p>未经{brandName}运营方书面授权，任何单位和个人不得以任何形式使用本网站拥有知识产权的原创内容，包括但不限于：</p>
             <ul className="pl-5 list-disc space-y-2">
-              <li><strong>复制转载：</strong>未经授权将本网站内容复制、转载到其他平台</li>
-              <li><strong>商业使用：</strong>将本网站内容用于任何商业目的</li>
-              <li><strong>反向工程：</strong>对本网站进行反编译、反汇编或其他逆向工程</li>
-              <li><strong>镜像镜像：</strong>未经授权对本网站进行镜像或镜像站点搭建</li>
+              <li><strong>复制转载：</strong>未经授权将本网站原创内容复制、转载到其他平台</li>
+              <li><strong>商业使用：</strong>将本网站的原创内容用于任何商业目的</li>
+              <li><strong>反向工程：</strong>除遵循适用开源协议的要求及法律允许的情形外，对本网站<strong>未开源的自有代码与算法</strong>进行反编译、反汇编或其他逆向工程</li>
+              <li><strong>镜像搭建：</strong>未经授权对本网站进行镜像或镜像站点搭建</li>
               <li><strong>恶意采集：</strong>通过爬虫、机器人等方式批量采集本网站内容</li>
               <li><strong>修改篡改：</strong>修改、篡改本网站内容或去除版权声明</li>
             </ul>
@@ -82,7 +87,7 @@ export default function CopyrightPage() {
               <li><strong>评论说明：</strong>在评论、介绍本网站时引用少量文字或图片</li>
             </ul>
             <p className="bg-gray-50 p-3 rounded mt-3">
-              <strong>注明要求：</strong>合理使用时，请注明"出处：知微阁（ming8.online）"。
+              <strong>注明要求：</strong>合理使用时，请注明"出处：{brandName}"。
             </p>
           </div>
         </div>
@@ -92,12 +97,11 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-amber-900 mb-4">4. 开源致谢</h2>
           <div className="space-y-4 text-sm text-amber-900">
             <p>
-              知微阁在开发过程中，参考了 GitHub 开源社区中关于传统历法计算、命理排盘算法等方面的公开资料与实现思路。
-              在此向所有开源社区贡献者表示最诚挚的感谢！
+              {brandName}在开发过程中，参考了 GitHub 开源社区中关于传统历法计算、命理排盘算法等方面的公开资料与实现思路，并依据适用的开源协议（如 MIT、Apache-2.0、BSD 等）使用相应组件，履行保留版权声明、以相同协议分发等义务。在此向所有开源社区贡献者表示最诚挚的感谢！
             </p>
             <div className="bg-red-50 rounded-lg p-4 border border-red-200">
               <p className="text-xs text-red-800">
-                💡 <strong>声明：</strong>本站所有算法均为自主实现，未直接复制任何第三方源代码。
+                <strong>声明：</strong>本站自有算法均为自主实现，未直接复制第三方源代码；对于依据开源协议使用的组件，均按相应协议履行义务并保留原作者著作权声明，其著作权归相应作者所有。
                 如有权利人认为本站内容侵犯了其合法权益，请通过下方投诉邮箱联系我们，我们会尽快核实处理。
               </p>
             </div>
@@ -129,7 +133,7 @@ export default function CopyrightPage() {
               我们会在收到投诉后15个工作日内进行核实和处理。
             </p>
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-800 mb-2">投诉邮箱：support@ming8.online</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">投诉邮箱：{supportEmail}</h3>
               <p className="text-xs text-gray-500 mb-3">投诉时请提供以下信息：</p>
               <ul className="text-xs text-gray-600 space-y-1 pl-5 list-disc">
                 <li>权利人身份证明</li>
@@ -146,8 +150,8 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-4">7. 法律声明</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              本版权声明的最终解释权归知微阁运营团队所有。本声明的制定、执行和解释均适用中华人民共和国法律。
-              如因本声明产生争议，双方应友好协商解决；协商不成的，任何一方均可向知微阁所在地有管辖权的人民法院提起诉讼。
+              本声明的制定、执行和解释均适用中华人民共和国法律，并遵循诚实信用与公平原则。
+              如因本声明产生争议，双方应首先友好协商解决；协商不成的，任何一方均可依法向{brandName}运营方所在地有管辖权的人民法院提起诉讼。
             </p>
           </div>
         </div>
@@ -157,8 +161,8 @@ export default function CopyrightPage() {
           <h2 className="text-xl font-bold mb-4">联系我们</h2>
           <p className="text-sm opacity-90 mb-4">如有任何版权相关问题，欢迎随时联系我们：</p>
           <div className="space-y-2 text-sm">
-            <p>📧 邮箱：support@ming8.online</p>
-            <p>💬 微信公众号：知微阁</p>
+            <p>📧 邮箱：{supportEmail}</p>
+            <p>💬 微信公众号：{brandName}</p>
             <p>🕐 工作时间：工作日 9:00 - 18:00</p>
           </div>
         </div>

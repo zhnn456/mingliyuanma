@@ -7,25 +7,27 @@
 在项目根目录执行：
 
 ```powershell
-# 1. 本地构建
+# 0. 设置服务器登录凭据（二选一，不写进代码）
+$env:DEPLOY_SSH_PASSWORD = '<root密码>'        # 或 $env:DEPLOY_SSH_KEY = 'C:\path\to\id_rsa'
+
+# 1. 本地构建（必须，部署前会校验本地 BUILD_ID）
 npm run build:server
 
-# 2. 部署到中央站（默认）
-python scripts/deploy.py
+# 2. 部署（必须显式指定目标，不带 --target 会直接报错）
+python scripts/deploy.py --target ming8       # 中央站 ming8.online
+python scripts/deploy.py --target source      # 源码站 bazi6.cc.cd
+python scripts/deploy.py --target test-source # 测试SaaS站
 
-# 或部署到源码站
-python scripts/deploy.py --target source
-
-# 或部署到测试SaaS站
-python scripts/deploy.py --target test-source
+# 3. 源码站部署后验证（可选，只读检查：版本比对/静态资源/登录链路）
+python scripts/verify-bazi6.py
 ```
 
 `deploy.py` 会自动完成：
-1. 打包本地 `.next`（排除 cache，约 30MB）
+1. 打包本地 `.next` 与 `server.js`（仅排除 `.next/cache`、`.next/standalone`）
 2. SSH 上传到服务器 `/tmp/deploy-next.tar.gz`
-3. 备份旧 `.next` 到 `/www/ming8-backup-{时间戳}`
-4. 解压覆盖 `.next/static`、`.next/server`、`.next/BUILD_ID`
-5. PM2 重启 + 健康检查（HTTP 200）
+3. 备份旧 `.next` 和 `server.js` 到 `/www/ming8-backup-{时间戳}`
+4. 解压覆盖 `.next/static`、`.next/server`、`.next/BUILD_ID`、`routes-manifest.json`、`server.js`
+5. PM2 重启 + BUILD_ID 一致性强校验（不一致即中止）+ 线上健康检查
 
 ## 服务器环境
 
@@ -76,7 +78,7 @@ mysql -u ming8 -p ming8_db < scripts/update_supplies_compliance.sql
 
 | 服务器 | IP | 部署命令 |
 |--------|-----|---------|
-| 中央站 ming8.online | 47.79.237.103 | `python scripts\deploy.py` |
+| 中央站 ming8.online | 47.79.237.103 | `python scripts\deploy.py --target ming8` |
 | 源码站 bazi6.cc.cd | 47.79.3.189 | `python scripts\deploy.py --target source` |
 | 测试SaaS站 | 47.79.237.103 | `python scripts\deploy.py --target test-source` |
 

@@ -22,7 +22,7 @@ npm run build
 # 4. 初始化数据库（首次执行）
 if [ ! -f "$APP_DIR/.db-initialized" ]; then
   echo "首次运行，初始化数据库..."
-  mysql -u ming8 -p'Ming8@2026!' ming8_db < scripts/mysql-init.sql
+  mysql -u ming8 -p"${DB_PASS:?请先 export DB_PASS=<数据库密码>}" ming8_db < scripts/mysql-init.sql
   touch "$APP_DIR/.db-initialized"
 fi
 

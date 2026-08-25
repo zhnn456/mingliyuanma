@@ -6,6 +6,7 @@
  * - 安全响应头注入
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { getClientIPFromHeaders } from '@/lib/client-ip';
 
 const RATE_LIMIT_MAX = 100;
 const RATE_LIMIT_WINDOW = 60_000;
@@ -340,8 +341,8 @@ export async function middleware(req: NextRequest) {
 
   // 所有 API 统一限流（管理员 API 使用更宽松的阈值）
   if (!pathname.startsWith('/_next') && !pathname.startsWith('/admin')) {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    // 安全基线（安全审计 V-1）：不可信任 XFF 首元素，统一走 client-ip 信任链
+    const ip = getClientIPFromHeaders(req.headers);
     cleanupRateLimit();
     const key = `ip:${ip}`;
     const entry = rateLimitMap.get(key);

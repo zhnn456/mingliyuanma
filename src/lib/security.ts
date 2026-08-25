@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, queryFirst } from './d1';
+import { getClientIPFromHeaders } from './client-ip';
 
 // ============ 输入清理 ============
 
@@ -191,15 +192,11 @@ export async function checkIPRateLimit(
 
 /**
  * 获取客户端真实 IP
+ * 安全基线（安全审计 V-1）：不可信任 XFF 首元素（客户端可伪造），
+ * 统一走 client-ip.ts 的信任链：CF-Connecting-IP > X-Real-IP > XFF 最后元素
  */
 export function getClientIP(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-  const realIP = req.headers.get('x-real-ip');
-  if (realIP) return realIP;
-  return 'unknown';
+  return getClientIPFromHeaders(req.headers);
 }
 
 /**

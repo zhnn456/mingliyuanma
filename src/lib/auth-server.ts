@@ -151,11 +151,36 @@ export async function requireAuth(req: NextRequest) {
   return { allowed: !!session, session };
 }
 
-/** 要求管理员权限（demo 演示账号也可访问 GET 接口，写操作由 middleware 拦截） */
+/**
+ * demo 演示账号可访问的管理接口白名单（安全审计 V-3）
+ * demo 密码会提供给外部潜在客户，仅允许浏览非敏感的展示类数据；
+ * 订单/财务/用户/退款等含真实客户信息的接口一律拒绝。
+ */
+const DEMO_ALLOWED_ADMIN_PATHS = [
+  '/api/admin/stats',
+  '/api/admin/announcement',
+  '/api/admin/articles',
+  '/api/admin/encyclopedia',
+  '/api/admin/banners',
+  '/api/admin/kb',
+  '/api/admin/update-logs',
+  '/api/admin/updates',
+  '/api/admin/plans',
+  '/api/admin/supplies',
+  '/api/admin/tags',
+];
+
+/** 要求管理员权限（demo 演示账号仅可 GET 白名单内的展示接口，写操作由 middleware 拦截） */
 export async function requireAdmin(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return { allowed: false, session: null };
   if (session.role !== 'admin' && session.role !== 'demo') return { allowed: false, session: null };
+  if (session.role === 'demo') {
+    const path = new URL(req.url).pathname;
+    const ok = req.method === 'GET' &&
+      DEMO_ALLOWED_ADMIN_PATHS.some(p => path === p || path.startsWith(p + '/'));
+    if (!ok) return { allowed: false, session };
+  }
   return { allowed: true, session };
 }
 

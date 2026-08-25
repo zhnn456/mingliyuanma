@@ -5,7 +5,7 @@ import os
 
 HOST = '47.79.237.103'
 USER = 'root'
-PWD = 'Aa20260618'
+PWD = os.environ['DEPLOY_SSH_PASSWORD']
 
 LOCAL_IMG = r'f:\mingliyuanma\public\images\personal-alipay-qr.jpg'
 REMOTE_IMG = '/www/ming8/public/images/personal-alipay-qr.jpg'

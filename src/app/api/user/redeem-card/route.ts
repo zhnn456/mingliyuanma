@@ -22,8 +22,14 @@ export async function POST(req: NextRequest) {
     }
     const userId = session.sub;
 
-    const rl = await checkIPRateLimit(`card:${userId}:${getClientIP(req)}`, 10, 60_000);
-    if (!rl.allowed) {
+    // 安全基线（安全审计 V-2）：双重限流 —— 用户+IP 维度防单账号爆破，纯 IP 维度防换号绕过
+    const ip = getClientIP(req);
+    const rlByUser = await checkIPRateLimit(`card:${userId}:${ip}`, 10, 60_000);
+    if (!rlByUser.allowed) {
+      return NextResponse.json({ error: '兑换尝试过于频繁，请稍后再试' }, { status: 429 });
+    }
+    const rlByIP = await checkIPRateLimit(`cardip:${ip}`, 20, 60_000);
+    if (!rlByIP.allowed) {
       return NextResponse.json({ error: '兑换尝试过于频繁，请稍后再试' }, { status: 429 });
     }
 
